@@ -2,9 +2,10 @@
  * Waveshare 7-DSI-TOUCH-A (ILI9881C 720x1280) na ESP32-P4-Pico.
  *
  * O controlador auxiliar 0x45 (alimentacao e backlight) usa o mesmo I2C do GT911.
- * O driver do toque nao muda: startTouchGT911 abre ou reutiliza esse barramento.
+ * startTouchGT911Waveshare reutiliza esse barramento, sonda 0x5D e 0x14
+ * e nao grava a configuracao do chip.
  *
- * user_setup.h: DISP_DEFAULT + TOUCH_GT911
+ * user_setup.h: DISP_DEFAULT + TOUCH_GT911_WAVESHARE
  * Serial 115200.
  * Placa: https://www.waveshare.com/wiki/ESP32-P4-Pico
  */
@@ -12,8 +13,8 @@
 #include <Arduino_GFX_Library.h>
 #include <displayfk.h>
 
-#if !defined(DISP_DEFAULT) || !defined(TOUCH_GT911)
-#error "This example requires DISP_DEFAULT and TOUCH_GT911 in user_setup.h"
+#if !defined(DISP_DEFAULT) || !defined(TOUCH_GT911_WAVESHARE)
+#error "This example requires DISP_DEFAULT and TOUCH_GT911_WAVESHARE in user_setup.h"
 #endif
 
 #if !defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -21,8 +22,6 @@
 #endif
 
 const uint8_t rotationScreen = 0;
-const int8_t kTouchInt = -1;
-const int8_t kTouchRst = -1;
 
 Arduino_ESP32DSIPanel *bus = nullptr;
 Arduino_DSI_Display *tft = nullptr;
@@ -93,14 +92,12 @@ void setup()
     myDisplay.setTouchCorners(0, ILI9881C_WAVESHARE_7_WIDTH, 0, ILI9881C_WAVESHARE_7_HEIGHT);
     myDisplay.setInvertAxis(false, false);
     myDisplay.setSwapAxis(false);
-    myDisplay.startTouchGT911(
+    myDisplay.startTouchGT911Waveshare(
         ILI9881C_WAVESHARE_7_WIDTH,
         ILI9881C_WAVESHARE_7_HEIGHT,
         rotationScreen,
         ILI9881C_WAVESHARE_7_SDA,
-        ILI9881C_WAVESHARE_7_SCL,
-        kTouchInt,
-        kTouchRst);
+        ILI9881C_WAVESHARE_7_SCL);
     myDisplay.enableTouchLog();
     myDisplay.loadScreen(screen0);
     myDisplay.createTask(false, 3);

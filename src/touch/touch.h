@@ -31,6 +31,8 @@
     #pragma message("Using CST816 touch driver")
   #elif defined(TOUCH_GT911)
     #pragma message("Using GT911 touch driver")
+  #elif defined(TOUCH_GT911_WAVESHARE)
+    #pragma message("Using GT911 Waveshare touch driver")
   #elif defined(TOUCH_GSL3680)
     #pragma message("Using GSL3680 touch driver")
   #elif defined(TOUCH_CST820)
@@ -54,6 +56,8 @@
   #elif defined(TOUCH_GT911)
     #include <Wire.h>
     #include "gt911/TAMC_GT911.h"
+  #elif defined(TOUCH_GT911_WAVESHARE)
+    #include "gt911waveshare/gt911waveshare.h"
   #elif defined(TOUCH_GSL3680)
     //#include <Wire.h>
     #include "gsl3680/src/gsl3680_touch.h"
@@ -132,6 +136,10 @@ static const char *TAG; ///< Tag estática para identificação em logs do ESP32
   #elif defined(TOUCH_GT911)
   TAMC_GT911 *m_ts = nullptr;
   int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+
+  #elif defined(TOUCH_GT911_WAVESHARE)
+  Gt911Waveshare *m_ts = nullptr;
+  int8_t m_pinSCL = 0, m_pinSDA = 0;
 
   #elif defined(TOUCH_GSL3680)
   GSL3680_touch *m_ts = nullptr;
@@ -213,6 +221,9 @@ public:
 
   #elif defined(TOUCH_GT911)
   void startAsGT911(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST);
+
+  #elif defined(TOUCH_GT911_WAVESHARE)
+  void startAsGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL);
 
   #elif defined(TOUCH_GSL3680)
   void startAsGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST);

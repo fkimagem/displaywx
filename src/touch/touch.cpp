@@ -80,6 +80,16 @@ void TouchScreen::startAsGT911(uint16_t w, uint16_t h, uint8_t _rotation, uint8_
   touch_init();
   log_d("Starting gt911 touch panel driver");
 }
+#elif defined(TOUCH_GT911_WAVESHARE)
+void TouchScreen::startAsGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL)
+{
+  this->setDimension(w, h, _rotation);
+  m_ts = new Gt911Waveshare();
+  m_pinSCL = pinSCL;
+  m_pinSDA = pinSDA;
+  touch_init();
+  log_d("Starting gt911 waveshare touch panel driver");
+}
 #elif defined(TOUCH_GSL3680)
 void TouchScreen::startAsGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
@@ -228,6 +238,11 @@ void TouchScreen::touch_init()
   m_ts->begin();
   m_ts->setRotation(m_rotation);
 
+#elif defined(TOUCH_GT911_WAVESHARE)
+  if (!m_ts->begin(m_pinSDA, m_pinSCL, m_widthScreen, m_heightScreen)) {
+    Serial.println("GT911 Waveshare nao iniciado");
+  }
+
 #elif defined(TOUCH_XPT2046)
 
   if (m_displayPinCS > 0)
@@ -324,7 +339,7 @@ bool TouchScreen::touch_has_signal()
   m_ts->loop();
   return m_touch_touched_flag || m_touch_released_flag;
 
-#elif defined(TOUCH_GT911)
+#elif defined(TOUCH_GT911) || defined(TOUCH_GT911_WAVESHARE)
   return true;
 
 #elif defined(TOUCH_XPT2046)
@@ -367,7 +382,7 @@ bool TouchScreen::touch_touched()
   return touched;
 
 
-#elif defined(TOUCH_GT911)
+#elif defined(TOUCH_GT911) || defined(TOUCH_GT911_WAVESHARE)
   m_ts->read();
   if (m_ts->isTouched)
   {
@@ -675,7 +690,7 @@ bool TouchScreen::touch_released()
     return false;
   }
 
-#elif defined(TOUCH_GT911)
+#elif defined(TOUCH_GT911) || defined(TOUCH_GT911_WAVESHARE)
   return true;
 
 #elif defined(TOUCH_XPT2046)

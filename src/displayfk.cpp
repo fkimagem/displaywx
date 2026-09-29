@@ -1989,6 +1989,28 @@ void DisplayFK::startTouchGT911(uint16_t w, uint16_t h, uint8_t _rotation, int8_
         }
     }
 }
+#elif defined(TOUCH_GT911_WAVESHARE)
+void DisplayFK::startTouchGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL)
+{
+    m_widthScreen = w;
+    m_rotationScreen = _rotation;
+    m_heightScreen = h;
+    if (!touchExterno)
+    {
+        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
+        if (touchExterno)
+        {
+            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+            touchExterno->setSwapAxis(m_swapAxis);
+            touchExterno->startAsGT911Waveshare(w, h, _rotation, pinSDA, pinSCL);
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
+        }
+    }
+}
 #elif defined(TOUCH_GSL3680)
 void DisplayFK::startTouchGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
