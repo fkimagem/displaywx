@@ -19,6 +19,7 @@ extern "C" void displayfk_link_ov02c10_ipa(void);
 #if defined(CAM_OV5647)
 extern "C" void displayfk_link_ov5647_hook(void);
 extern "C" void displayfk_link_ov5647_ipa(void);
+#include "../ov5647/ov5647/ov5647.h"
 #endif
 #if defined(CAM_SC2336)
 extern "C" void displayfk_link_sc2336_hook(void);
@@ -46,8 +47,40 @@ static void pullCameraDriverIntoLink(void)
 #endif
 }
 
-CameraController::CameraController() : m_buffer(nullptr), m_ppaSrm(nullptr), m_xclk(nullptr)
+CameraController::CameraController() : m_buffer(nullptr), m_ppaSrm(nullptr), m_xclk(nullptr), m_sensorWidth(0), m_sensorHeight(0)
 {
+}
+
+bool CameraController::sensorUsesRaw10() const
+{
+    if (m_sensorWidth == 1920 && m_sensorHeight == 1080) {
+        return true;
+    }
+    return m_sensorWidth == 1280 && m_sensorHeight == 960;
+}
+
+bool CameraController::selectSensorSize(uint16_t width, uint16_t height)
+{
+#if defined(CAM_OV5647)
+    if (width == 0 && height == 0) {
+        return true;
+    }
+    if (ov5647_select_mipi_size(width, height) != ESP_OK) {
+        Serial.printf("failed to select OV5647 MIPI size %ux%u\n", width, height);
+        ESP_LOGE(TAG, "failed to select OV5647 MIPI size %ux%u", width, height);
+        return false;
+    }
+    m_sensorWidth = width;
+    m_sensorHeight = height;
+    Serial.printf("OV5647 MIPI size selected: %ux%u\n", width, height);
+    ESP_LOGI(TAG, "OV5647 MIPI size selected: %ux%u", width, height);
+    return true;
+#else
+    if (width != 0 || height != 0) {
+        ESP_LOGW(TAG, "sensor size %ux%u ignored for %s", width, height, sensorName());
+    }
+    return true;
+#endif
 }
 
 const char *CameraController::sensorName() const
@@ -70,6 +103,9 @@ esp_video_format_t CameraController::fallbackFormat() const
 #if defined(CAM_OV02C10)
     return ESP_VIDEO_FORMAT_RAW10;
 #elif defined(CAM_OV5647)
+    if (sensorUsesRaw10()) {
+        return ESP_VIDEO_FORMAT_RAW10;
+    }
     return ESP_VIDEO_FORMAT_RAW8;
 #elif defined(CAM_SC2336)
     return ESP_VIDEO_FORMAT_RAW8;
@@ -85,6 +121,9 @@ const char *CameraController::fallbackFormatName() const
 #if defined(CAM_OV02C10)
     return "RAW10";
 #elif defined(CAM_OV5647)
+    if (sensorUsesRaw10()) {
+        return "RAW10";
+    }
     return "RAW8";
 #elif defined(CAM_SC2336)
     return "RAW8";
@@ -112,7 +151,7 @@ bool CameraController::startWithFormat(esp_video_format_t format, const char *fo
     return true;
 }
 
-bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin)
+bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
 {
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 4, 0)
     ESP_LOGE(TAG, "ESP_IDF_VERSION < 5.4.0, CSI camera is not supported");
@@ -123,6 +162,9 @@ bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_
 #else
     m_buffer = nullptr;
     pullCameraDriverIntoLink();
+    if (!selectSensorSize(sensorWidth, sensorHeight)) {
+        return false;
+    }
 
     ESPVideoCamConfigClass camConfig;
     if (i2cFreq == 0 && resetPin < 0 && pwdnPin < 0)

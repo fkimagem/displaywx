@@ -1,9 +1,9 @@
 #define DISP_DEFAULT	
 //#define TOUCH_GSL3680	
-//#define TOUCH_GT911
+#define TOUCH_GT911
 //#define HAS_TOUCH	
 #define USE_CAMERA_CSI
 //#define CAM_OV02C10
-//#define CAM_OV5647
+#define CAM_OV5647
 //#define CAM_SC2336
-#define CAM_OV2710
+//#define CAM_OV2710

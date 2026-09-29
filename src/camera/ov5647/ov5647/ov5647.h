@@ -16,6 +16,14 @@ extern "C" {
 #define OV5647_SENSOR_NAME "OV5647"
 
 /**
+ * @brief Choose the MIPI table used on detect and set_format(NULL).
+ *
+ * CameraController calls this before ESPVideoClass::begin(). Width and height must
+ * match one compiled table: 800x1280, 800x640, 800x800, 1920x1080, 1280x960.
+ */
+esp_err_t ov5647_select_mipi_size(uint16_t width, uint16_t height);
+
+/**
  * @brief Power on camera sensor device and detect the device connected to the designated sccb bus.
  *
  * @param[in] config Configuration related to device power-on and detection.

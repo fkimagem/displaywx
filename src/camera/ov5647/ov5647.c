@@ -8,6 +8,7 @@
 
 #if defined(CAM_OV5647)
 
+#include <stdbool.h>
 #include <string.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -35,6 +36,10 @@
 #define OV5647_SUPPORT_NUM CONFIG_CAMERA_OV5647_MAX_SUPPORT
 
 static const char *TAG = "ov5647";
+
+struct ov5647_cam {
+    int ae_target_level;
+};
 
 static const esp_cam_sensor_isp_info_t ov5647_isp_info[] = {
     {
@@ -211,14 +216,52 @@ static const esp_cam_sensor_format_t ov5647_format_info[] = {
 #endif
 };
 
-static uint8_t get_ov5647_actual_format_index(void)
+static uint8_t ov5647_preferred_array_index;
+static bool ov5647_preferred_was_set;
+
+static uint8_t ov5647_index_from_kconfig(void)
 {
-    for (int i = 0; i < ARRAY_SIZE(ov5647_format_index); i++) {
+    size_t i = 0;
+
+    while (i < ARRAY_SIZE(ov5647_format_index)) {
         if (ov5647_format_index[i] == ov5647_format_default_index) {
-            return i;
+            return (uint8_t)i;
         }
+        i++;
     }
     return 0;
+}
+
+static uint8_t get_ov5647_actual_format_index(void)
+{
+    if (ov5647_preferred_was_set) {
+        return ov5647_preferred_array_index;
+    }
+    return ov5647_index_from_kconfig();
+}
+
+esp_err_t ov5647_select_mipi_size(uint16_t width, uint16_t height)
+{
+    size_t i = 0;
+
+    while (i < ARRAY_SIZE(ov5647_format_info)) {
+        const esp_cam_sensor_format_t *format = &ov5647_format_info[i];
+        if (format->width != width) {
+            i++;
+            continue;
+        }
+        if (format->height != height) {
+            i++;
+            continue;
+        }
+        ov5647_preferred_array_index = (uint8_t)i;
+        ov5647_preferred_was_set = true;
+        ESP_LOGI(TAG, "selected %s", format->name);
+        return ESP_OK;
+    }
+
+    ESP_LOGE(TAG, "no MIPI format for %ux%u", width, height);
+    return ESP_ERR_NOT_FOUND;
 }
 
 static esp_err_t ov5647_read(esp_sccb_io_handle_t sccb_handle, uint16_t reg, uint8_t *read_buf)
@@ -395,6 +438,7 @@ static esp_err_t ov5647_query_para_desc(esp_cam_sensor_device_t *dev, esp_cam_se
         qdesc->number.step = 1;
         qdesc->default_value = 0;
         break;
+    case ESP_CAM_SENSOR_AE_LEVEL:
     case ESP_CAM_SENSOR_EXPOSURE_VAL:
         qdesc->type = ESP_CAM_SENSOR_PARAM_TYPE_NUMBER;
         qdesc->number.minimum = 2;
@@ -413,12 +457,27 @@ static esp_err_t ov5647_query_para_desc(esp_cam_sensor_device_t *dev, esp_cam_se
 
 static esp_err_t ov5647_get_para_value(esp_cam_sensor_device_t *dev, uint32_t id, void *arg, size_t size)
 {
-    return ESP_ERR_NOT_SUPPORTED;
+    esp_err_t ret = ESP_OK;
+    struct ov5647_cam *cam = (struct ov5647_cam *)dev->priv;
+
+    switch (id) {
+    case ESP_CAM_SENSOR_AE_LEVEL:
+    case ESP_CAM_SENSOR_EXPOSURE_VAL:
+        ESP_RETURN_ON_FALSE(cam != NULL, ESP_ERR_INVALID_STATE, TAG, "priv is null");
+        ESP_RETURN_ON_FALSE(size == 4, ESP_ERR_INVALID_ARG, TAG, "Para size err");
+        *(uint32_t *)arg = (uint32_t)cam->ae_target_level;
+        break;
+    default:
+        ret = ESP_ERR_NOT_SUPPORTED;
+        break;
+    }
+    return ret;
 }
 
 static esp_err_t ov5647_set_para_value(esp_cam_sensor_device_t *dev, uint32_t id, const void *arg, size_t size)
 {
     esp_err_t ret = ESP_OK;
+    struct ov5647_cam *cam = (struct ov5647_cam *)dev->priv;
 
     switch (id) {
     case ESP_CAM_SENSOR_VFLIP: {
@@ -433,10 +492,14 @@ static esp_err_t ov5647_set_para_value(esp_cam_sensor_device_t *dev, uint32_t id
         ret = ov5647_set_mirror(dev, *value);
         break;
     }
+    case ESP_CAM_SENSOR_AE_LEVEL:
     case ESP_CAM_SENSOR_EXPOSURE_VAL: {
         int *value = (int *)arg;
 
         ret = ov5647_set_AE_target(dev, *value);
+        if (ret == ESP_OK && cam != NULL) {
+            cam->ae_target_level = *value;
+        }
         break;
     }
     default: {
@@ -755,6 +818,10 @@ static esp_err_t ov5647_delete(esp_cam_sensor_device_t *dev)
 {
     ESP_LOGD(TAG, "del ov5647 (%p)", dev);
     if (dev) {
+        if (dev->priv) {
+            free(dev->priv);
+            dev->priv = NULL;
+        }
         free(dev);
         dev = NULL;
     }
@@ -789,6 +856,14 @@ esp_cam_sensor_device_t *ov5647_detect(esp_cam_sensor_config_t *config)
         return NULL;
     }
 
+    struct ov5647_cam *cam = calloc(1, sizeof(struct ov5647_cam));
+    if (cam == NULL) {
+        ESP_LOGE(TAG, "No memory for camera priv");
+        free(dev);
+        return NULL;
+    }
+    cam->ae_target_level = OV5647_AE_TARGET_DEFAULT;
+
     dev->name = (char *)OV5647_SENSOR_NAME;
     dev->sccb_handle = config->sccb_handle;
     dev->xclk_pin = config->xclk_pin;
@@ -796,6 +871,7 @@ esp_cam_sensor_device_t *ov5647_detect(esp_cam_sensor_config_t *config)
     dev->pwdn_pin = config->pwdn_pin;
     dev->sensor_port = config->sensor_port;
     dev->ops = &ov5647_ops;
+    dev->priv = cam;
     if (config->sensor_port == ESP_CAM_SENSOR_MIPI_CSI) {
         dev->cur_format = &ov5647_format_info[get_ov5647_actual_format_index()];
     } else {
@@ -827,6 +903,10 @@ esp_cam_sensor_device_t *ov5647_detect(esp_cam_sensor_config_t *config)
 
 err_free_handler:
     ov5647_power_off(dev);
+    if (dev->priv) {
+        free(dev->priv);
+        dev->priv = NULL;
+    }
     free(dev);
 
     return NULL;

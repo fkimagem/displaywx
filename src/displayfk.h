@@ -158,6 +158,8 @@ static const lcd_init_cmd_t ek79007_init_operations[] = {
     {0x11, (uint8_t[]){0x00}, 0, 120},
     {0x29, (uint8_t[]){0x00}, 0, 20},
 };
+
+#include "displays/ili9881c_waveshare_7in.h"
 #endif
 /**
  * @brief Maximum length for a single log line
@@ -399,6 +401,8 @@ public:
 #endif
     void createTask(bool enableWatchdog, uint16_t timeout_s = 3);
     void drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], const uint8_t _mask[], uint16_t _w, uint16_t _h);
+    bool waveshareDsiAuxBegin(int sda, int scl);
+    bool waveshareDsiAuxBacklight(uint8_t brightness);
     void enableTouchLog();
     void disableTouchLog();
     void addLog(const char *data);
@@ -408,7 +412,7 @@ public:
 #if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
     CameraController &getCamera();
     void setRotationCamera(uint8_t rotation, bool mirrorX = false, bool mirrorY = false);
-    bool startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1);
+    bool startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1, uint16_t sensorWidth = 0, uint16_t sensorHeight = 0);
 #endif
     void setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y);
     void startAutoClick();

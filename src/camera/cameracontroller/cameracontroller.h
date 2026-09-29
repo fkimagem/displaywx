@@ -21,7 +21,7 @@ class CameraController
 public:
     CameraController();
 
-    bool begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1);
+    bool begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1, uint16_t sensorWidth = 0, uint16_t sensorHeight = 0);
     bool enableBoardPower(int8_t pin, bool activeHigh = true, uint32_t settleMs = 20);
     bool startXclk(int8_t pin, uint32_t freqHz);
     bool startPpa();
@@ -34,6 +34,8 @@ public:
 
 private:
     bool startWithFormat(esp_video_format_t format, const char *formatName);
+    bool selectSensorSize(uint16_t width, uint16_t height);
+    bool sensorUsesRaw10() const;
     const char *sensorName() const;
     esp_video_format_t fallbackFormat() const;
     const char *fallbackFormatName() const;
@@ -44,6 +46,8 @@ private:
     ESPVideoBufferClass *m_buffer;
     ppa_client_handle_t m_ppaSrm;
     esp_cam_sensor_xclk_handle_t m_xclk;
+    uint16_t m_sensorWidth;
+    uint16_t m_sensorHeight;
     static const size_t kCaptureBufferCount = 2;
 };
 

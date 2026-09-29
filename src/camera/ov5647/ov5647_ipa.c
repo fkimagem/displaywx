@@ -66,79 +66,45 @@ static const esp_ipa_awb_config_t s_ipa_awb_OV5647_0_config = {
     .type_counter_max = 20000,
 };
 
-static const esp_ipa_agc_meter_light_threshold_t s_ipa_agc_meter_light_thresholds_OV5647_0[] = {
-    {
-        .luma_threshold = 20,
-        .weight_offset = 1,
-    },
-    {
-        .luma_threshold = 55,
-        .weight_offset = 2,
-    },
-    {
-        .luma_threshold = 95,
-        .weight_offset = 3,
-    },
-    {
-        .luma_threshold = 155,
-        .weight_offset = 4,
-    },
-    {
-        .luma_threshold = 235,
-        .weight_offset = 5,
-    },
+static const float s_ipa_ian_env_speed_OV5647_0[] = {
+    -0.005463f, -0.010018f, 0.000000f, 0.033241f, 0.085583f, 0.136704f, 0.160734f, 0.148777f,
+    0.148777f, 0.160734f, 0.136704f, 0.085583f, 0.033241f, 0.000000f, -0.010018f, -0.005463f,
 };
 
-static const esp_ipa_agc_config_t s_ipa_agc_OV5647_0_config = {
-    .exposure_frame_delay = 3,
-    .exposure_adjust_delay = 0,
-    .gain_frame_delay = 3,
-    .min_gain_step = 0.03,
-    .max_gain = 0,
-    .inc_gain_ratio = 0.32,
-    .dec_gain_ratio = 0.42,
-    .anti_flicker_mode = ESP_IPA_AGC_ANTI_FLICKER_FULL,
-    .ac_freq = 50,
-    .luma_low = 48,
-    .luma_high = 85,
-    .luma_target = 75,
-    .luma_low_threshold = 14,
-    .luma_low_regions = 5,
-    .luma_high_threshold = 239,
-    .luma_high_regions = 3,
-    .luma_weight_table = {
-        1, 1, 2, 1, 1, 1, 2, 3, 2, 1, 1, 3, 5, 3, 1, 1, 2, 3, 2, 1, 1, 1, 2, 1, 1, 
-    },
-    .meter_mode = ESP_IPA_AGC_METER_HIGHLIGHT_PRIOR,
-    .high_light_prior_config = {
-        .use_env_luma = false,
-        .luma_high_threshold = 202,
-        .luma_low_threshold = 119,
-        .weight_offset = 5,
-        .luma_offset = -1
-    },
-    .low_light_prior_config = {
-        .use_env_luma = false,
-        .luma_high_threshold = 64,
-        .luma_low_threshold = 49,
-        .weight_offset = 5,
-        .luma_offset = 1
-    },
-    .light_threshold_config = {
-        .use_env_luma = false,
-        .table = s_ipa_agc_meter_light_thresholds_OV5647_0,
-        .table_size = ARRAY_SIZE(s_ipa_agc_meter_light_thresholds_OV5647_0)
-    },
-};
-
-static const esp_ipa_ian_luma_ae_config_t s_esp_ipa_ian_luma_ae_OV5647_0_config = {                 
+static const esp_ipa_ian_luma_ae_config_t s_esp_ipa_ian_luma_ae_OV5647_0_config = {
     .weight = {
-        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    },
+};
+
+static const esp_ipa_ian_luma_env_config_t s_esp_ipa_ian_luma_env_OV5647_0_config = {
+    .k = 250000,
+    .speed_param = s_ipa_ian_env_speed_OV5647_0,
+    .speed_param_size = ARRAY_SIZE(s_ipa_ian_env_speed_OV5647_0),
+    .weight = {
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     },
 };
 
 static const esp_ipa_ian_luma_config_t s_esp_ipa_ian_luma_OV5647_0_config = {
     .ae = &s_esp_ipa_ian_luma_ae_OV5647_0_config,
+    .env = &s_esp_ipa_ian_luma_env_OV5647_0_config,
+};
+
+static const esp_ipa_atc_luma_lut_t s_ipa_atc_luma_lut_OV5647_0[] = {
+    { .luma = 250, .ae_value = 48 },
+    { .luma = 500, .ae_value = 60 },
+    { .luma = 750, .ae_value = 80 },
+};
+
+static const esp_ipa_atc_config_t s_ipa_atc_OV5647_0_config = {
+    .model = ESP_IPA_ATC_MODEL_0,
+    .init_value = 80,
+    .delay_frames = 3,
+    .luma_env = "env.luma.avg",
+    .min_ae_value_step = 5,
+    .luma_lut = s_ipa_atc_luma_lut_OV5647_0,
+    .luma_lut_size = ARRAY_SIZE(s_ipa_atc_luma_lut_OV5647_0),
 };
 
 static const esp_ipa_ian_config_t s_ipa_ian_OV5647_0_config = {
@@ -270,11 +236,11 @@ static const esp_ipa_aen_config_t s_ipa_aen_OV5647_0_config = {
 
 static const char *s_ipa_OV5647_0_names[] = {
     "esp_ipa_awb",
-    "esp_ipa_agc",
     "esp_ipa_ian",
     "esp_ipa_acc",
     "esp_ipa_adn",
     "esp_ipa_aen",
+    "esp_ipa_atc",
 };
 
 static const esp_ipa_config_t s_ipa_OV5647_0_config = {
@@ -282,11 +248,11 @@ static const esp_ipa_config_t s_ipa_OV5647_0_config = {
     .nums = ARRAY_SIZE(s_ipa_OV5647_0_names),
     .version = 1,
     .awb = &s_ipa_awb_OV5647_0_config,
-    .agc = &s_ipa_agc_OV5647_0_config,
     .ian = &s_ipa_ian_OV5647_0_config,
     .acc = &s_ipa_acc_OV5647_0_config,
     .adn = &s_ipa_adn_OV5647_0_config,
     .aen = &s_ipa_aen_OV5647_0_config,
+    .atc = &s_ipa_atc_OV5647_0_config,
 };
 
 static const esp_video_ipa_index_t s_video_ipa_configs[] = {
@@ -329,5 +295,6 @@ void displayfk_link_ov5647_ipa(void)
 
 #endif /* CAM_OV5647 */
 
-/* Json file: ov5647/ov5647_default.json (ACC/ADN/AEN). AWB/AGC do template OV02C10: o JSON oficial nao traz. AF omitido (motor GPIO0 desligado). */
+/* JSON oficial sem AGC: OV5647 so expoe EXPOSURE_VAL/AE_LEVEL, sem ganho.
+ * AGC + ANTI_FLICKER_FULL falha no ISP. ATC ajusta o alvo de AE. */
 

@@ -1134,9 +1134,9 @@ void DisplayFK::setRotationCamera(uint8_t rotation, bool mirrorX, bool mirrorY)
     m_cameraMirrorY = mirrorY;
 }
 
-bool DisplayFK::startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin)
+bool DisplayFK::startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
 {
-    return m_camera.begin(sccbPort, sclPin, sdaPin, i2cFreq, resetPin, pwdnPin);
+    return m_camera.begin(sccbPort, sclPin, sdaPin, i2cFreq, resetPin, pwdnPin, sensorWidth, sensorHeight);
 }
 #endif
 
