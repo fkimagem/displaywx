@@ -147,7 +147,7 @@ isRunningAutoClick	KEYWORD2
 listFiles	KEYWORD2
 loadScreen	KEYWORD2
 loop	KEYWORD2
-loopTask	KEYWORD2
+displayfkTask	KEYWORD2
 mapTouch	KEYWORD2
 onClick	KEYWORD2
 open	KEYWORD2

@@ -6,7 +6,7 @@
  * Sem rotação: menos tráfego de memória. Crop 800x1080 no FB nativo 800x1280.
  * Não há zero-copy: 1920x1080 da câmera não cabe no painel.
  *
- * user_setup.h: USE_CAMERA_CSI + CAM_OV02C10
+ * user_setup.h: HAS_CAMERA_MIPI + CAM_OV02C10
  * Serial 115200 só no setup.
  */
 #include "Arduino.h"
@@ -28,8 +28,8 @@ Arduino_DSI_Display *tft = nullptr;
 DisplayFK myDisplay;
 ppa_client_handle_t ppa_srm = nullptr;
 
-#if !defined(USE_CAMERA_CSI) || !defined(CAM_OV02C10)
-#error "This example requires USE_CAMERA_CSI and CAM_OV02C10 in user_setup.h"
+#if !defined(HAS_CAMERA_MIPI) || !defined(CAM_OV02C10)
+#error "This example requires HAS_CAMERA_MIPI and CAM_OV02C10 in user_setup.h"
 #endif
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)

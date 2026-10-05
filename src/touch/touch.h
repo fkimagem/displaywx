@@ -122,20 +122,20 @@ static const char *TAG; ///< Tag estática para identificação em logs do ESP32
   bool m_touch_released_flag = true;
   FT6236 *m_ts = nullptr;
   static TouchScreen *m_instance;
-  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
 
   #elif defined(TOUCH_FT6336)
   FT6336U *m_ts = nullptr;
   FT6336U_TouchPointType tp;
-  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
   
   #elif defined(TOUCH_CST816)
   CST816S *m_ts = nullptr;
-  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
 
   #elif defined(TOUCH_GT911)
   TAMC_GT911 *m_ts = nullptr;
-  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
 
   #elif defined(TOUCH_GT911_WAVESHARE)
   Gt911Waveshare *m_ts = nullptr;
@@ -143,11 +143,11 @@ static const char *TAG; ///< Tag estática para identificação em logs do ESP32
 
   #elif defined(TOUCH_GSL3680)
   GSL3680_touch *m_ts = nullptr;
-  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+  int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
 
   #elif defined(TOUCH_CST820)
  CST820 *m_ts = nullptr;
-int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = 0, m_pinRST = 0;
+int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
   #else
   //
   #endif
@@ -184,6 +184,9 @@ public:
   void setDimension(uint16_t _width, uint16_t _height, uint8_t _rotation);
   uint8_t m_gesture = 0; ///< Gesture identifier for touch events.
   bool getTouch(uint16_t *xTouch, uint16_t *yTouch, int *zPressure);
+  int8_t interruptPin() const;
+  void armInterruptNotify(TaskHandle_t task);
+  void disarmInterruptNotify();
   uint8_t getGesture();
   uint8_t getRotation();
 

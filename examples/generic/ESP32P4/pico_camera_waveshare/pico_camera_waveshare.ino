@@ -7,7 +7,7 @@
  * Hardware Pico: SCCB GPIO 8/7; CSI 2-lane no conector FPC. XCLK/RST nao
  * vem do MCU (cristal de 24 MHz no modulo Raspberry).
  *
- * user_setup.h: USE_CAMERA_CSI + CAM_OV5647
+ * user_setup.h: HAS_CAMERA_MIPI + CAM_OV5647
  * Serial 115200.
  * Placa: https://www.waveshare.com/wiki/ESP32-P4-Pico
  */
@@ -22,8 +22,8 @@
 #error "ORIENTATION must be 0, 1, 2 or 3"
 #endif
 
-#if !defined(USE_CAMERA_CSI) || !defined(CAM_OV5647)
-#error "This example requires USE_CAMERA_CSI and CAM_OV5647 in user_setup.h"
+#if !defined(HAS_CAMERA_MIPI) || !defined(CAM_OV5647)
+#error "This example requires HAS_CAMERA_MIPI and CAM_OV5647 in user_setup.h"
 #endif
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)

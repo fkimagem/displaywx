@@ -1,6 +1,7 @@
 #include "cameracontroller.h"
+#include "../../touch/share_i2c.h"
 
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 
 
 #include "esp_log.h"
@@ -47,8 +48,9 @@ static void pullCameraDriverIntoLink(void)
 #endif
 }
 
-CameraController::CameraController() : m_buffer(nullptr), m_ppaSrm(nullptr), m_xclk(nullptr), m_sensorWidth(0), m_sensorHeight(0)
+CameraController::CameraController() : m_buffer(nullptr), m_ppaSrm(nullptr), m_xclk(nullptr), m_cameraBusy(nullptr), m_sensorWidth(0), m_sensorHeight(0), m_ready(false)
 {
+    m_cameraBusy = xSemaphoreCreateMutexStatic(&m_cameraBusyBuffer);
 }
 
 bool CameraController::sensorUsesRaw10() const
@@ -151,8 +153,26 @@ bool CameraController::startWithFormat(esp_video_format_t format, const char *fo
     return true;
 }
 
+void CameraController::releaseAfterFailedStart()
+{
+    m_ready = false;
+    m_buffer = nullptr;
+    if (m_captureDev.isOpened()) {
+        m_captureDev.end();
+    }
+    m_video.end();
+}
+
+void CameraController::markReady()
+{
+    m_ready = true;
+    Serial.printf("%s detected, CSI video device ready\n", sensorName());
+    ESP_LOGI(TAG, "%s detected, CSI video device ready", sensorName());
+}
+
 bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
 {
+    m_ready = false;
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 4, 0)
     ESP_LOGE(TAG, "ESP_IDF_VERSION < 5.4.0, CSI camera is not supported");
     return false;
@@ -160,6 +180,29 @@ bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_
     ESP_LOGE(TAG, "The selected target SoC is not supported");
     return false;
 #else
+    struct SharedBusLock {
+        bool held;
+        SharedBusLock(int8_t sda, int8_t scl) : held(false)
+        {
+            if (TouchI2c.usesPins(sda, scl)) {
+                held = TouchI2c.lock();
+            }
+        }
+        ~SharedBusLock()
+        {
+            if (held) {
+                TouchI2c.unlock();
+            }
+        }
+    };
+
+    const bool sharesTouchBus = TouchI2c.usesPins(sdaPin, sclPin);
+    SharedBusLock busLock(sdaPin, sclPin);
+    if (sharesTouchBus && !busLock.held) {
+        ESP_LOGE(TAG, "shared I2C lock timed out");
+        return false;
+    }
+
     m_buffer = nullptr;
     pullCameraDriverIntoLink();
     if (!selectSensorSize(sensorWidth, sensorHeight)) {
@@ -183,25 +226,33 @@ bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_
     if (!m_video.begin(csiConfig)) {
         Serial.printf("failed to detect %s / init CSI camera\n", sensorName());
         ESP_LOGE(TAG, "failed to detect %s / init CSI camera", sensorName());
+        releaseAfterFailedStart();
         return false;
     }
-    Serial.printf("%s detected, CSI video device ready\n", sensorName());
-    ESP_LOGI(TAG, "%s detected, CSI video device ready", sensorName());
 
     if (!m_captureDev.begin(ESP_VIDEO_MIPI_CSI_DEVICE_NAME, kCaptureBufferCount)) {
         Serial.println("failed to open capture device");
         ESP_LOGE(TAG, "failed to open capture device");
+        releaseAfterFailedStart();
         return false;
     }
     Serial.println("capture device opened");
     ESP_LOGI(TAG, "capture device opened");
 
     if (startWithFormat(ESP_VIDEO_FORMAT_RGB565, "RGB565")) {
+        markReady();
         return true;
     }
 
-    startWithFormat(fallbackFormat(), fallbackFormatName());
-    return m_captureDev.isOpened();
+    if (startWithFormat(fallbackFormat(), fallbackFormatName())) {
+        markReady();
+        return true;
+    }
+
+    Serial.printf("%s capture did not start, releasing SCCB pins\n", sensorName());
+    ESP_LOGE(TAG, "%s capture did not start, releasing SCCB pins", sensorName());
+    releaseAfterFailedStart();
+    return false;
 #endif
 }
 
@@ -280,6 +331,10 @@ bool CameraController::startXclk(int8_t pin, uint32_t freqHz)
 
 bool CameraController::startPpa()
 {
+    if (!m_ready) {
+        ESP_LOGW(TAG, "camera not ready, skipping PPA");
+        return false;
+    }
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 4, 0)
     ESP_LOGE(TAG, "ESP_IDF_VERSION < 5.4.0, PPA is not supported");
     return false;
@@ -310,18 +365,31 @@ bool CameraController::startPpa()
 
 bool CameraController::captureFrame()
 {
-    releaseFrame();
-
-    if (!m_captureDev.isOpened()) {
+    if (!m_ready || m_cameraBusy == nullptr)
+    {
         return false;
     }
-    if (!m_captureDev.isCaptureStarted()) {
+
+    const bool alreadyHeld = xSemaphoreGetMutexHolder(m_cameraBusy) == xTaskGetCurrentTaskHandle();
+    if (!alreadyHeld && xSemaphoreTake(m_cameraBusy, 0) != pdTRUE)
+    {
+        return false;
+    }
+
+    m_buffer = nullptr;
+    m_frame.end();
+
+    if (!m_captureDev.isOpened() || !m_captureDev.isCaptureStarted())
+    {
+        xSemaphoreGive(m_cameraBusy);
         return false;
     }
 
     m_frame = m_captureDev.captureBuffer();
-    if (!m_frame.valid()) {
+    if (!m_frame.valid())
+    {
         ESP_LOGE(TAG, "failed to capture buffer");
+        xSemaphoreGive(m_cameraBusy);
         return false;
     }
 
@@ -331,8 +399,19 @@ bool CameraController::captureFrame()
 
 void CameraController::releaseFrame()
 {
+    if (m_cameraBusy == nullptr || xSemaphoreGetMutexHolder(m_cameraBusy) != xTaskGetCurrentTaskHandle())
+    {
+        return;
+    }
+
     m_buffer = nullptr;
     m_frame.end();
+    xSemaphoreGive(m_cameraBusy);
+}
+
+bool CameraController::isReady() const
+{
+    return m_ready;
 }
 
 bool CameraController::isOpened() const

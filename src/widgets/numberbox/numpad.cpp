@@ -1,4 +1,5 @@
 #include "numpad.h"
+#include "../../check_touch.h"
 
 const char *Numpad::TAG = "Numpad";
 

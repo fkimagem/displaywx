@@ -1,4 +1,5 @@
 #include "wkeyboard.h"
+#include "../../check_touch.h"
 
 const char *WKeyboard::TAG = "[WKeyboard]";
 /**

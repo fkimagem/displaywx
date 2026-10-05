@@ -1,6 +1,6 @@
 #include "share_i2c.h"
 
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #include "esp_log.h"
 #include "esp32-hal-periman.h"
 #include "soc/soc_caps.h"
@@ -8,6 +8,42 @@
 static const char *TAG = "TouchI2C";
 static const uint32_t kTimeoutMs = 50;
 static const size_t kBufferSize = 128;
+
+TouchI2cMaster::TouchI2cMaster()
+{
+    busMutex = xSemaphoreCreateMutexStatic(&busMutexBuffer);
+}
+
+bool TouchI2cMaster::lock()
+{
+    if (busMutex == nullptr) {
+        return false;
+    }
+    if (xSemaphoreGetMutexHolder(busMutex) == xTaskGetCurrentTaskHandle()) {
+        return true;
+    }
+    if (xSemaphoreTake(busMutex, pdMS_TO_TICKS(kTimeoutMs)) == pdTRUE) {
+        return true;
+    }
+    ESP_LOGW(TAG, "I2C lock timed out");
+    return false;
+}
+
+void TouchI2cMaster::unlock()
+{
+    if (busMutex == nullptr) {
+        return;
+    }
+    if (xSemaphoreGetMutexHolder(busMutex) != xTaskGetCurrentTaskHandle()) {
+        return;
+    }
+    xSemaphoreGive(busMutex);
+}
+
+bool TouchI2cMaster::usesPins(int8_t sda, int8_t scl) const
+{
+    return sdaPin >= 0 && sdaPin == sda && sclPin == scl;
+}
 
 static bool pinIsI2cSda(int8_t pin)
 {
@@ -167,22 +203,52 @@ bool TouchI2cMaster::begin()
 
 bool TouchI2cMaster::begin(int sda, int scl, uint32_t frequency)
 {
+    if (!lock()) {
+        return false;
+    }
     if (busHandle != nullptr) {
+        unlock();
         return true;
     }
     if (frequency > 0) {
         sclSpeedHz = frequency;
     }
-    return acquireBus((int8_t)sda, (int8_t)scl);
+    const bool ready = acquireBus((int8_t)sda, (int8_t)scl);
+    if (ready) {
+        sdaPin = (int8_t)sda;
+        sclPin = (int8_t)scl;
+    }
+    unlock();
+    return ready;
 }
 
-bool TouchI2cMaster::addDevice(uint8_t address)
+i2c_master_dev_handle_t TouchI2cMaster::deviceFor(uint8_t address)
 {
-    if (address >= 128) {
-        return false;
+    if (busHandle == nullptr || address >= 128) {
+        return nullptr;
     }
-    if (devices[address] != nullptr) {
-        return true;
+
+    for (size_t index = 0; index < kDeviceSlots; index++) {
+        if (deviceSlots[index].used && deviceSlots[index].address == address) {
+            return deviceSlots[index].handle;
+        }
+    }
+
+    size_t slot = kDeviceSlots;
+    for (size_t index = 0; index < kDeviceSlots; index++) {
+        if (!deviceSlots[index].used) {
+            slot = index;
+            break;
+        }
+    }
+    if (slot == kDeviceSlots) {
+        slot = deviceEvict % kDeviceSlots;
+        deviceEvict++;
+        if (deviceSlots[slot].handle != nullptr) {
+            i2c_master_bus_rm_device(deviceSlots[slot].handle);
+            deviceSlots[slot].handle = nullptr;
+            deviceSlots[slot].used = false;
+        }
     }
 
     i2c_device_config_t config = {};
@@ -190,12 +256,16 @@ bool TouchI2cMaster::addDevice(uint8_t address)
     config.device_address = address;
     config.scl_speed_hz = sclSpeedHz;
 
-    esp_err_t err = i2c_master_bus_add_device(busHandle, &config, &devices[address]);
+    esp_err_t err = i2c_master_bus_add_device(busHandle, &config, &deviceSlots[slot].handle);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "i2c_master_bus_add_device failed: %s", esp_err_to_name(err));
-        return false;
+        deviceSlots[slot].handle = nullptr;
+        deviceSlots[slot].used = false;
+        return nullptr;
     }
-    return true;
+    deviceSlots[slot].address = address;
+    deviceSlots[slot].used = true;
+    return deviceSlots[slot].handle;
 }
 
 uint8_t TouchI2cMaster::statusFromEsp(esp_err_t err)
@@ -220,6 +290,10 @@ void TouchI2cMaster::beginTransmission(uint8_t address)
     repeatedStart = false;
     txAddress = address;
     txLength = 0;
+    if (holdingBus) {
+        return;
+    }
+    holdingBus = lock();
 }
 
 size_t TouchI2cMaster::write(uint8_t data)
@@ -245,21 +319,27 @@ size_t TouchI2cMaster::write(const uint8_t *data, size_t quantity)
 
 uint8_t TouchI2cMaster::endTransmission(bool sendStop)
 {
+    if (!holdingBus) {
+        return 5;
+    }
     if (!sendStop) {
         repeatedStart = true;
         return 0;
     }
-    if (!addDevice(txAddress)) {
-        return 4;
+
+    i2c_master_dev_handle_t device = deviceFor(txAddress);
+    esp_err_t err = ESP_OK;
+    if (device == nullptr) {
+        err = ESP_FAIL;
+    } else if (txLength == 0) {
+        err = i2c_master_probe(busHandle, txAddress, kTimeoutMs);
+    } else {
+        err = i2c_master_transmit(device, txBuffer, txLength, kTimeoutMs);
     }
 
-    esp_err_t err = ESP_OK;
-    if (txLength == 0) {
-        err = i2c_master_probe(busHandle, txAddress, kTimeoutMs);
-    }
-    if (txLength > 0) {
-        err = i2c_master_transmit(devices[txAddress], txBuffer, txLength, kTimeoutMs);
-    }
+    holdingBus = false;
+    repeatedStart = false;
+    unlock();
     return statusFromEsp(err);
 }
 
@@ -274,26 +354,27 @@ size_t TouchI2cMaster::requestFrom(uint8_t address, size_t len, bool sendStop)
     if (len > kBufferSize) {
         len = kBufferSize;
     }
-    if (!addDevice(address)) {
+    if (!holdingBus && !lock()) {
         return 0;
     }
+    holdingBus = true;
 
     rxIndex = 0;
     rxLength = 0;
 
+    i2c_master_dev_handle_t device = deviceFor(address);
     esp_err_t err = ESP_OK;
-    if (repeatedStart) {
+    if (device == nullptr) {
+        err = ESP_FAIL;
+    } else if (repeatedStart) {
         repeatedStart = false;
-        err = i2c_master_transmit_receive(devices[address], txBuffer, txLength, rxBuffer, len, kTimeoutMs);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
-            return 0;
-        }
-        rxLength = len;
-        return rxLength;
+        err = i2c_master_transmit_receive(device, txBuffer, txLength, rxBuffer, len, kTimeoutMs);
+    } else {
+        err = i2c_master_receive(device, rxBuffer, len, kTimeoutMs);
     }
 
-    err = i2c_master_receive(devices[address], rxBuffer, len, kTimeoutMs);
+    holdingBus = false;
+    unlock();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
         return 0;

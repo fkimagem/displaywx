@@ -50,6 +50,7 @@
 #include "widgets/widgetsetup.h"
 #include "../user_setup.h"
 #include "check_touch.h"
+#include "check_camera.h"
 
 #if defined(CAM_OV02C10)
 #include "camera/ov02c10/ov02c10/ov02c10.h"
@@ -63,11 +64,12 @@
 #if defined(CAM_OV2710)
 #include "camera/ov2710/ov2710/ov2710.h"
 #endif
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 #include "camera/cameracontroller/cameracontroller.h"
 #endif
 
 #include <Arduino.h>
+#include <atomic>
 #if defined(USE_SPIFFS)
 #include "SPIFFS.h"
 #endif
@@ -366,6 +368,9 @@ public:
 
     // Métodos públicos estáticos
     static void TaskEventoTouch(void *pvParamenters);
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    static void TaskCamera(void *pvParameters);
+#endif
 
     // Métodos públicos
     DisplayFK();
@@ -391,7 +396,9 @@ public:
 #error "Choose a display model on user_setup.h"
 #endif
 
+    /// Holds the draw mutex until finishCustomDraw(). Widget callbacks run outside this mutex, so a callback may call startCustomDraw().
     void startCustomDraw();
+    /// Releases the draw mutex taken by startCustomDraw().
     void finishCustomDraw();
     void drawWidgetsOnScreen(const uint8_t currentScreenIndex);
 #if defined(USING_GRAPHIC_LIB)
@@ -406,13 +413,14 @@ public:
     void enableTouchLog();
     void disableTouchLog();
     void addLog(const char *data);
-    void loopTask();
+    void displayfkTask();
     void cameraTask();
     TaskHandle_t getTaskHandle() const;
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     CameraController &getCamera();
     void setRotationCamera(uint8_t rotation, bool mirrorX = false, bool mirrorY = false);
     bool startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1, uint16_t sensorWidth = 0, uint16_t sensorHeight = 0);
+    bool isCameraReady() const;
 #endif
     void setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y);
     void startAutoClick();
@@ -438,6 +446,11 @@ public:
     bool validateInitialization() const;
     
     // Cleanup utilities
+    bool waitForUiTaskToStop();
+    void stopUiTaskAndDelete();
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    void stopCameraTaskAndDelete();
+#endif
     void cleanupFreeRTOSResources();
     void cleanupDynamicMemory();
     void cleanupWidgets();
@@ -609,7 +622,7 @@ private:
 #endif
 
     // Variáveis privadas
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     CameraController m_camera;
     uint8_t m_cameraRotation;
     bool m_cameraMirrorX;
@@ -619,8 +632,13 @@ private:
 #endif
     uint16_t *m_cameraPreviewFb;
     size_t m_cameraPreviewFbBytes;
+    TaskHandle_t m_hndTaskCamera = nullptr;
+    std::atomic<bool> m_cameraTaskStopped{true};
 #endif
     TaskHandle_t m_hndTaskEventoTouch; ///< Handle for the touch event task.
+    TaskHandle_t m_stopWaiter = nullptr;
+    std::atomic<bool> m_stopTask{false};
+    std::atomic<bool> m_taskStopped{false};
     bool m_runningTransaction;
     Preferences m_configs; ///< Preferences for storing and accessing configuration data.
     TimerHandle_t m_timer;
@@ -628,6 +646,7 @@ private:
     uint16_t m_xAutoClick = 0;
     uint16_t m_yAutoClick = 0;
     bool m_simulateAutoClick = false;
+    bool m_ignoreOpeningTouch = false;
     bool m_debugTouch = false;
     int m_x0 = 0, m_y0 = 0, m_x1 = 0, m_y1 = 0;
     bool m_invertXAxis = false, m_invertYAxis = false, m_swapAxis = false;
@@ -747,6 +766,8 @@ private:
     uint8_t qtdNumberBox = 0;             ///< Number of NumberBox widgets.
     NumberBox **arrayNumberbox = nullptr; ///< Array of NumberBox widgets.
     bool m_numberboxConfigured = false;   ///< Flag indicating if NumberBox is configured.
+    bool m_numpadActive = false;
+    bool m_numpadTouchWasDown = false;
     std::unique_ptr<Numpad> numpad;       ///< Pointer to the Numpad instance for number input.
     // Numpad m_pNumpad;                   ///< Internal numpad instance for NumberBox.
 #endif
@@ -799,7 +820,7 @@ private:
     // Métodos privados
     char randomHexChar();
 
-    // Helper functions for loopTask
+    // Helper functions for displayfkTask
     void processLogQueue();
     void processLogBuffer();
     void processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressure, uint8_t gesture);
@@ -820,6 +841,8 @@ private:
     void processTextButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
     void processTextBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
     void processNumberBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
+    void serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
+    void serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
     void processEmptyAreaTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
     void processCameraMipiTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
     bool processTouchOnCameraFullScreen();
@@ -854,7 +877,7 @@ private:
     void updateTextBox();
     void updateNumberBox();
     void updateThermometer();
-    #if defined(DFK_CAMERA_MIPI) && defined(USE_CAMERA_CSI)
+    #if defined(DFK_CAMERA_MIPI) && defined(HAS_CAMERA_MIPI)
     void updateCameraMipi(ESPVideoBufferClass *buffer);
     bool blitCameraDmaFullScreen(const uint16_t *src, uint32_t cam_w, uint32_t cam_h);
     bool blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint8_t zoomLevel = 1);

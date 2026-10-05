@@ -7,6 +7,49 @@
 
 const char *TouchScreen::TAG = "TouchScreen";
 
+static TaskHandle_t s_touchNotifyTask = nullptr;
+static bool s_touchIsrArmed = false;
+
+static void IRAM_ATTR touchNotifyIsr()
+{
+    if (s_touchNotifyTask == nullptr) {
+        return;
+    }
+    BaseType_t woken = pdFALSE;
+    vTaskNotifyGiveFromISR(s_touchNotifyTask, &woken);
+    portYIELD_FROM_ISR(woken);
+}
+
+int8_t TouchScreen::interruptPin() const
+{
+#if defined(TOUCH_FT6236U) || defined(TOUCH_FT6336) || defined(TOUCH_CST816) || defined(TOUCH_GT911) || defined(TOUCH_GSL3680) || defined(TOUCH_CST820)
+    return m_pinINT;
+#else
+    return -1;
+#endif
+}
+
+void TouchScreen::armInterruptNotify(TaskHandle_t task)
+{
+    const int8_t pin = interruptPin();
+    if (pin < 0 || task == nullptr || s_touchIsrArmed) {
+        return;
+    }
+    s_touchNotifyTask = task;
+    attachInterrupt(digitalPinToInterrupt(pin), touchNotifyIsr, FALLING);
+    s_touchIsrArmed = true;
+}
+
+void TouchScreen::disarmInterruptNotify()
+{
+    const int8_t pin = interruptPin();
+    if (pin >= 0 && s_touchIsrArmed) {
+        detachInterrupt(digitalPinToInterrupt(pin));
+    }
+    s_touchNotifyTask = nullptr;
+    s_touchIsrArmed = false;
+}
+
 TouchScreen::TouchScreen()
 {
   ESP_LOGD(TAG, "TouchScreen constructor");
@@ -375,11 +418,15 @@ bool TouchScreen::touch_touched()
 #else
 
 #if defined(TOUCH_GSL3680)
-  uint16_t touchX, touchY;
+  uint16_t touchX = 0;
+  uint16_t touchY = 0;
   bool touched = m_ts->getTouch(&touchX, &touchY);
+  if (!touched) {
+    return false;
+  }
   m_touch_last_x = touchX;
   m_touch_last_y = touchY;
-  return touched;
+  return true;
 
 
 #elif defined(TOUCH_GT911) || defined(TOUCH_GT911_WAVESHARE)
@@ -633,9 +680,13 @@ bool TouchScreen::touch_touched()
 
 #elif defined(TOUCH_CST820)
 
-  uint16_t touchX, touchY;
-  uint8_t gesture;
+  uint16_t touchX = 0;
+  uint16_t touchY = 0;
+  uint8_t gesture = 0;
   bool touched = m_ts->getTouch(&touchX, &touchY, &gesture);
+  if (!touched) {
+    return false;
+  }
 
   if(m_swapAxis){
     if(m_invertXAxis){

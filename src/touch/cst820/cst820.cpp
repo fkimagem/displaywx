@@ -1,6 +1,6 @@
 #include "cst820.h"
 #include "../share_i2c.h"
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #define Wire TouchI2c
 #endif
 
@@ -24,7 +24,7 @@ void CST820::begin(void)
     {
         started = Wire.begin();
     }
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
     if (!started) {
         return;
     }
@@ -58,52 +58,61 @@ void CST820::begin(void)
 
 bool CST820::getTouch(uint16_t *x, uint16_t *y, uint8_t *gesture)
 {
-    bool FingerIndex = false;
-    FingerIndex = (bool)i2c_read(0x02);
-
-    *gesture = i2c_read(0x01);
-    if (!(*gesture == SlideUp || *gesture == SlideDown))
-    {
-        *gesture = None;
+    int finger = i2c_read(0x02);
+    if (finger < 0) {
+        return false;
     }
 
-    uint8_t data[4];
-    i2c_read_continuous(0x03,data,4);
+    int gestureRaw = i2c_read(0x01);
+    *gesture = None;
+    if (gestureRaw == SlideUp || gestureRaw == SlideDown) {
+        *gesture = (uint8_t)gestureRaw;
+    }
+
+    uint8_t data[4] = {};
+    if (!i2c_read_continuous(0x03, data, 4)) {
+        return false;
+    }
     *x = ((data[0] & 0x0f) << 8) | data[1];
     *y = ((data[2] & 0x0f) << 8) | data[3];
-
-
-    return FingerIndex;
+    return finger != 0;
 }
 
-uint8_t CST820::i2c_read(uint8_t addr)
+int CST820::i2c_read(uint8_t addr)
 {
-    uint8_t rdData;
-    uint8_t rdDataCount;
-    do
-    {
-        Wire.beginTransmission(I2C_ADDR_CST820);
-        Wire.write(addr);
-        Wire.endTransmission(false); // Restart
-        rdDataCount = Wire.requestFrom(I2C_ADDR_CST820, 1);
-    } while (rdDataCount == 0);
-    while (Wire.available())
-    {
-        rdData = Wire.read();
+    Wire.beginTransmission(I2C_ADDR_CST820);
+    Wire.write(addr);
+    if (Wire.endTransmission(false) != 0) {
+        return -1;
     }
-    return rdData;
+    if (Wire.requestFrom(I2C_ADDR_CST820, 1) != 1) {
+        return -1;
+    }
+    int value = Wire.read();
+    if (value < 0) {
+        return -1;
+    }
+    return value;
 }
 
-uint8_t CST820::i2c_read_continuous(uint8_t addr, uint8_t *data, uint32_t length)
+bool CST820::i2c_read_continuous(uint8_t addr, uint8_t *data, uint32_t length)
 {
-  Wire.beginTransmission(I2C_ADDR_CST820);
-  Wire.write(addr);
-  if ( Wire.endTransmission(true))return -1;
-  Wire.requestFrom(I2C_ADDR_CST820, length);
-  for (int i = 0; i < length; i++) {
-    *data++ = Wire.read();
-  }
-  return 0;
+    Wire.beginTransmission(I2C_ADDR_CST820);
+    Wire.write(addr);
+    if (Wire.endTransmission(true) != 0) {
+        return false;
+    }
+    if (Wire.requestFrom(I2C_ADDR_CST820, length) != length) {
+        return false;
+    }
+    for (uint32_t i = 0; i < length; i++) {
+        int value = Wire.read();
+        if (value < 0) {
+            return false;
+        }
+        data[i] = (uint8_t)value;
+    }
+    return true;
 }
 
 void CST820::i2c_write(uint8_t addr, uint8_t data)

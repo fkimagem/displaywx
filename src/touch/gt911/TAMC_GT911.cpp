@@ -2,7 +2,7 @@
 #include "TAMC_GT911.h"
 #include <Wire.h>
 #include "../share_i2c.h"
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #define Wire TouchI2c
 #endif
 
@@ -16,7 +16,7 @@ TAMC_GT911::TAMC_GT911(uint8_t _sda, uint8_t _scl, uint8_t _int, uint8_t _rst, u
 
 void TAMC_GT911::begin(uint8_t _addr) {
   addr = _addr;
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
   if (!Wire.begin(pinSda, pinScl)) {
     return;
   }
@@ -40,7 +40,10 @@ void TAMC_GT911::reset() {
   if(pinInt > 0){pinMode(pinInt, INPUT);}
   // attachInterrupt(pinInt, TAMC_GT911::onInterrupt, RISING);
   delay(50);
-  readBlockData(configBuf, GT911_CONFIG_START, GT911_CONFIG_SIZE);
+  if (!readBlockData(configBuf, GT911_CONFIG_START, GT911_CONFIG_SIZE)) {
+    Serial.println("GT911 config read failed");
+    return;
+  }
   m_savedX = configBuf[GT911_X_OUTPUT_MAX_LOW - GT911_CONFIG_START] |
                  (configBuf[GT911_X_OUTPUT_MAX_HIGH - GT911_CONFIG_START] << 8);
   m_savedY = configBuf[GT911_Y_OUTPUT_MAX_LOW - GT911_CONFIG_START] |
@@ -93,7 +96,13 @@ void TAMC_GT911::read(void) {
   uint8_t id;
   uint16_t x, y, size;
 
-  uint8_t pointInfo = readByteData(GT911_POINT_INFO);
+  int pointInfoRaw = readByteData(GT911_POINT_INFO);
+  if (pointInfoRaw < 0) {
+    isTouched = false;
+    touches = 0;
+    return;
+  }
+  uint8_t pointInfo = (uint8_t)pointInfoRaw;
   uint8_t bufferStatus = pointInfo >> 7 & 1;
   uint8_t proximityValid = pointInfo >> 5 & 1;
   uint8_t haveKey = pointInfo >> 4 & 1;
@@ -109,7 +118,11 @@ void TAMC_GT911::read(void) {
   isTouched = touches > 0;
   if (bufferStatus == 1 && isTouched) {
     for (uint8_t i=0; i<touches; i++) {
-      readBlockData(data, GT911_POINT_1 + i * 8, 7);
+      if (!readBlockData(data, GT911_POINT_1 + i * 8, 7)) {
+        isTouched = false;
+        touches = 0;
+        return;
+      }
       points[i] = readPoint(data);
     }
   }
@@ -179,15 +192,21 @@ void TAMC_GT911::writeByteData(uint16_t reg, uint8_t val) {
   Wire.write(val);
   Wire.endTransmission();
 }
-uint8_t TAMC_GT911::readByteData(uint16_t reg) {
-  uint8_t x;
+int TAMC_GT911::readByteData(uint16_t reg) {
   Wire.beginTransmission(addr);
   Wire.write(highByte(reg));
   Wire.write(lowByte(reg));
-  Wire.endTransmission();
-  Wire.requestFrom(addr, (uint8_t)1);
-  x = Wire.read();
-  return x;
+  if (Wire.endTransmission() != 0) {
+    return -1;
+  }
+  if (Wire.requestFrom(addr, (uint8_t)1) != 1) {
+    return -1;
+  }
+  int value = Wire.read();
+  if (value < 0) {
+    return -1;
+  }
+  return value;
 }
 void TAMC_GT911::writeBlockData(uint16_t reg, uint8_t *val, uint8_t size) {
   Wire.beginTransmission(addr);
@@ -199,16 +218,25 @@ void TAMC_GT911::writeBlockData(uint16_t reg, uint8_t *val, uint8_t size) {
   }
   Wire.endTransmission();
 }
-void TAMC_GT911::readBlockData(uint8_t *buf, uint16_t reg, uint8_t size) {
+bool TAMC_GT911::readBlockData(uint8_t *buf, uint16_t reg, uint8_t size) {
   #if defined(OLD_GT911)
   Wire.beginTransmission(addr);
   Wire.write(highByte(reg));
   Wire.write(lowByte(reg));
-  Wire.endTransmission();
-  Wire.requestFrom(addr, size);
-  for (uint8_t i=0; i<size; i++) {
-    buf[i] = Wire.read();
+  if (Wire.endTransmission() != 0) {
+    return false;
   }
+  if (Wire.requestFrom(addr, size) != size) {
+    return false;
+  }
+  for (uint8_t i=0; i<size; i++) {
+    int value = Wire.read();
+    if (value < 0) {
+      return false;
+    }
+    buf[i] = (uint8_t)value;
+  }
+  return true;
  #else
  const uint8_t CHUNK_SIZE = 64;  // máximo seguro para ESP32-P4 I²C FIFO
   uint8_t remaining = size;
@@ -218,22 +246,28 @@ void TAMC_GT911::readBlockData(uint8_t *buf, uint16_t reg, uint8_t size) {
   while (remaining > 0) {
     uint8_t chunk = remaining > CHUNK_SIZE ? CHUNK_SIZE : remaining;
 
-    // Envia endereço inicial de leitura
     Wire.beginTransmission(addr);
     Wire.write(highByte(currentReg));
     Wire.write(lowByte(currentReg));
-    Wire.endTransmission(false);  // não finaliza o I²C (repeated start)
-
-    // Solicita o bloco parcial
-    Wire.requestFrom((int)addr, (int)chunk);
-    for (uint8_t i = 0; i < chunk && Wire.available(); i++) {
-      buf[index++] = Wire.read();
+    if (Wire.endTransmission(false) != 0) {
+      return false;
     }
 
-    // Avança ponteiro
+    if (Wire.requestFrom((int)addr, (int)chunk) != chunk) {
+      return false;
+    }
+    for (uint8_t i = 0; i < chunk; i++) {
+      int value = Wire.read();
+      if (value < 0) {
+        return false;
+      }
+      buf[index++] = (uint8_t)value;
+    }
+
     currentReg += chunk;
     remaining -= chunk;
   }
+  return true;
   #endif
 }
 TP_Point::TP_Point(void) {

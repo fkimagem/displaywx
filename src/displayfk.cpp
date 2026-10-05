@@ -1,6 +1,6 @@
 #include "displayfk.h"
 #include <memory>
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 #include <esp_cache.h>
 #include <esp_heap_caps.h>
 #include <driver/ppa.h>
@@ -8,12 +8,36 @@
 
 #define MIN_LOOPTASK_TIME_LOG 20
 
-#define RESET_WDT                             \
-    {                                         \
-        if (DisplayFK::instance->m_enableWTD) \
-        {                                     \
-            esp_task_wdt_reset();             \
-        }                                     \
+static constexpr uint32_t DFK_UI_STACK_BYTES = 8192;
+static constexpr uint32_t DFK_UI_STACK_CAMERA_BYTES = 12288;
+static constexpr uint32_t DFK_UI_STACK_WARN_BYTES = 512;
+static constexpr uint32_t DFK_UI_STACK_LOG_PERIOD_MS = 5000;
+
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+static constexpr uint32_t kUiTaskStackBytes = DFK_UI_STACK_CAMERA_BYTES;
+#else
+static constexpr uint32_t kUiTaskStackBytes = DFK_UI_STACK_BYTES;
+#endif
+
+static_assert(sizeof(StackType_t) == 1, "IDF stack depth is in bytes because StackType_t is 1 byte");
+
+alignas(16) static StackType_t s_uiTaskStack[kUiTaskStackBytes];
+static StaticTask_t s_uiTaskTcb;
+
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+static constexpr uint32_t kCameraFramePeriodMs = 33;
+alignas(16) static StackType_t s_cameraTaskStack[DFK_UI_STACK_CAMERA_BYTES];
+static StaticTask_t s_cameraTaskTcb;
+#endif
+
+#define RESET_WDT                                                                                              \
+    {                                                                                                          \
+        if (DisplayFK::instance && DisplayFK::instance->m_enableWTD &&                                        \
+            DisplayFK::instance->m_watchdogInitialized &&                                                      \
+            xTaskGetCurrentTaskHandle() == DisplayFK::instance->m_hndTaskEventoTouch)                          \
+        {                                                                                                      \
+            esp_task_wdt_reset();                                                                              \
+        }                                                                                                      \
     };
 
 DisplayFK *DisplayFK::instance = nullptr;
@@ -35,30 +59,40 @@ int DisplayFK::offsetSwipe = 50;
  */
 void DisplayFK::changeWTD()
 {
-    if (m_enableWTD && m_watchdogInitialized)
+    if (!m_enableWTD)
     {
-        esp_err_t adicionou = esp_task_wdt_add(m_hndTaskEventoTouch); // Adiciona a tarefa atual (loop) ao watchdog
-        if (adicionou == ESP_OK)
+        if (!m_watchdogInitialized || m_hndTaskEventoTouch == nullptr)
         {
-            ESP_LOGI(TAG, "Task of Display added to watchdog with %i seconds", m_timeoutWTD);
+            return;
         }
-        else
-        {
-            ESP_LOGE(TAG, "Error to add on watchdog with %i seconds to task Display", m_timeoutWTD);
-        }
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Disabling watchdog");
+
         esp_err_t removeu = esp_task_wdt_delete(m_hndTaskEventoTouch);
         if (removeu == ESP_OK)
         {
-            ESP_LOGI(TAG, "Successful to disable watchdog");
+            m_watchdogInitialized = false;
+            ESP_LOGI(TAG, "UI task removed from watchdog");
         }
         else
         {
             ESP_LOGE(TAG, "Error to disable watchdog");
         }
+        return;
+    }
+
+    if (m_watchdogInitialized || m_hndTaskEventoTouch == nullptr)
+    {
+        return;
+    }
+
+    esp_err_t adicionou = esp_task_wdt_add(m_hndTaskEventoTouch);
+    if (adicionou == ESP_OK)
+    {
+        m_watchdogInitialized = true;
+        ESP_LOGI(TAG, "UI task added to watchdog");
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Error to add UI task on watchdog");
     }
 }
 
@@ -1116,7 +1150,7 @@ void DisplayFK::addLog(const char *data)
     }
 }
 
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 CameraController &DisplayFK::getCamera()
 {
     return m_camera;
@@ -1138,6 +1172,11 @@ bool DisplayFK::startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t
 {
     return m_camera.begin(sccbPort, sclPin, sdaPin, i2cFreq, resetPin, pwdnPin, sensorWidth, sensorHeight);
 }
+
+bool DisplayFK::isCameraReady() const
+{
+    return m_camera.isReady();
+}
 #endif
 
 /**
@@ -1148,7 +1187,7 @@ DisplayFK::DisplayFK()
 {
     // Set instance pointer (must be done first)
     DisplayFK::instance = this;
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     m_cameraRotation = 0;
     m_cameraMirrorX = false;
     m_cameraMirrorY = false;
@@ -1356,9 +1395,102 @@ bool DisplayFK::validateInitialization() const
     return true;
 }
 
-/**
- * @brief Clean up FreeRTOS resources
- */
+bool DisplayFK::waitForUiTaskToStop()
+{
+    const bool waitUi = m_hndTaskEventoTouch != nullptr;
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    const bool waitCamera = m_hndTaskCamera != nullptr;
+#else
+    const bool waitCamera = false;
+#endif
+    if (!waitUi && !waitCamera)
+    {
+        m_taskStopped.store(true);
+        return true;
+    }
+
+    m_stopWaiter = xTaskGetCurrentTaskHandle();
+    m_stopTask.store(true);
+    if (waitUi)
+    {
+        xTaskNotifyGive(m_hndTaskEventoTouch);
+    }
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (waitCamera)
+    {
+        xTaskNotifyGive(m_hndTaskCamera);
+    }
+#endif
+
+    const uint32_t startMs = millis();
+    while ((millis() - startMs) < 500)
+    {
+        const bool uiDone = !waitUi || m_taskStopped.load();
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+        const bool cameraDone = !waitCamera || m_cameraTaskStopped.load();
+#else
+        const bool cameraDone = true;
+#endif
+        if (uiDone && cameraDone)
+        {
+            break;
+        }
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50));
+    }
+    m_stopWaiter = nullptr;
+
+    if (waitUi && !m_taskStopped.load())
+    {
+        ESP_LOGE(TAG, "UI task stop timed out");
+        return false;
+    }
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (waitCamera && !m_cameraTaskStopped.load())
+    {
+        ESP_LOGE(TAG, "Camera task stop timed out");
+        return false;
+    }
+#endif
+    return true;
+}
+
+void DisplayFK::stopUiTaskAndDelete()
+{
+    if (m_transactionSemaphore != nullptr && xSemaphoreGetMutexHolder(m_transactionSemaphore) == xTaskGetCurrentTaskHandle())
+    {
+        xSemaphoreGive(m_transactionSemaphore);
+    }
+
+#if defined(HAS_TOUCH)
+    if (touchExterno)
+    {
+        touchExterno->disarmInterruptNotify();
+    }
+#endif
+
+    WidgetBase::usingKeyboard = false;
+    m_ignoreOpeningTouch = false;
+#if defined(DFK_NUMBERBOX)
+    m_numpadActive = false;
+    m_numpadTouchWasDown = false;
+#endif
+
+    if (m_watchdogInitialized)
+    {
+        esp_task_wdt_delete(nullptr);
+        m_watchdogInitialized = false;
+    }
+
+    TaskHandle_t waiter = m_stopWaiter;
+    m_hndTaskEventoTouch = nullptr;
+    m_taskStopped.store(true);
+    if (waiter != nullptr)
+    {
+        xTaskNotifyGive(waiter);
+    }
+    vTaskDelete(nullptr);
+}
+
 void DisplayFK::cleanupFreeRTOSResources()
 {
     ESP_LOGD(TAG, "Cleaning up FreeRTOS resources");
@@ -1413,6 +1545,13 @@ void DisplayFK::cleanupFreeRTOSResources()
         vQueueDelete(xFilaLog);
         xFilaLog = nullptr;
         ESP_LOGD(TAG, "Log queue deleted");
+    }
+
+    if (WidgetBase::xFilaCallback != nullptr)
+    {
+        vQueueDelete(WidgetBase::xFilaCallback);
+        WidgetBase::xFilaCallback = nullptr;
+        ESP_LOGD(TAG, "Callback queue deleted");
     }
 
     ESP_LOGD(TAG, "FreeRTOS resources cleanup completed");
@@ -1657,7 +1796,13 @@ DisplayFK::~DisplayFK()
 {
     ESP_LOGD(TAG, "DisplayFK destructor started");
 
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+    if (!waitForUiTaskToStop())
+    {
+        ESP_LOGE(TAG, "UI task still running; destructor left shared resources in place");
+        return;
+    }
+
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     if (m_cameraPreviewFb)
     {
         heap_caps_free(m_cameraPreviewFb);
@@ -1693,7 +1838,18 @@ void DisplayFK::setup()
 {
     ESP_LOGD(TAG, "Initializing queues");
     DisplayFK::xFilaLog = xQueueCreate(LOG_LENGTH, sizeof(logMessage_t));
-    WidgetBase::xFilaCallback = xQueueCreate(5, sizeof(functionCB_t));
+    if (WidgetBase::xFilaCallback == nullptr)
+    {
+        WidgetBase::xFilaCallback = xQueueCreate(16, sizeof(functionCB_t));
+        if (WidgetBase::xFilaCallback == nullptr)
+        {
+            ESP_LOGE(TAG, "Fail while creating callback queue");
+        }
+        else
+        {
+            ESP_LOGD(TAG, "Callback queue created");
+        }
+    }
     if (DisplayFK::xFilaLog == NULL)
     {
         ESP_LOGE(TAG, "Fail while creating log queue");
@@ -1701,14 +1857,6 @@ void DisplayFK::setup()
     else
     {
         ESP_LOGD(TAG, "Log queue created");
-    }
-    if (WidgetBase::xFilaCallback == NULL)
-    {
-        ESP_LOGE(TAG, "Fail while creating callback queue");
-    }
-    else
-    {
-        ESP_LOGD(TAG, "Callback queue created");
     }
 }
 
@@ -1723,17 +1871,18 @@ void DisplayFK::startCustomDraw()
         return;
     }
 
-    // Wait until semaphore is available (may take time if loopTask is using it)
-    if (xSemaphoreTake(m_transactionSemaphore, portMAX_DELAY) == pdTRUE)
+    if (m_runningTransaction)
     {
-        m_runningTransaction = true;
-        // Release semaphore immediately - we only needed it to safely set the flag
-        xSemaphoreGive(m_transactionSemaphore);
+        return;
     }
-    else
+
+    if (xSemaphoreTake(m_transactionSemaphore, pdMS_TO_TICKS(100)) != pdTRUE)
     {
-        ESP_LOGE(TAG, "Failed to acquire transaction semaphore");
+        ESP_LOGE(TAG, "startCustomDraw timed out");
+        return;
     }
+
+    m_runningTransaction = true;
 }
 
 /**
@@ -1747,17 +1896,13 @@ void DisplayFK::finishCustomDraw()
         return;
     }
 
-    // Wait until semaphore is available (may take time if loopTask is using it)
-    if (xSemaphoreTake(m_transactionSemaphore, portMAX_DELAY) == pdTRUE)
+    if (!m_runningTransaction)
     {
-        m_runningTransaction = false;
-        // Release semaphore immediately - we only needed it to safely set the flag
-        xSemaphoreGive(m_transactionSemaphore);
+        return;
     }
-    else
-    {
-        ESP_LOGE(TAG, "Failed to acquire transaction semaphore");
-    }
+
+    m_runningTransaction = false;
+    xSemaphoreGive(m_transactionSemaphore);
 }
 
 #if defined(USING_GRAPHIC_LIB)
@@ -2387,6 +2532,12 @@ void DisplayFK::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
  */
 void DisplayFK::createTask(bool enableWatchdog, uint16_t timeout_s)
 {
+    if (m_hndTaskEventoTouch != nullptr)
+    {
+        ESP_LOGW(TAG, "UI task already exists, skipping createTask");
+        return;
+    }
+
     ESP_LOGD(TAG, "Creating task");
 
     m_timeoutWTD = timeout_s;
@@ -2429,54 +2580,60 @@ void DisplayFK::createTask(bool enableWatchdog, uint16_t timeout_s)
     Serial.printf("ESP_ARDUINO_VERSION_PATCH: %i\n", ESP_ARDUINO_VERSION_PATCH);
     #endif*/
 
-    if (m_enableWTD)
+    const UBaseType_t kUiTaskPriority = 1;
+    BaseType_t kUiTaskCore = tskNO_AFFINITY;
+    if (portNUM_PROCESSORS > 1)
     {
-        esp_task_wdt_deinit();
-#if ESP_ARDUINO_VERSION_MAJOR == 2
-        esp_err_t iniciou = esp_task_wdt_init(m_timeoutWTD * 1000, true);
-#elif ESP_ARDUINO_VERSION_MAJOR == 3
-        esp_task_wdt_config_t twdt_config = {
-            .timeout_ms = static_cast<uint32_t>(m_timeoutWTD * 1000), // timeout em ms m_timeoutWTD * 1000, // timeout em ms
-            .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,          // aplica a todos os cores
-            .trigger_panic = true,
-        };
+        kUiTaskCore = (ARDUINO_RUNNING_CORE == 0) ? static_cast<BaseType_t>(1) : static_cast<BaseType_t>(0);
+    }
 
-        esp_err_t iniciou = esp_task_wdt_init(&twdt_config); // timeout em segundos, trigger_panic = true
-#endif
+    m_hndTaskEventoTouch = xTaskCreateStaticPinnedToCore(DisplayFK::TaskEventoTouch, "TaskEventoTouch", kUiTaskStackBytes, this, kUiTaskPriority, s_uiTaskStack, &s_uiTaskTcb, kUiTaskCore);
+    if (m_hndTaskEventoTouch == nullptr)
+    {
+        ESP_LOGE(TAG, "Cant create task to read touch or draw widgets");
+        return;
+    }
 
-#if (ESP_ARDUINO_VERSION_MAJOR == 2) || (ESP_ARDUINO_VERSION_MAJOR == 3)
-        m_watchdogInitialized = (iniciou == ESP_OK);
-        if (iniciou == ESP_OK)
-        {
-            ESP_LOGD(TAG, "WDT initialized with %i seconds timeout", m_timeoutWTD);
-            esp_task_wdt_add(NULL);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "WDT initialization failed");
-        }
-#endif
+    if (portNUM_PROCESSORS > 1)
+    {
+        ESP_LOGD(TAG, "UI task pinned to core %d with priority %u, stack %u bytes", static_cast<int>(kUiTaskCore), static_cast<unsigned>(kUiTaskPriority), static_cast<unsigned>(kUiTaskStackBytes));
     }
     else
     {
-        esp_task_wdt_delete(NULL);
-        esp_err_t deinit = esp_task_wdt_deinit();
-        if (deinit == ESP_OK)
+        ESP_LOGD(TAG, "UI task created with no core affinity, priority %u, stack %u bytes", static_cast<unsigned>(kUiTaskPriority), static_cast<unsigned>(kUiTaskStackBytes));
+    }
+
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (m_camera.isReady())
+    {
+        const UBaseType_t kCameraTaskPriority = 2;
+        BaseType_t kCameraTaskCore = tskNO_AFFINITY;
+        if (portNUM_PROCESSORS > 1)
         {
-            ESP_LOGD(TAG, "WDT deinitialized");
+            kCameraTaskCore = static_cast<BaseType_t>(1);
+        }
+        m_cameraTaskStopped.store(false);
+        m_hndTaskCamera = xTaskCreateStaticPinnedToCore(
+            DisplayFK::TaskCamera, "TaskCamera", DFK_UI_STACK_CAMERA_BYTES, this,
+            kCameraTaskPriority, s_cameraTaskStack, &s_cameraTaskTcb, kCameraTaskCore);
+        if (m_hndTaskCamera == nullptr)
+        {
+            m_cameraTaskStopped.store(true);
+            ESP_LOGE(TAG, "Cant create camera task");
         }
         else
         {
-            ESP_LOGE(TAG, "WDT deinitialization failed");
+            ESP_LOGD(TAG, "Camera task pinned to core %d with priority %u, stack %u bytes", static_cast<int>(kCameraTaskCore), static_cast<unsigned>(kCameraTaskPriority), static_cast<unsigned>(DFK_UI_STACK_CAMERA_BYTES));
         }
     }
-
-    BaseType_t xRetorno = pdFAIL;
-    xRetorno = xTaskCreatePinnedToCore(DisplayFK::TaskEventoTouch, "TaskEventoTouch", configMINIMAL_STACK_SIZE + 3048, this, 1, &m_hndTaskEventoTouch, 0);
-    if (xRetorno == pdFAIL)
+    else
     {
-        ESP_LOGE(TAG, "Cant create task to read touch or draw widgets");
+        m_cameraTaskStopped.store(true);
+        ESP_LOGW(TAG, "Camera not ready, camera task skipped");
     }
+#endif
+
+    changeWTD();
 }
 
 /**
@@ -2515,16 +2672,22 @@ void DisplayFK::drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], cons
  */
 void DisplayFK::processCallback()
 {
-
     if (!WidgetBase::xFilaCallback)
-        return;
-
-    functionCB_t cb;
-    int ret = xQueueReceive(WidgetBase::xFilaCallback, &cb, pdMS_TO_TICKS(1));
-    if (ret == pdPASS && cb != nullptr)
     {
-        ESP_LOGD(TAG, "Processing callback, cb exists: %i", cb != nullptr);
-        cb();
+        return;
+    }
+
+    functionCB_t cb = nullptr;
+    for (uint8_t ran = 0; ran < 8; ran++)
+    {
+        if (xQueueReceive(WidgetBase::xFilaCallback, &cb, 0) != pdPASS)
+        {
+            return;
+        }
+        if (cb != nullptr)
+        {
+            cb();
+        }
     }
 }
 
@@ -2621,7 +2784,7 @@ void DisplayFK::processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressur
 
 void DisplayFK::processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
 {
-    if (hasTouch && m_lastTouchState == TouchEventType::NONE)
+    if (hasTouch && (m_lastTouchState == TouchEventType::NONE || m_lastTouchState == TouchEventType::TOUCH_UP))
     {
         m_lastTouchState = TouchEventType::TOUCH_DOWN;
     }
@@ -2740,6 +2903,11 @@ void DisplayFK::processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTou
  */
 void DisplayFK::processTouchableWidgets(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
+    if (WidgetBase::usingKeyboard)
+    {
+        return;
+    }
+
     ESP_LOGD(TAG, "Processing touchable widgets (collectMode: %s)", collectMode ? "true" : "false");
     if (collectMode)
     {
@@ -2765,8 +2933,8 @@ void DisplayFK::processTouchableWidgets(uint16_t xTouch, uint16_t yTouch, bool c
 
 bool DisplayFK::processTouchOnCameraFullScreen()
 {
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
-    if (!CameraMipi::hasFullScreen())
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (!m_camera.isReady() || !CameraMipi::hasFullScreen())
     {
         return false;
     }
@@ -2779,7 +2947,7 @@ bool DisplayFK::processTouchOnCameraFullScreen()
 
 void DisplayFK::exitCameraFullScreen()
 {
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     CameraMipi::exitFullScreen();
     if (arrayCameraMipi)
     {
@@ -2994,8 +3162,8 @@ void DisplayFK::clearTouchedWidgets(bool callOnRelease)
 
 void DisplayFK::processCameraMipiTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
-#ifdef DFK_CAMERA_MIPI
-    if (!m_cameraMipiConfigured || !arrayCameraMipi)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (!m_camera.isReady() || !m_cameraMipiConfigured || !arrayCameraMipi)
     {
         return;
     }
@@ -3430,35 +3598,66 @@ void DisplayFK::processTextBoxTouch(uint16_t xTouch, uint16_t yTouch, bool colle
             }
 #endif
             keyboard->open(arrayTextBox[indice]);
-            PressedKeyType pressedKey = PressedKeyType::NONE;
-
-            while (WidgetBase::usingKeyboard)
-            {
-                uint16_t internal_xTouch = 0;
-                uint16_t internal_yTouch = 0;
-                int internal_zPressure = 0;
-
-                bool hasTouch = touchExterno && (touchExterno->getTouch(&internal_xTouch, &internal_yTouch, &internal_zPressure));
-                if (hasTouch && keyboard->detectTouch(&internal_xTouch, &internal_yTouch, &pressedKey))
-                {
-                    if (pressedKey == PressedKeyType::RETURN || pressedKey == PressedKeyType::ESC)
-                    {
-                        WidgetBase::loadScreen = keyboard->m_field->parentScreen;
-                        keyboard->close();
-
-                        if (pressedKey == PressedKeyType::RETURN)
-                        {
-                            functionCB_t cb = arrayTextBox[indice]->getCallbackFunc();
-                            WidgetBase::addCallback(cb, WidgetBase::CallbackOrigin::TOUCH);
-                        }
-                        return;
-                    }
-                }
-                RESET_WDT
-                vTaskDelay(pdMS_TO_TICKS(10));
-            }
+            m_ignoreOpeningTouch = true;
+#if defined(DFK_NUMBERBOX)
+            m_numpadActive = false;
+#endif
+            return;
         }
     }
+#endif
+}
+
+void DisplayFK::serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+{
+#ifdef DFK_TEXTBOX
+    if (m_stopTask.load() || !WidgetBase::usingKeyboard || !keyboard)
+    {
+        return;
+    }
+#if defined(DFK_NUMBERBOX)
+    if (m_numpadActive)
+    {
+        return;
+    }
+#endif
+    if (m_ignoreOpeningTouch)
+    {
+        if (!hasTouch)
+        {
+            m_ignoreOpeningTouch = false;
+        }
+        return;
+    }
+    if (!hasTouch)
+    {
+        return;
+    }
+
+    PressedKeyType pressedKey = PressedKeyType::NONE;
+    if (!keyboard->detectTouch(&xTouch, &yTouch, &pressedKey))
+    {
+        return;
+    }
+    if (pressedKey != PressedKeyType::RETURN && pressedKey != PressedKeyType::ESC)
+    {
+        return;
+    }
+
+    TextBox *field = keyboard->m_field;
+    if (field != nullptr && field->parentScreen != nullptr)
+    {
+        WidgetBase::loadScreen = field->parentScreen;
+    }
+    keyboard->close();
+    if (pressedKey == PressedKeyType::RETURN && field != nullptr)
+    {
+        WidgetBase::addCallback(field->getCallbackFunc(), WidgetBase::CallbackOrigin::TOUCH);
+    }
+#else
+    UNUSED(hasTouch);
+    UNUSED(xTouch);
+    UNUSED(yTouch);
 #endif
 }
 
@@ -3500,63 +3699,75 @@ void DisplayFK::processNumberBoxTouch(uint16_t xTouch, uint16_t yTouch, bool col
             }
 #endif
             numpad->open(arrayNumberbox[indice]);
-            PressedKeyType pressedKey = PressedKeyType::NONE;
-            bool lastTouchState = false; // Track previous touch state
+            m_ignoreOpeningTouch = true;
+            m_numpadActive = true;
+            m_numpadTouchWasDown = true;
+            return;
+        }
+    }
+#endif
+}
 
-            while (WidgetBase::usingKeyboard)
+void DisplayFK::serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+{
+#ifdef DFK_NUMBERBOX
+    if (m_stopTask.load() || !WidgetBase::usingKeyboard || !m_numpadActive || !numpad)
+    {
+        return;
+    }
+    if (m_ignoreOpeningTouch)
+    {
+        if (!hasTouch)
+        {
+            m_ignoreOpeningTouch = false;
+            m_numpadTouchWasDown = false;
+        }
+        return;
+    }
+
+    if (m_numpadTouchWasDown && !hasTouch)
+    {
+        numpad->releaseKey();
+    }
+
+    if (hasTouch)
+    {
+        if (numpad->isKeyPressed())
+        {
+            const Numpad::KeyState &heldKey = numpad->getPressedKey();
+            if (!numpad->isPointInKey(xTouch, yTouch, heldKey))
             {
-                uint16_t internal_xTouch = 0;
-                uint16_t internal_yTouch = 0;
-                int internal_zPressure = 0;
-                bool hasTouch = touchExterno && (touchExterno->getTouch(&internal_xTouch, &internal_yTouch, &internal_zPressure));
+                numpad->releaseKey();
+            }
+        }
 
-                // Check if touch was released (was touching, now not)
-                if (lastTouchState && !hasTouch)
+        PressedKeyType pressedKey = PressedKeyType::NONE;
+        if (numpad->detectTouch(&xTouch, &yTouch, &pressedKey))
+        {
+            if (pressedKey == PressedKeyType::RETURN || pressedKey == PressedKeyType::ESC)
+            {
+                NumberBox *field = numpad->m_field;
+                if (field != nullptr && field->parentScreen != nullptr)
                 {
-                    // Touch was released - call internal onRelease
-                    numpad->releaseKey();
+                    WidgetBase::loadScreen = field->parentScreen;
                 }
-
-                if (hasTouch)
+                numpad->close();
+                m_numpadActive = false;
+                m_numpadTouchWasDown = false;
+                if (pressedKey == PressedKeyType::RETURN && field != nullptr)
                 {
-                    // Check if touch moved outside current pressed key
-                    if (numpad->isKeyPressed())
-                    {
-                        const Numpad::KeyState &pressedKey = numpad->getPressedKey();
-                        if (!numpad->isPointInKey(internal_xTouch, internal_yTouch, pressedKey))
-                        {
-                            // Touch moved outside pressed key - release it
-                            numpad->releaseKey();
-                        }
-                    }
-
-                    // Detect new key press
-                    if (numpad->detectTouch(&internal_xTouch, &internal_yTouch, &pressedKey))
-                    {
-                        if (pressedKey == PressedKeyType::RETURN || pressedKey == PressedKeyType::ESC)
-                        {
-                            if (numpad->m_field && numpad->m_field->parentScreen)
-                            {
-                                WidgetBase::loadScreen = numpad->m_field->parentScreen;
-                            }
-                            numpad->close();
-
-                            if (pressedKey == PressedKeyType::RETURN)
-                            {
-                                functionCB_t cb = arrayNumberbox[indice]->getCallbackFunc();
-                                WidgetBase::addCallback(cb, WidgetBase::CallbackOrigin::TOUCH);
-                            }
-                            return;
-                        }
-                    }
+                    WidgetBase::addCallback(field->getCallbackFunc(), WidgetBase::CallbackOrigin::TOUCH);
                 }
-
-                lastTouchState = hasTouch; // Update touch state
-                RESET_WDT
-                vTaskDelay(pdMS_TO_TICKS(10));
+                return;
             }
         }
     }
+
+    m_numpadTouchWasDown = hasTouch;
+#else
+    UNUSED(hasTouch);
+    UNUSED(xTouch);
+    UNUSED(yTouch);
 #endif
 }
 
@@ -3568,7 +3779,7 @@ void DisplayFK::updateWidgets()
     if (m_runningTransaction)
         return;
 
-    #if defined(DFK_CAMERA_MIPI) && defined(USE_CAMERA_CSI)
+    #if defined(DFK_CAMERA_MIPI) && defined(HAS_CAMERA_MIPI)
     if(CameraMipi::hasFullScreen())
     {
         return;
@@ -3617,7 +3828,7 @@ void DisplayFK::loadScreen(functionLoadScreen_t screen)
 void DisplayFK::setDrawObject(Arduino_GFX *objTFT)
 {
     WidgetBase::objTFT = objTFT;
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI) && defined(CONFIG_IDF_TARGET_ESP32P4)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI) && defined(CONFIG_IDF_TARGET_ESP32P4)
     m_cameraDsiDisplay = nullptr;
 #endif
 }
@@ -3626,7 +3837,7 @@ void DisplayFK::setDrawObject(Arduino_GFX *objTFT)
 void DisplayFK::setDrawObject(Arduino_DSI_Display *objTFT)
 {
     WidgetBase::objTFT = objTFT;
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     m_cameraDsiDisplay = objTFT;
 #endif
 }
@@ -3650,32 +3861,39 @@ void DisplayFK::setDrawObject(U8G2 *objTFT)
 
 void DisplayFK::cameraTask()
 {
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
-    if (m_runningTransaction)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (!m_camera.isReady() || m_stopTask.load() || WidgetBase::usingKeyboard)
+    {
+        return;
+    }
+
+    if (!m_cameraMipiConfigured || qtdCameraMipi == 0)
     {
         return;
     }
 
     if (!m_camera.isOpened() || !m_camera.isCaptureStarted())
     {
-        delay(1000);
         return;
     }
 
     if (!m_camera.captureFrame())
     {
-        delay(10);
         return;
     }
 
     ESPVideoBufferClass *buffer = m_camera.buffer();
     if (!buffer)
     {
-        delay(10);
+        m_camera.releaseFrame();
         return;
     }
 
-    updateCameraMipi(buffer);
+    if (m_transactionSemaphore != nullptr && xSemaphoreTake(m_transactionSemaphore, 0) == pdTRUE)
+    {
+        updateCameraMipi(buffer);
+        xSemaphoreGive(m_transactionSemaphore);
+    }
     m_camera.releaseFrame();
 #endif
 }
@@ -3683,56 +3901,26 @@ void DisplayFK::cameraTask()
 /**
  * @brief Main task loop
  */
-void DisplayFK::loopTask()
+void DisplayFK::displayfkTask()
 {
+    if (m_stopTask.load())
+    {
+        return;
+    }
 
     // ESP_LOGD(TAG, "Loop task started");
 
     uint32_t startTime = millis();
-    // bool semaphoreAcquired = false;
 
-    // Try to acquire the transaction semaphore with 10ms timeout
     if (!m_transactionSemaphore)
     {
-        ESP_LOGE(TAG, "Transaction semaphore not initialized in loopTask");
+        ESP_LOGE(TAG, "Transaction semaphore not initialized in displayfkTask");
         vTaskDelay(pdMS_TO_TICKS(1));
         return;
     }
 
-    if (xSemaphoreTake(m_transactionSemaphore, pdMS_TO_TICKS(1)) != pdTRUE)
-    {
-        // Could not acquire semaphore within 10ms, return early
-        ESP_LOGE(TAG, "Could not acquire semaphore within 10ms, return early");
-        return;
-    }
-
-    // semaphoreAcquired = true;
-
-    if (m_runningTransaction)
-    {
-        xSemaphoreGive(m_transactionSemaphore);
-        vTaskDelay(pdMS_TO_TICKS(1));
-        return;
-    }
-
-    // Release the semaphore after checking - don't hold it during screen loading
-    xSemaphoreGive(m_transactionSemaphore);
-    // semaphoreAcquired = false;
-
-    // Process screen loading
-    if (WidgetBase::loadScreen)
-    {
-        m_lastScreen = WidgetBase::loadScreen;
-        ESP_LOGD(TAG, "Loading screen on taskloop");
-        WidgetBase::loadScreen();
-        WidgetBase::loadScreen = nullptr;
-        vTaskDelay(pdMS_TO_TICKS(5));
-    }
-
-    // Process log queue
+    // Callbacks stay outside the draw mutex so they can call startCustomDraw().
     processLogQueue();
-
-    // Process callback queue
     processCallback();
 
     // Process touch events
@@ -3765,6 +3953,8 @@ void DisplayFK::loopTask()
     }
 
     processTouchStatus(hasTouch, xTouch, yTouch);
+    serviceKeyboard(hasTouch, xTouch, yTouch);
+    serviceNumpad(hasTouch, xTouch, yTouch);
 
     if (hasTouch)
     {
@@ -3777,20 +3967,39 @@ void DisplayFK::loopTask()
     }
 #endif
 
-    // Update widgets
-    updateWidgets();
+    if (!WidgetBase::usingKeyboard)
+    {
+        if (xSemaphoreTake(m_transactionSemaphore, 0) != pdTRUE)
+        {
+            return;
+        }
+
+        if (WidgetBase::loadScreen)
+        {
+            m_lastScreen = WidgetBase::loadScreen;
+            ESP_LOGD(TAG, "Loading screen on taskloop");
+            WidgetBase::loadScreen();
+            WidgetBase::loadScreen = nullptr;
+        }
+
+        updateWidgets();
 
 #if defined(DISP_PCD8544)
-    CHECK_TFT_VOID
-    WidgetBase::objTFT->display();
+        if (WidgetBase::objTFT)
+        {
+            WidgetBase::objTFT->display();
+        }
 #endif
+
+        xSemaphoreGive(m_transactionSemaphore);
+    }
 
     // Calculate and log execution time
     startTime = millis() - startTime;
 
     if (startTime >= MIN_LOOPTASK_TIME_LOG)
     {
-        ESP_LOGD(TAG, "loopTask finished: %lu ms\n", startTime);
+        ESP_LOGD(TAG, "displayfkTask finished: %lu ms\n", startTime);
     }
 
     // esp_task_wdt_reset();
@@ -3806,28 +4015,51 @@ void DisplayFK::loopTask()
 void DisplayFK::TaskEventoTouch(void *pvParameters)
 {
     //(void)pvParameters;
-    DisplayFK::instance->changeWTD();
 
     // vTaskDelay(pdMS_TO_TICKS(3000));
     ESP_LOGD(TAG, "TaskEventoTouch created");
-    // const TickType_t xDelay = 10 / portTICK_PERIOD_MS;
+
+#if defined(HAS_TOUCH)
+    if (DisplayFK::instance && DisplayFK::instance->touchExterno)
+    {
+        DisplayFK::instance->touchExterno->armInterruptNotify(xTaskGetCurrentTaskHandle());
+    }
+#endif
 
     for (;;)
     {
-        // if (xSemaphoreTake(DisplayFK::instance->m_loopSemaphore, pdMS_TO_TICKS(100)) == pdTRUE){
+        if (DisplayFK::instance && DisplayFK::instance->m_stopTask.load())
+        {
+            DisplayFK::instance->stopUiTaskAndDelete();
+        }
+
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30));
+
+        if (DisplayFK::instance && DisplayFK::instance->m_stopTask.load())
+        {
+            DisplayFK::instance->stopUiTaskAndDelete();
+        }
+
         if (DisplayFK::instance)
         {
-            DisplayFK::instance->loopTask();
-            #if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
-            DisplayFK::instance->cameraTask();
-            #endif
+            DisplayFK::instance->displayfkTask();
         }
-        // Libera o semáforo novamente para próxima iteração
-        //    xSemaphoreGive(DisplayFK::instance->m_loopSemaphore);
-        //}
         RESET_WDT
-        // if(DisplayFK::instance->m_enableWTD){esp_task_wdt_reset();}
-        vTaskDelay(pdMS_TO_TICKS(1));
+
+        static uint32_t lastStackCheckMs = 0;
+        static bool warnedLowStack = false;
+        const uint32_t nowMs = millis();
+        if ((nowMs - lastStackCheckMs) >= DFK_UI_STACK_LOG_PERIOD_MS)
+        {
+            lastStackCheckMs = nowMs;
+            const UBaseType_t freeBytes = uxTaskGetStackHighWaterMark(nullptr);
+            ESP_LOGD(TAG, "UI task stack high water mark: %u bytes free", static_cast<unsigned>(freeBytes));
+            if (!warnedLowStack && freeBytes < DFK_UI_STACK_WARN_BYTES)
+            {
+                warnedLowStack = true;
+                ESP_LOGW(TAG, "UI task stack margin is %u bytes", static_cast<unsigned>(freeBytes));
+            }
+        }
     }
 }
 
@@ -3835,6 +4067,46 @@ void DisplayFK::TaskEventoTouch(void *pvParameters)
  * @brief Returns the touch event task handle
  * @return Task handle
  */
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+void DisplayFK::stopCameraTaskAndDelete()
+{
+    m_camera.releaseFrame();
+
+    TaskHandle_t waiter = m_stopWaiter;
+    m_hndTaskCamera = nullptr;
+    m_cameraTaskStopped.store(true);
+    if (waiter != nullptr)
+    {
+        xTaskNotifyGive(waiter);
+    }
+    vTaskDelete(nullptr);
+}
+
+void DisplayFK::TaskCamera(void *pvParameters)
+{
+    (void)pvParameters;
+    ESP_LOGD(TAG, "Camera task created");
+
+    for (;;)
+    {
+        if (DisplayFK::instance == nullptr)
+        {
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kCameraFramePeriodMs));
+            continue;
+        }
+
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kCameraFramePeriodMs));
+
+        if (DisplayFK::instance->m_stopTask.load())
+        {
+            DisplayFK::instance->stopCameraTaskAndDelete();
+        }
+
+        DisplayFK::instance->cameraTask();
+    }
+}
+#endif
+
 TaskHandle_t DisplayFK::getTaskHandle() const
 {
     return m_hndTaskEventoTouch;
@@ -4139,7 +4411,7 @@ void DisplayFK::updateVBar()
 #endif
 }
 
-#if defined(DFK_CAMERA_MIPI) && defined(USE_CAMERA_CSI)
+#if defined(DFK_CAMERA_MIPI) && defined(HAS_CAMERA_MIPI)
 static ppa_srm_rotation_angle_t cameraPpaAngle(uint8_t rotation)
 {
     if (rotation == 1)
@@ -4163,12 +4435,77 @@ static void applyCameraMirrors(ppa_srm_oper_config_t *op, bool mirrorX, bool mir
     op->mirror_y = mirrorY;
 }
 
+static uint32_t ppaScaledPixels(uint32_t in_pixels, uint32_t scale_num)
+{
+    return (in_pixels * scale_num) / 16u;
+}
+
+// O PPA trunca a escala para n/16. crop * n / 16 precisa ser exatamente o destino.
+static bool cameraPpaExactCrop(uint32_t cam_w, uint32_t cam_h, uint32_t dest_w, uint32_t dest_h, uint32_t zoom, uint32_t *crop_w, uint32_t *crop_h, uint32_t *scale_num)
+{
+    uint32_t limit_w = cam_w / zoom;
+    uint32_t limit_h = cam_h / zoom;
+    if (limit_w < 2 || limit_h < 2 || dest_w < 2 || dest_h < 2)
+    {
+        return false;
+    }
+
+    uint32_t product_w = dest_w * 16u;
+    uint32_t product_h = dest_h * 16u;
+    uint32_t n_min_w = (product_w + limit_w - 1u) / limit_w;
+    uint32_t n_min_h = (product_h + limit_h - 1u) / limit_h;
+    uint32_t n = (n_min_w > n_min_h) ? n_min_w : n_min_h;
+    if (n == 0)
+    {
+        n = 1;
+    }
+
+    uint32_t n_max = product_w / 2u;
+    uint32_t n_max_h = product_h / 2u;
+    if (n_max_h < n_max)
+    {
+        n_max = n_max_h;
+    }
+
+    while (n <= n_max)
+    {
+        bool divides = (product_w % n) == 0 && (product_h % n) == 0;
+        uint32_t cw = divides ? (product_w / n) : 0;
+        uint32_t ch = divides ? (product_h / n) : 0;
+        bool fits = divides && (cw % 2u) == 0 && (ch % 2u) == 0 && cw <= limit_w && ch <= limit_h;
+        bool exact = fits && ppaScaledPixels(cw, n) == dest_w && ppaScaledPixels(ch, n) == dest_h;
+        if (exact)
+        {
+            *crop_w = cw;
+            *crop_h = ch;
+            *scale_num = n;
+            return true;
+        }
+        n++;
+    }
+    return false;
+}
+
 static void cameraZoomCrop(uint32_t cam_w, uint32_t cam_h, uint32_t dest_w, uint32_t dest_h, uint8_t zoom, uint32_t *crop_w, uint32_t *crop_h, uint32_t *crop_x, uint32_t *crop_y, float *scale_x, float *scale_y)
 {
     uint8_t z = zoom;
     if (z != 2 && z != 4)
     {
         z = 1;
+    }
+
+    uint32_t cw = 0;
+    uint32_t ch = 0;
+    uint32_t scale_num = 0;
+    if (cameraPpaExactCrop(cam_w, cam_h, dest_w, dest_h, z, &cw, &ch, &scale_num))
+    {
+        *crop_w = cw;
+        *crop_h = ch;
+        *crop_x = ((cam_w - cw) / 2) & ~1u;
+        *crop_y = ((cam_h - ch) / 2) & ~1u;
+        *scale_x = (float)scale_num / 16.0f;
+        *scale_y = (float)scale_num / 16.0f;
+        return;
     }
 
     uint32_t kx = (dest_w > 0) ? (cam_w / dest_w) : 1;
@@ -4184,8 +4521,8 @@ static void cameraZoomCrop(uint32_t cam_w, uint32_t cam_h, uint32_t dest_w, uint
         k = 1;
     }
 
-    uint32_t cw = dest_w * k;
-    uint32_t ch = dest_h * k;
+    cw = dest_w * k;
+    ch = dest_h * k;
     if (cw > cam_w)
     {
         cw = cam_w;
@@ -4508,7 +4845,7 @@ bool DisplayFK::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
 
 void DisplayFK::updateCameraMipi(ESPVideoBufferClass *buffer)
 {
-    if (!m_cameraMipiConfigured || !buffer || !buffer->data())
+    if (!m_camera.isReady() || !m_cameraMipiConfigured || !buffer || !buffer->data())
     {
         return;
     }

@@ -1,4 +1,5 @@
 #include "wnumberbox.h"
+#include "../../check_touch.h"
 
 const char* NumberBox::TAG = "NumberBox";
 

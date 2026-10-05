@@ -10,7 +10,7 @@
 
 #include <Wire.h>
 #include "../../share_i2c.h"
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #define Wire TouchI2c
 #endif
 
@@ -31,7 +31,7 @@ void FT6336U::begin(void) {
 #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40) || defined(TEENSYDUINO)
     if(sda != -1 && scl != -1) {
 #if defined(ARDUINO_ARCH_ESP32) || defined(ARDUINO_ARCH_ESP8266)        
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
         if (!Wire.begin(sda, scl)) {
             return;
         }
@@ -45,7 +45,7 @@ void FT6336U::begin(void) {
 #endif        
     }
     else {
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
         if (!Wire.begin()) {
             return;
         }
@@ -241,7 +241,11 @@ uint8_t FT6336U::read_state(void) {
                         //
                         //
 FT6336U_TouchPointType FT6336U::scan(void){
-    touchPoint.touch_count = read_td_status();
+    uint8_t count = read_td_status() & 0x0F;
+    if (count > 2) {
+        count = 0;
+    }
+    touchPoint.touch_count = count;
 
     if(touchPoint.touch_count == 0) {
         touchPoint.tp[0].status = release;

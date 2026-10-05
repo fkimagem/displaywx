@@ -2,12 +2,14 @@
 #define CAMERA_CONTROLLER_H
 
 #include "../../../user_setup.h"
+#include "../../check_camera.h"
 #include "../../widgets/widgetsetup.h"
 
-#if defined(USE_CAMERA_CSI) && defined(DFK_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 
 #include <Arduino.h>
 #include <ESP_Video.h>
+#include <freertos/semphr.h>
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <driver/ppa.h>
 #include "esp_cam_sensor_xclk.h"
@@ -27,12 +29,15 @@ public:
     bool startPpa();
     bool captureFrame();
     void releaseFrame();
+    bool isReady() const;
     bool isOpened() const;
     bool isCaptureStarted() const;
     ESPVideoBufferClass *buffer();
     ppa_client_handle_t ppaClient() const;
 
 private:
+    void releaseAfterFailedStart();
+    void markReady();
     bool startWithFormat(esp_video_format_t format, const char *formatName);
     bool selectSensorSize(uint16_t width, uint16_t height);
     bool sensorUsesRaw10() const;
@@ -46,8 +51,11 @@ private:
     ESPVideoBufferClass *m_buffer;
     ppa_client_handle_t m_ppaSrm;
     esp_cam_sensor_xclk_handle_t m_xclk;
+    SemaphoreHandle_t m_cameraBusy;
+    StaticSemaphore_t m_cameraBusyBuffer;
     uint16_t m_sensorWidth;
     uint16_t m_sensorHeight;
+    bool m_ready;
     static const size_t kCaptureBufferCount = 2;
 };
 

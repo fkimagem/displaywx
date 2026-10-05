@@ -60,7 +60,7 @@
 
 #else
 
-#error "ESP32 Arduino Core version could not be detected. Please install ESP32 Arduino Core between version 3.3.6 and 3.3.9."
+#error "ESP32 Arduino Core version could not be detected. Please install ESP32 Arduino Core between version 3.3.11 and 3.3.12."
 
 #endif // ESP_ARDUINO_VERSION
 
@@ -69,17 +69,11 @@
 #endif
 
 #if (defined(CAM_OV02C10) + defined(CAM_OV5647) + defined(CAM_SC2336) + defined(CAM_OV2710)) > 1
-#error "CAM_OV02C10, CAM_OV5647, CAM_SC2336 and CAM_OV2710 cannot be defined at the same time. Choose one camera sensor in user_setup.h."
+#error "Only one camera sensor can be enabled. Choose one of CAM_OV02C10, CAM_OV5647, CAM_SC2336 or CAM_OV2710 in user_setup.h."
 #endif
 
-#if defined(USE_CAMERA_CSI)
-#if !defined(CAM_OV02C10) && !defined(CAM_OV5647) && !defined(CAM_SC2336) && !defined(CAM_OV2710)
-#error "USE_CAMERA_CSI requires CAM_OV02C10, CAM_OV5647, CAM_SC2336 or CAM_OV2710 in user_setup.h."
-#endif
-#endif
-
-#if (defined(CAM_OV02C10) || defined(CAM_OV5647) || defined(CAM_SC2336) || defined(CAM_OV2710)) && !defined(USE_CAMERA_CSI)
-#error "CAM_OV02C10, CAM_OV5647, CAM_SC2336 and CAM_OV2710 require USE_CAMERA_CSI in user_setup.h."
+#if (defined(TOUCH_FT6236U) + defined(TOUCH_FT6336) + defined(TOUCH_CST816) + defined(TOUCH_GT911) + defined(TOUCH_GT911_WAVESHARE) + defined(TOUCH_XPT2046) + defined(TOUCH_GSL3680) + defined(TOUCH_CST820)) > 1
+#error "Only one touch controller can be enabled. Choose one of TOUCH_FT6236U, TOUCH_FT6336, TOUCH_CST816, TOUCH_GT911, TOUCH_GT911_WAVESHARE, TOUCH_XPT2046, TOUCH_GSL3680 or TOUCH_CST820 in user_setup.h."
 #endif
 
 #endif // CHECK_VERSION_H

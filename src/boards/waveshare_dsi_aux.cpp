@@ -1,7 +1,7 @@
 #include "../displayfk.h"
 #include <Arduino.h>
 
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #include "../touch/share_i2c.h"
 #else
 #include <Wire.h>
@@ -27,7 +27,7 @@ constexpr RegisterWrite kPowerSequence[] = {
 
 bool openSharedBus(int sda, int scl)
 {
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
     return TouchI2c.begin(sda, scl);
 #else
     Wire.begin(sda, scl);
@@ -37,7 +37,7 @@ bool openSharedBus(int sda, int scl)
 
 bool writeRegister(uint8_t reg, uint8_t value)
 {
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
     TouchI2c.beginTransmission(kPanelAddress);
     TouchI2c.write(reg);
     TouchI2c.write(value);

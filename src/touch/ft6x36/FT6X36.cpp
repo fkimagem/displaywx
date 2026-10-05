@@ -138,11 +138,23 @@ void FT6X36::readData(void)
 	uint8_t data[size];
 	_wire->beginTransmission(FT6X36_ADDR);
 	_wire->write(0);
-	_wire->endTransmission();
+	if (_wire->endTransmission() != 0) {
+		_touches = 0;
+		return;
+	}
 
-	_wire->requestFrom((uint8_t)FT6X36_ADDR, size);
-	for (uint8_t i = 0; i < size; i++)
-		data[i] = Wire.read();
+	if (_wire->requestFrom((uint8_t)FT6X36_ADDR, size) != size) {
+		_touches = 0;
+		return;
+	}
+	for (uint8_t i = 0; i < size; i++) {
+		int value = _wire->read();
+		if (value < 0) {
+			_touches = 0;
+			return;
+		}
+		data[i] = (uint8_t)value;
+	}
 
 #ifdef FT6X36_DEBUG
 	Serial.println("REGISTERS:");
@@ -187,10 +199,18 @@ uint8_t FT6X36::readRegister8(uint8_t reg)
 {
 	_wire->beginTransmission(FT6X36_ADDR);
 	_wire->write(reg);
-	_wire->endTransmission();
+	if (_wire->endTransmission() != 0) {
+		return 0;
+	}
 
-	_wire->requestFrom((uint8_t)FT6X36_ADDR, (uint8_t)1);
-	uint8_t value = _wire->read();
+	if (_wire->requestFrom((uint8_t)FT6X36_ADDR, (uint8_t)1) != 1) {
+		return 0;
+	}
+	int raw = _wire->read();
+	if (raw < 0) {
+		return 0;
+	}
+	uint8_t value = (uint8_t)raw;
 
 #ifdef I2C_DEBUG
 	Serial.print("REG 0x");

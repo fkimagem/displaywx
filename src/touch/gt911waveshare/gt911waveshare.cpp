@@ -6,7 +6,7 @@
 #include <Wire.h>
 #include "../share_i2c.h"
 
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #define Wire TouchI2c
 #endif
 
@@ -31,7 +31,7 @@ bool Gt911Waveshare::begin(int sda, int scl, uint16_t panelWidth, uint16_t panel
     address = 0;
     clearPoints();
 
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
     if (!Wire.begin(sda, scl)) {
         return false;
     }

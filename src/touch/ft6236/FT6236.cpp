@@ -20,7 +20,7 @@ MIT license, all text above must be included in any redistribution
 #include "FT6236.h"
 #include <Wire.h>
 #include "../share_i2c.h"
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #define Wire TouchI2c
 #endif
 
@@ -39,7 +39,7 @@ boolean FT6236::begin(uint8_t thresh, int8_t sda, int8_t scl)
     {
         started = Wire.begin();
     }
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
     if (!started) {
         return false;
     }
@@ -101,11 +101,23 @@ void FT6236::readData(void)
     uint8_t i2cdat[16];
     Wire.beginTransmission(FT6236_ADDR);
     Wire.write((byte)0);
-    Wire.endTransmission();
+    if (Wire.endTransmission() != 0) {
+        touches = 0;
+        return;
+    }
 
-    Wire.requestFrom((byte)FT6236_ADDR, (byte)16);
-    for (uint8_t i = 0; i < 16; i++)
-        i2cdat[i] = Wire.read();
+    if (Wire.requestFrom((byte)FT6236_ADDR, (byte)16) != 16) {
+        touches = 0;
+        return;
+    }
+    for (uint8_t i = 0; i < 16; i++) {
+        int value = Wire.read();
+        if (value < 0) {
+            touches = 0;
+            return;
+        }
+        i2cdat[i] = (uint8_t)value;
+    }
 
     touches = i2cdat[0x02];
     if ((touches > 2) || (touches == 0))
@@ -128,16 +140,19 @@ void FT6236::readData(void)
 /* Reading a byte from a register */
 uint8_t FT6236::readRegister8(uint8_t reg)
 {
-    uint8_t x;
-
     Wire.beginTransmission(FT6236_ADDR);
     Wire.write((byte)reg);
-    Wire.endTransmission();
-
-    Wire.requestFrom((byte)FT6236_ADDR, (byte)1);
-    x = Wire.read();
-
-    return x;
+    if (Wire.endTransmission() != 0) {
+        return 0;
+    }
+    if (Wire.requestFrom((byte)FT6236_ADDR, (byte)1) != 1) {
+        return 0;
+    }
+    int value = Wire.read();
+    if (value < 0) {
+        return 0;
+    }
+    return (uint8_t)value;
 }
 
 /* Writing a byte to a register */

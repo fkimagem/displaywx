@@ -7,12 +7,13 @@
 #include "esp_log.h"
 #include "../../../extras/check_version.h"
 #include "../../../../user_setup.h"
+#include "../../../check_camera.h"
 
 #if defined(ESP_ARDUINO_VERSION_OK)
 #include "driver/i2c_master.h"  // Driver NOVO
 #include "esp_lcd_touch.h"
 #include "esp_lcd_gsl3680.h"
-#if defined(USE_CAMERA_CSI)
+#if defined(HAS_CAMERA_MIPI)
 #include "esp32-hal-periman.h"
 #endif
 #endif
@@ -27,7 +28,7 @@
 
 static const char *TAG = "GSL3680";
 
-#if defined(ESP_ARDUINO_VERSION_OK) && defined(USE_CAMERA_CSI)
+#if defined(ESP_ARDUINO_VERSION_OK) && defined(HAS_CAMERA_MIPI)
 static bool pinIsI2cSda(int8_t pin)
 {
     peripheral_bus_type_t type = perimanGetPinBusType((uint8_t)pin);
@@ -191,7 +192,7 @@ GSL3680_touch::GSL3680_touch(int8_t sda_pin, int8_t scl_pin, int8_t rst_pin, int
 void GSL3680_touch::begin()
 {
     #if defined(ESP_ARDUINO_VERSION_OK)
-    #if defined(USE_CAMERA_CSI)
+    #if defined(HAS_CAMERA_MIPI)
     bool busReady = tryReuseBusOnPins(_sda, _scl, &i2c_bus_handle);
     if (!busReady) {
         busReady = createBusOnFreePort(_sda, _scl, &i2c_bus_handle);
@@ -248,6 +249,9 @@ void GSL3680_touch::begin()
 bool GSL3680_touch::getTouch(uint16_t *x, uint16_t *y)
 {
     #if defined(ESP_ARDUINO_VERSION_OK)
+    if (tp == nullptr || x == nullptr || y == nullptr) {
+        return false;
+    }
     esp_lcd_touch_read_data(tp);
     bool touchpad_pressed = esp_lcd_touch_get_coordinates(tp, x, y, touch_strength, &touch_cnt, 1);
 

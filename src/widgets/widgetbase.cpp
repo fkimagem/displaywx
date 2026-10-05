@@ -246,24 +246,26 @@ void WidgetBase::onRelease() {
  * @param origin Origin of the callback
  */
 void WidgetBase::addCallback(functionCB_t callback, CallbackOrigin origin){
-    if(WidgetBase::xFilaCallback != NULL){
+    static uint32_t droppedCallbacks = 0;
 
-        if(callback == nullptr){
-            ESP_LOGE(TAG, "Callback is nullptr. Not adding to queue callback.");
-            return;
-        }
-        
-        if(uxQueueSpacesAvailable(WidgetBase::xFilaCallback) > 0){
-            if(xQueueSend(WidgetBase::xFilaCallback, &callback, pdMS_TO_TICKS(50)) == pdPASS){
-                ESP_LOGD(TAG, "Callback added to queue. Origin: %d", (int)origin);
-            }else{
-                ESP_LOGE(TAG, "Can't add callback. Queue send failed");
-            }
-        }else{
-            ESP_LOGE(TAG, "Can't add callback. Queue is full");
-        }
-    }else{
+    if (callback == nullptr) {
+        ESP_LOGE(TAG, "Callback is nullptr. Not adding to queue callback.");
+        return;
+    }
+
+    if (WidgetBase::xFilaCallback == nullptr) {
         ESP_LOGE(TAG, "Can't add callback. Queue is not created");
+        return;
+    }
+
+    if (xQueueSend(WidgetBase::xFilaCallback, &callback, 0) == pdPASS) {
+        ESP_LOGD(TAG, "Callback added to queue. Origin: %d", (int)origin);
+        return;
+    }
+
+    droppedCallbacks++;
+    if ((droppedCallbacks % 32) == 0) {
+        ESP_LOGW(TAG, "Callback queue full, dropped %u", static_cast<unsigned>(droppedCallbacks));
     }
 }
 
