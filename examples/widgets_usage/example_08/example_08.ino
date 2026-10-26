@@ -4,7 +4,7 @@
 
 This project is an example of using two Image widgets for navigation between two screens. Each image
 is loaded from embedded pixel data (headers irightpng.h and ileftpng.h) and has a touch callback.
-When the user touches the image on screen 0 (irightpng), the DisplayFK library calls irightpng_cb,
+When the user touches the image on screen 0 (irightpng), the DisplayWX library calls irightpng_cb,
 which prints to Serial and calls myDisplay.loadScreen(screen1) to switch to screen 1. When the user
 touches the image on screen 1 (ileftpng), ileftpng_cb runs and calls myDisplay.loadScreen(screen0)
 to return to screen 0. The images thus act as navigation arrows or buttons between the two screens.
@@ -24,7 +24,7 @@ screen.
 
 Este projeto é um exemplo de uso de dois widgets Image para navegação entre duas telas. Cada imagem
 é carregada a partir de dados de pixels embutidos (headers irightpng.h e ileftpng.h) e possui um
-callback de toque. Quando o usuário toca na imagem da tela 0 (irightpng), a biblioteca DisplayFK
+callback de toque. Quando o usuário toca na imagem da tela 0 (irightpng), a biblioteca DisplayWX
 chama irightpng_cb, que imprime no Serial e chama myDisplay.loadScreen(screen1) para ir à tela 1.
 Quando o usuário toca na imagem da tela 1 (ileftpng), ileftpng_cb é executado e chama
 myDisplay.loadScreen(screen0) para voltar à tela 0. As imagens funcionam assim como setas ou botões
@@ -52,7 +52,7 @@ desenhando os widgets daquela tela.
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -102,7 +102,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 Image irightpng(435, 15, 0);
 Image ileftpng(10, 10, 1);

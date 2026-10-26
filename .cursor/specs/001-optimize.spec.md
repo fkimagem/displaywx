@@ -1,4 +1,4 @@
-# 001 — Otimização de memória, heap e FreeRTOS no DisplayFK
+# 001 — Otimização de memória, heap e FreeRTOS no DisplayWX
 
 Status geral: em andamento. Itens 1 a 10 feitos na branch `optimize/001-freertos`.
 
@@ -29,7 +29,7 @@ Câmera, quando existir:
 - `examples/generic/ESP32P4/pico_camera_display` chama `createTask(false, 3)`, desenha widgets e faz blit da câmera na mesma task. Touch GT911 e SCCB da OV5647 compartilham GPIO 7/8.
 - `examples/generic/ESP32P4/pico_camera_waveshare` captura frame no `loop()` do sketch, fora da task. Os dois caminhos (`loop` e `cameraTask`) podem chamar `captureFrame` ao mesmo tempo se o sketch também criar a task.
 
-Escopo: `src/displayfk.cpp`, `src/displayfk.h`, `src/widgets/`, `src/touch/`, `src/camera/`. Examples só mudam se um item exigir um ajuste mínimo de chamada.
+Escopo: `src/displaywx.cpp`, `src/displaywx.h`, `src/widgets/`, `src/touch/`, `src/camera/`. Examples só mudam se um item exigir um ajuste mínimo de chamada.
 
 Fora de escopo: reescrever widgets por estilo, trocar a API pública dos sketches, e otimizar fontes em flash.
 
@@ -39,7 +39,7 @@ Fora de escopo: reescrever widgets por estilo, trocar a API pública dos sketche
 
 Status: feito.
 
-Onde: `DisplayFK::createTask` em `src/displayfk.cpp`.
+Onde: `DisplayWX::createTask` em `src/displaywx.cpp`.
 
 Problema: no exemplo completo o `loop()` do sketch é quem alimenta os widgets e os periféricos (pot, servo, LED, troca de tela). No ESP32-S3 esse `loopTask` está no core 1 com prioridade 1. Uma task de UI no mesmo core com prioridade maior segura esse `loop()` durante cada redraw. O core 0 continua sendo o core de Wi-Fi/Bluetooth; a task de UI fica nele com prioridade 1, abaixo das tarefas de rede.
 
@@ -77,7 +77,7 @@ Aceite: a task não nasce com `new`/`pvPortMalloc` de stack. O high water mark a
 
 Status: feito.
 
-Onde: `DisplayFK::createTask`, ramo `m_enableWTD`. Os examples P4 chamam `createTask(false, 3)`.
+Onde: `DisplayWX::createTask`, ramo `m_enableWTD`. Os examples P4 chamam `createTask(false, 3)`.
 
 Problema: com watchdog desligado o código chama `esp_task_wdt_delete(NULL)` e `esp_task_wdt_deinit()`. Isso remove o TWDT do sistema inteiro, inclusive das idles. Com watchdog ligado, o timeout é refeito para o chip todo (`m_timeoutWTD * 1000` ms) e a task é adicionada com `esp_task_wdt_add(NULL)`.
 
@@ -96,7 +96,7 @@ Aceite: `createTask(false, 3)` não desliga o watchdog das outras tasks. `create
 
 Status: feito.
 
-Onde: `DisplayFK::~DisplayFK` e `cleanupFreeRTOSResources`.
+Onde: `DisplayWX::~DisplayWX` e `cleanupFreeRTOSResources`.
 
 Problema: o destrutor apaga semáforos e buffers enquanto `TaskEventoTouch` continua no `for(;;)`. O manual do IDF desaconselha `vTaskDelete` de uma task que roda no outro core, porque ela pode estar com mutex ou memória ainda em uso. Hoje a task nem é apagada: o handle vaza e o próximo acesso aos semáforos é use-after-free.
 
@@ -108,7 +108,7 @@ Mudança:
 4. A task zera `m_hndTaskEventoTouch` antes de se apagar (gravar `nullptr` numa variável que o destrutor lê; o handle em si pode ser lido depois do delete, então usar um flag `m_taskStopped`).
 5. Só então o destrutor apaga semáforos, filas e o preview da câmera.
 
-Aceite: destruir `DisplayFK` não deixa task órfã. Não há `vTaskDelete` chamado de outro core sobre essa task.
+Aceite: destruir `DisplayWX` não deixa task órfã. Não há `vTaskDelete` chamado de outro core sobre essa task.
 
 ---
 
@@ -116,14 +116,14 @@ Aceite: destruir `DisplayFK` não deixa task órfã. Não há `vTaskDelete` cham
 
 Status: feito.
 
-Onde: `displayfkTask`, `startCustomDraw`, `finishCustomDraw`.
+Onde: `displaywxTask`, `startCustomDraw`, `finishCustomDraw`.
 
-Problema: `displayfkTask` toma `m_transactionSemaphore` por 1 ms, lê `m_runningTransaction` e solta o mutex antes de desenhar. `startCustomDraw` faz o mesmo para gravar o flag e solta o mutex na hora. Entre cores do SMP o flag fica exposto e o sketch pode escrever no TFT ao mesmo tempo que a task. `portMAX_DELAY` no sketch trava para sempre se a task morrer segurando o mutex.
+Problema: `displaywxTask` toma `m_transactionSemaphore` por 1 ms, lê `m_runningTransaction` e solta o mutex antes de desenhar. `startCustomDraw` faz o mesmo para gravar o flag e solta o mutex na hora. Entre cores do SMP o flag fica exposto e o sketch pode escrever no TFT ao mesmo tempo que a task. `portMAX_DELAY` no sketch trava para sempre se a task morrer segurando o mutex.
 
 Mudança:
 
 1. `startCustomDraw` toma o mutex com timeout de 100 ms e só devolve em `finishCustomDraw`.
-2. `displayfkTask` tenta o mutex com timeout 0. Se não conseguir, volta na próxima iteração sem desenhar.
+2. `displaywxTask` tenta o mutex com timeout 0. Se não conseguir, volta na próxima iteração sem desenhar.
 3. Segurar o mutex durante `updateWidgets` e `cameraTask` (blit no framebuffer).
 4. Trocar `m_runningTransaction` por "mutex ocupado pelo sketch". Remover a janela em que o flag é true e o mutex já foi devolvido.
 5. Documentar no header: callbacks de widget rodam fora desse mutex (item 6), para o callback poder chamar `startCustomDraw` sem deadlock.
@@ -136,7 +136,7 @@ Aceite: desenho do sketch e desenho da task não se intercalam. Um timeout estou
 
 Status: feito.
 
-Onde: `WidgetBase::addCallback` (`xQueueSend` com 50 ms) e `DisplayFK::processCallback` (`xQueueReceive` com 1 ms). A fila nasce com profundidade 5 em `DisplayFK::setup`.
+Onde: `WidgetBase::addCallback` (`xQueueSend` com 50 ms) e `DisplayWX::processCallback` (`xQueueReceive` com 1 ms). A fila nasce com profundidade 5 em `DisplayWX::setup`.
 
 Problema: quem enfileira o callback no toque é a própria `TaskEventoTouch`, e só ela consome a fila. Com a fila cheia, `xQueueSend(..., 50 ms)` bloqueia o único consumidor. `xQueueReceive` com 1 ms, com a fila vazia, dorme um tick em toda volta, somado ao `vTaskDelay(1)` do fim da task. `setup()` chama `xQueueCreate` de novo se `createTask` repetir, e a fila anterior vaza.
 
@@ -162,7 +162,7 @@ Problema: nesse intervalo a task não atualiza os outros widgets, não faz blit 
 
 Mudança:
 
-1. Extrair o miolo dos dois `while` para `serviceKeyboard()` e `serviceNumpad()`, chamados uma vez por volta de `displayfkTask`.
+1. Extrair o miolo dos dois `while` para `serviceKeyboard()` e `serviceNumpad()`, chamados uma vez por volta de `displaywxTask`.
 2. `detectTouch` do textbox/numberbox só abre o teclado e marca `usingKeyboard`.
 3. Cada volta lê o touch uma vez, repassa ao teclado ou ao numpad, e segue para `updateWidgets`.
 4. Fechar com RETURN/ESC enfileira o callback (item 6) e limpa `usingKeyboard`.
@@ -175,7 +175,7 @@ Aceite: com o teclado aberto, `cameraTask` e os widgets visíveis continuam na m
 
 Status: feito.
 
-Onde: `TaskEventoTouch` chama `displayfkTask()` e em seguida `cameraTask()`. `cameraTask` faz `captureFrame`, blit PPA em modo bloqueante e `releaseFrame`.
+Onde: `TaskEventoTouch` chama `displaywxTask()` e em seguida `cameraTask()`. `cameraTask` faz `captureFrame`, blit PPA em modo bloqueante e `releaseFrame`.
 
 Problema: um frame MIPI atrasado segura touch e redraw. O example `pico_camera_waveshare` ainda captura no `loop()` do sketch; se os dois caminhos rodarem, duas tasks chamam o mesmo `CameraController` sem exclusão.
 
@@ -234,7 +234,7 @@ Aceite: com INT ligado, o analisador de CPU mostra a task bloqueada entre toques
 
 Status: pendente.
 
-Onde: `updateWidgets` e cada `update*` em `displayfk.cpp`. `redraw()` dos widgets começa com macros `CHECK_*`. Com `LOG_CHECK_ERRORS` em 1, `CHECK_DEBOUNCE_REDRAW_VOID` emite `ESP_LOGW` a cada rejeição. Vários `redraw()` também logam `ESP_LOGD` no caminho normal (`CameraMipi::detectTouch`, `WidgetBase::setPressed`).
+Onde: `updateWidgets` e cada `update*` em `displaywx.cpp`. `redraw()` dos widgets começa com macros `CHECK_*`. Com `LOG_CHECK_ERRORS` em 1, `CHECK_DEBOUNCE_REDRAW_VOID` emite `ESP_LOGW` a cada rejeição. Vários `redraw()` também logam `ESP_LOGD` no caminho normal (`CameraMipi::detectTouch`, `WidgetBase::setPressed`).
 
 Problema: a cada volta a task caminha todos os arrays (gauge, label, imagem, câmera, …) e entra em `redraw()` só para sair em `CHECK_SHOULDREDRAW`. Log no hot path formata string e pode alocar.
 
@@ -242,7 +242,7 @@ Mudança:
 
 1. Em cada `update*`, continuar se `!widget->shouldRedraw()` (método já existente ou leitura do flag via função pública já usada por `forceUpdate`).
 2. Manter `CHECK_SHOULDREDRAW` dentro de `redraw()` como rede de segurança.
-3. Deixar `LOG_CHECK_ERRORS` em 0 no código que roda por frame. Não adicionar `ESP_LOG*` novos dentro de `redraw`, `detectTouch` e `displayfkTask`.
+3. Deixar `LOG_CHECK_ERRORS` em 0 no código que roda por frame. Não adicionar `ESP_LOG*` novos dentro de `redraw`, `detectTouch` e `displaywxTask`.
 4. `CameraMipi::detectTouch` deixa de logar "INSIDE BOUNDS" / "OUTSIDE BOUNDS" em todo toque.
 
 Aceite: com a tela estática, `redraw()` de label/gauge/botão não é chamado. O log serial fica quieto durante um arraste.
@@ -253,7 +253,7 @@ Aceite: com a tela estática, `redraw()` de label/gauge/botão não é chamado. 
 
 Status: pendente.
 
-Onde: `DisplayFK::drawPng` (pixel a pixel), `WidgetBase::drawRotatedImageOptimized` (pixel a pixel com `writePixel`), `Label::redraw` / `printText`.
+Onde: `DisplayWX::drawPng` (pixel a pixel), `WidgetBase::drawRotatedImageOptimized` (pixel a pixel com `writePixel`), `Label::redraw` / `printText`.
 
 Problema: cada pixel é uma transação com o painel. `drawRotatedImageOptimized` já abre `startWrite`/`endWrite`, mas ainda emite um `writePixel` por ponto. `drawPng` não agrupa. Vários widgets no mesmo frame abrem e fecham a transação SPI/DSI várias vezes.
 
@@ -365,19 +365,19 @@ Aceite: adicionar ponto e redesenhar não usam `portMAX_DELAY`. O pool grande sa
 
 Status: pendente.
 
-Onde: `addLog`, `processLogQueue`, `bufferLog[LOG_LENGTH]`, fila `xFilaLog` de 10 × `logMessage_t` (64 bytes copiados por valor). `processLogQueue` faz `Serial.printf` dentro de `displayfkTask`.
+Onde: `addLog`, `processLogQueue`, `bufferLog[LOG_LENGTH]`, fila `xFilaLog` de 10 × `logMessage_t` (64 bytes copiados por valor). `processLogQueue` faz `Serial.printf` dentro de `displaywxTask`.
 
 Problema: a task de UI bloqueia na UART. A fila e o `bufferLog` guardam o mesmo texto duas vezes. `Serial` também é usado pelo sketch sem mutex.
 
 Mudança:
 
-1. `processLogQueue` sai de `displayfkTask`.
+1. `processLogQueue` sai de `displaywxTask`.
 2. Uma task de log, prioridade 1, stack estática de 2048 bytes, bloqueia em `xQueueReceive(..., portMAX_DELAY)` e só então escreve na UART.
 3. `addLog` continua com `xQueueSend(..., 0)`. Fila cheia descarta.
 4. Remover a cópia para `bufferLog` se nenhum leitor externo usar esse array. Se o header público expõe `bufferLog`, manter o array e copiar na task de log, não na task de UI.
 5. Criar a fila uma vez, junto da fila de callback (item 6).
 
-Aceite: `displayfkTask` não chama `Serial.printf`. Um log por segundo não atrasa o redraw.
+Aceite: `displaywxTask` não chama `Serial.printf`. Um log por segundo não atrasa o redraw.
 
 ---
 
@@ -403,9 +403,9 @@ Aceite: para um texto de N caracteres, o número de `getTextBounds` fica em torn
 
 Status: pendente.
 
-Onde: `DisplayFK::setup` (`xQueueCreate` da fila de log e da fila de callback) e o construtor (`DisplayFK::instance = this`). `createTask` chama `setup()` sempre.
+Onde: `DisplayWX::setup` (`xQueueCreate` da fila de log e da fila de callback) e o construtor (`DisplayWX::instance = this`). `createTask` chama `setup()` sempre.
 
-Problema: a segunda chamada vaza as duas filas. Um segundo objeto `DisplayFK` no mesmo sketch sobrescreve `instance`, e a task antiga continua chamando o objeto novo. Isso aparece se o sketch declara o display em escopo que reconstrói.
+Problema: a segunda chamada vaza as duas filas. Um segundo objeto `DisplayWX` no mesmo sketch sobrescreve `instance`, e a task antiga continua chamando o objeto novo. Isso aparece se o sketch declara o display em escopo que reconstrói.
 
 Mudança:
 
@@ -413,7 +413,7 @@ Mudança:
 2. O construtor, se `instance` já aponta para outro objeto vivo, não sobrescreve e registra `ESP_LOGE`. Uma instância por processo.
 3. O destrutor zera `instance` só se `instance == this`, e só depois do item 4.
 
-Aceite: chamar `createTask` duas vezes não aumenta o número de filas no heap. Dois objetos `DisplayFK` não compartilham o ponteiro estático em silêncio.
+Aceite: chamar `createTask` duas vezes não aumenta o número de filas no heap. Dois objetos `DisplayWX` não compartilham o ponteiro estático em silêncio.
 
 ---
 

@@ -30,7 +30,7 @@ void loadWidgets();
 void screen0();
 
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 
@@ -44,7 +44,7 @@ Arduino_DataBus *bus = nullptr;         // Ponteiro para o barramento de dados d
 Arduino_GFX *tft = nullptr;             // Ponteiro para o objeto gráfico principal do display (gerencia desenho, cores, texto, etc.)
 uint8_t rotationScreen = 1;             // Define a rotação da tela (0 a 3); valor 1 corresponde a 90° (paisagem padrão para 480x320)
 
-DisplayFK myDisplay;                    // Instancia do objeto principal da biblioteca `displayfk`, que gerencia widgets, eventos e o desenho na tela
+DisplayWX myDisplay;                    // Instancia do objeto principal da biblioteca `displaywx`, que gerencia widgets, eventos e o desenho na tela
 
 
 void setup()

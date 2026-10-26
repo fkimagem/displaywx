@@ -3,7 +3,7 @@ var searchData=
   ['_7echeckbox_0',['~CheckBox',['../class_check_box.html#a65a1f9a72d592c75d3cc7cc9117b35f9',1,'CheckBox']]],
   ['_7ecirclebutton_1',['~CircleButton',['../class_circle_button.html#a112fd4b73367296527ca98eaf4bc83db',1,'CircleButton']]],
   ['_7ecircularbar_2',['~CircularBar',['../class_circular_bar.html#a5197b5bcf44c5d9ab33e2783c16806f2',1,'CircularBar']]],
-  ['_7edisplayfk_3',['~DisplayFK',['../class_display_f_k.html#ab5dbcea07768611ee4beec01a9351293',1,'DisplayFK']]],
+  ['_7edisplaywx_3',['~DisplayWX',['../class_display_f_k.html#ab5dbcea07768611ee4beec01a9351293',1,'DisplayWX']]],
   ['_7eft6336u_4',['~FT6336U',['../class_f_t6336_u.html#a9a5e7ef2d58b0658f9899c889c3bbbdf',1,'FT6336U']]],
   ['_7eft6x36_5',['~FT6X36',['../class_f_t6_x36.html#a92861bfe363357b15d82294cac054b00',1,'FT6X36']]],
   ['_7egaugesuper_6',['~GaugeSuper',['../class_gauge_super.html#ab5a7f1e69bd844f512ee210568d5681a',1,'GaugeSuper']]],

@@ -19,7 +19,7 @@ All text above, and the splash screen must be included in any redistribution
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 #define PIN_SCL 11
 #define PIN_DIN 12
@@ -35,7 +35,7 @@ All text above, and the splash screen must be included in any redistribution
 // pin 3 - LCD reset (RST)
 // Adafruit_PCD8544 display = Adafruit_PCD8544(PIN_SCL, PIN_DIN, PIN_DC, PIN_CS, PIN_RST);
 Adafruit_PCD8544 *display = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 
 #define NUMFLAKES 10
 #define XPOS 0

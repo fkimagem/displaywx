@@ -387,7 +387,7 @@
 
 
 /// @brief Classe base abstrata para todos os widgets.
-/// @details Esta classe fornece funcionalidade comum para todos os widgets no sistema DisplayFK.
+/// @details Esta classe fornece funcionalidade comum para todos os widgets no sistema DisplayWX.
 ///          Define métodos virtuais puros que devem ser implementados pelas classes derivadas,
 ///          além de fornecer funcionalidades estáticas compartilhadas como gerenciamento de cores,
 ///          callbacks, fontes e referências ao display. Esta classe não pode ser instanciada diretamente

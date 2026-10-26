@@ -4,7 +4,7 @@
 
 This project is an example of using two ToggleButton widgets to control two LEDs. Each ToggleButton
 acts as a switch that toggles between on and off on each touch; when the user touches and the state
-changes, the DisplayFK library calls the callback associated with that widget. The program uses
+changes, the DisplayWX library calls the callback associated with that widget. The program uses
 these callbacks to turn the corresponding LED on or off, keeping the LED state in sync with the
 toggle position on screen (ball on the right = on, on the left = off).
 
@@ -27,7 +27,7 @@ drawWidgetsOnScreen(0) to draw the two ToggleButtons on screen 0.
 
 Este projeto é um exemplo de uso de dois widgets ToggleButton para comando de dois LEDs. Cada
 ToggleButton funciona como um interruptor que alterna entre ligado e desligado a cada toque; quando
-o usuário toca e inverte o estado, a biblioteca DisplayFK chama a função de callback associada a
+o usuário toca e inverte o estado, a biblioteca DisplayWX chama a função de callback associada a
 esse widget. O programa usa essas callbacks para ligar ou desligar o LED correspondente, mantendo o
 estado do LED sincronizado com a posição do toggle na tela (bola à direita = ligado, à esquerda =
 desligado).
@@ -57,7 +57,7 @@ drawWidgetsOnScreen(0) para desenhar os dois ToggleButtons na tela 0.
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -106,7 +106,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 ToggleButton toggle1(105, 105, 0);
 ToggleButton toggle2(105, 165, 0);

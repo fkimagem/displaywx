@@ -13,7 +13,7 @@ CircleButton	KEYWORD1
 CircleButtonConfig	KEYWORD1
 CircularBar	KEYWORD1
 CircularBarConfig	KEYWORD1
-DisplayFK	KEYWORD1
+DisplayWX	KEYWORD1
 ExternalKeyboard	KEYWORD1
 FT6236	KEYWORD1
 FT6336U	KEYWORD1
@@ -147,7 +147,7 @@ isRunningAutoClick	KEYWORD2
 listFiles	KEYWORD2
 loadScreen	KEYWORD2
 loop	KEYWORD2
-displayfkTask	KEYWORD2
+displaywxTask	KEYWORD2
 mapTouch	KEYWORD2
 onClick	KEYWORD2
 open	KEYWORD2

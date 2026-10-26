@@ -1,6 +1,6 @@
 # Exemplo com LineChart
 
-Esse exemplo mostra como **plotar em tempo real** o valor de um potenciômetro em um **gráfico de linhas (LineChart)** na tela touchscreen usando a biblioteca **DisplayFK**.  
+Esse exemplo mostra como **plotar em tempo real** o valor de um potenciômetro em um **gráfico de linhas (LineChart)** na tela touchscreen usando a biblioteca **DisplayWX**.  
 A série **0** recebe amostras do potenciômetro, enquanto a série **1** usa valores aleatórios para comparação/diagnóstico.
 
 ---

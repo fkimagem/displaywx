@@ -15,7 +15,7 @@ var searchData=
   ['touch_5fcount_12',['touch_count',['../struct_f_t6336_u___touch_point_type.html#a136aa20e06ffdc8538b1b226f7ac7dab',1,'FT6336U_TouchPointType']]],
   ['touch_5fstrength_13',['touch_strength',['../gsl3680__touch_8cpp.html#ad8ef1d39442e82ae1cdb1b1e9d645baa',1,'gsl3680_touch.cpp']]],
   ['touches_14',['touches',['../class_t_a_m_c___g_t911.html#ad17a3e681ed9071eff7bf9daf668e9d3',1,'TAMC_GT911']]],
-  ['touchexterno_15',['touchExterno',['../class_display_f_k.html#a1343eb3918facd8541e07040004dc812',1,'DisplayFK']]],
+  ['touchexterno_15',['touchExterno',['../class_display_f_k.html#a1343eb3918facd8541e07040004dc812',1,'DisplayWX']]],
   ['touchspi_16',['touchspi',['../class_x_p_t2046.html#a422e29bdeef1ec23c98708871152c510',1,'XPT2046']]],
   ['tp_17',['tp',['../struct_f_t6336_u___touch_point_type.html#afff87b6b168ab2962d3fe625023e1538',1,'FT6336U_TouchPointType::tp'],['../_scan_multi_touch_8ino.html#a8e6e089728734f8dfe5ffcfb80433779',1,'tp:&#160;ScanMultiTouch.ino'],['../_touch_print_8ino.html#a492f84bd0eccb4ddbf71c37820f1b45f',1,'tp:&#160;TouchPrint.ino']]],
   ['ts_18',['ts',['../simple__touch_8ino.html#a401d283dbe355164b8f05527d5302330',1,'simple_touch.ino']]],

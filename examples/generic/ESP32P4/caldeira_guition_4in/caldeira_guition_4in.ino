@@ -2,7 +2,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -48,7 +48,7 @@ void spinbox1copy_cb();
 #define DISP_LED 23
 Arduino_ESP32DSIPanel *bus = nullptr;
 Arduino_DSI_Display *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 HSlider slider1(430, 30, 0);
 HSlider slider1copy(430, 95, 0);

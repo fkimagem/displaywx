@@ -34,7 +34,7 @@ void esp_cam_sensor_detect_get_array(esp_cam_sensor_detect_fn_t **array_start_pt
     *array_end_ptr = (esp_cam_sensor_detect_fn_t *)(s_detect_fns + 1);
 }
 
-void displayfk_link_ov5647_hook(void)
+void displaywx_link_ov5647_hook(void)
 {
 }
 

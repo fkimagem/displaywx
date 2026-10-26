@@ -22,13 +22,13 @@ void loadWidgets();
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 Adafruit_SSD1306 *tft = nullptr;
 uint8_t rotationScreen = 1; // This value can be changed depending of orientation of your screen
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 
 void setup(){
     // Touch model not defined. No need startTouch() function.

@@ -2,13 +2,13 @@
 #define DISPLAY_W 800
 #define DISPLAY_H 480
 
-#include <displayfk.h>
+#include <displaywx.h>
 
 void screen0();
 // Prototypes for callback functions
 void cbwifi0cb_cb();
 
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 uint8_t rotationScreen = 1;
 
 CheckBox checkbox1(10,10, 0);

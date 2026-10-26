@@ -14,37 +14,37 @@
 static const char *TAG = "CameraController";
 
 #if defined(CAM_OV02C10)
-extern "C" void displayfk_link_ov02c10_hook(void);
-extern "C" void displayfk_link_ov02c10_ipa(void);
+extern "C" void displaywx_link_ov02c10_hook(void);
+extern "C" void displaywx_link_ov02c10_ipa(void);
 #endif
 #if defined(CAM_OV5647)
-extern "C" void displayfk_link_ov5647_hook(void);
-extern "C" void displayfk_link_ov5647_ipa(void);
+extern "C" void displaywx_link_ov5647_hook(void);
+extern "C" void displaywx_link_ov5647_ipa(void);
 #include "../ov5647/ov5647/ov5647.h"
 #endif
 #if defined(CAM_SC2336)
-extern "C" void displayfk_link_sc2336_hook(void);
-extern "C" void displayfk_link_sc2336_ipa(void);
+extern "C" void displaywx_link_sc2336_hook(void);
+extern "C" void displaywx_link_sc2336_ipa(void);
 #endif
 #if defined(CAM_OV2710)
-extern "C" void displayfk_link_ov2710_hook(void);
-extern "C" void displayfk_link_ov2710_ipa(void);
+extern "C" void displaywx_link_ov2710_hook(void);
+extern "C" void displaywx_link_ov2710_ipa(void);
 #endif
 
 static void pullCameraDriverIntoLink(void)
 {
 #if defined(CAM_OV02C10)
-    displayfk_link_ov02c10_hook();
-    displayfk_link_ov02c10_ipa();
+    displaywx_link_ov02c10_hook();
+    displaywx_link_ov02c10_ipa();
 #elif defined(CAM_OV5647)
-    displayfk_link_ov5647_hook();
-    displayfk_link_ov5647_ipa();
+    displaywx_link_ov5647_hook();
+    displaywx_link_ov5647_ipa();
 #elif defined(CAM_SC2336)
-    displayfk_link_sc2336_hook();
-    displayfk_link_sc2336_ipa();
+    displaywx_link_sc2336_hook();
+    displaywx_link_sc2336_ipa();
 #elif defined(CAM_OV2710)
-    displayfk_link_ov2710_hook();
-    displayfk_link_ov2710_ipa();
+    displaywx_link_ov2710_hook();
+    displaywx_link_ov2710_ipa();
 #endif
 }
 

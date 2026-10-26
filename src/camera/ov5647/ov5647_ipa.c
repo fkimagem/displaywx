@@ -289,7 +289,7 @@ const esp_ipa_config_t *esp_ipa_pipeline_enum_configs(const char *sensor_name, i
     return NULL;
 }
 
-void displayfk_link_ov5647_ipa(void)
+void displaywx_link_ov5647_ipa(void)
 {
 }
 

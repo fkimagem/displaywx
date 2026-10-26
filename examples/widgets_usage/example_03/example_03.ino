@@ -4,7 +4,7 @@
 
 This project is an example of using two RectButton widgets to send commands over UART Serial2. Each
 RectButton is a rectangular button that changes appearance when pressed; when the user touches and
-the button state changes (pressed or released), the DisplayFK library calls the callback associated
+the button state changes (pressed or released), the DisplayWX library calls the callback associated
 with that widget. The program uses these callbacks to send formatted strings over Serial2, so an
 external device (e.g. a module or another board) can be controlled according to each button state on
 screen.
@@ -29,7 +29,7 @@ drawWidgetsOnScreen(0) to draw the two RectButtons on screen 0.
 
 Este projeto é um exemplo de uso de dois widgets RectButton para envio de comandos pela UART
 Serial2. Cada RectButton é um botão retangular que muda de aparência ao ser pressionado; quando o
-usuário toca e o estado do botão muda (pressionado ou solto), a biblioteca DisplayFK chama a
+usuário toca e o estado do botão muda (pressionado ou solto), a biblioteca DisplayWX chama a
 função de callback associada a esse widget. O programa usa essas callbacks para enviar strings
 formatadas pela Serial2, permitindo comandar um dispositivo externo (por exemplo um módulo ou outra
 placa) conforme o estado de cada botão na tela.
@@ -59,7 +59,7 @@ e a chamada drawWidgetsOnScreen(0) para desenhar os dois RectButtons na tela 0.
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -108,7 +108,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 RectButton rectbutton1(90, 95, 0);
 RectButton rectbutton1copy(90, 155, 0);

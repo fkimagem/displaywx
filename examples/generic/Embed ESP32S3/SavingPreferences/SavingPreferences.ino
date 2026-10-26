@@ -42,7 +42,7 @@ void mostrarLog(const char* mensagem);
 #endif
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 #include <Preferences.h>
 
@@ -52,7 +52,7 @@ void mostrarLog(const char* mensagem);
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 1;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 Label txtlog(360, 430, 0);
 const uint8_t qtdLabel = 1;
 Label *arrayLabel[qtdLabel] = {&txtlog};

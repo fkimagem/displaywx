@@ -6,7 +6,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 // #define DFK_SD
 // Defines for font and files
 #define FORMAT_SPIFFS_IF_FAILED false
@@ -52,7 +52,7 @@ void callbackOfGroup_grupo1();
 Arduino_ESP32DSIPanel *bus = nullptr;
 Arduino_DSI_Display *tft = nullptr;
 uint8_t rotationScreen = 1; // This value can be changed depending of orientation of your screen
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 CheckBox cbgas(850, 320, 0);
 CheckBox cbresf(850, 355, 0);
@@ -231,7 +231,7 @@ void setup(){
 }
 void loop(){
     if(flagAtualizarTela){
-        myDisplay.startCustomDraw(); // Bloqueia a task do displayfk de desenhar
+        myDisplay.startCustomDraw(); // Bloqueia a task do displaywx de desenhar
         gauge.setValue(counters[0]);
         text.setTextInt(slider_val);
         text3.setTextInt(slider1_val);
@@ -258,7 +258,7 @@ void loop(){
         load3.setValue(counters[6]); 
         thermometer.setValue(counters[2]); 
         thermometer1.setValue(counters[3]); 
-        myDisplay.finishCustomDraw();// Libera a task do displayfk para desenha
+        myDisplay.finishCustomDraw();// Libera a task do displaywx para desenha
         flagAtualizarTela = false;
         increaseCounters();
     }

@@ -5,7 +5,7 @@
 This project is an example of using four CircleButton widgets to control a stepper motor driver (e.g.
 A4988 or DRV8825). Three buttons set the microstep pins M0, M1 and M2; a fourth button enables or
 disables the driver and starts/stops the step pulse task. When the user touches a button and its
-state changes, the DisplayFK library calls the associated callback; the program uses these callbacks
+state changes, the DisplayWX library calls the associated callback; the program uses these callbacks
 to drive the driver pins and to resume or suspend the FreeRTOS task that toggles the STEP pin.
 
 The project uses an ST7796 display, an FT6336U capacitive touch and an ESP32S3. Output pins 16, 17
@@ -25,7 +25,7 @@ screen0 with a white background and drawWidgetsOnScreen(0).
 Este projeto é um exemplo de uso de quatro widgets CircleButton para controlar um driver de motor de
 passo (por exemplo A4988 ou DRV8825). Três botões definem os pinos de microstep M0, M1 e M2; um
 quarto botão habilita ou desabilita o driver e inicia ou para a tarefa de pulsos de step. Quando o
-usuário toca em um botão e o estado muda, a biblioteca DisplayFK chama o callback associado; o
+usuário toca em um botão e o estado muda, a biblioteca DisplayWX chama o callback associado; o
 programa usa essas callbacks para acionar os pinos do driver e para retomar ou suspender a tarefa
 FreeRTOS que alterna o pino STEP.
 
@@ -50,7 +50,7 @@ ação é disparada pelo toque e tratada nas callbacks; o loop principal fica va
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -101,7 +101,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 CircleButton btnm0(146, 115, 0);
 CircleButton btnm1(231, 115, 0);

@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(& \"c:\\\\arduino_edgewx\\\\portable\\\\sketchbook\\\\libraries\\\\displayfk\\\\create_zip.bat\")"
+      "PowerShell(& \"c:\\\\arduino_edgewx\\\\portable\\\\sketchbook\\\\libraries\\\\displaywx\\\\create_zip.bat\")"
     ]
   }
 }

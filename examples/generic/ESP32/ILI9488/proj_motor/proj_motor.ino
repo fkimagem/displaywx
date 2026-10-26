@@ -48,7 +48,7 @@ void spinmaxcomp_cb();//Quando modifica o valor do spinbox do compressor
 #include <DallasTemperature.h>
 
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 
@@ -62,7 +62,7 @@ Arduino_DataBus *bus = nullptr;         // Ponteiro para o barramento de dados d
 Arduino_GFX *tft = nullptr;             // Ponteiro para o objeto gráfico principal do display (gerencia desenho, cores, texto, etc.)
 uint8_t rotationScreen = 1;             // Define a rotação da tela (0 a 3); valor 1 corresponde a 90° (paisagem padrão para 480x320)
 
-DisplayFK myDisplay;                    // Instancia do objeto principal da biblioteca `displayfk`, que gerencia widgets, eventos e o desenho na tela
+DisplayWX myDisplay;                    // Instancia do objeto principal da biblioteca `displaywx`, que gerencia widgets, eventos e o desenho na tela
 
 GaugeSuper gaugecontrole(350, 160, 0);  // Cria um gauge (medidor circular) em (x=350, y=160), na tela 0
 const uint8_t qtdGauge = 1;             // Número total de gauges usados
@@ -183,7 +183,7 @@ void setup()
     // Define se os eixos X e Y devem ser trocados
     myDisplay.setSwapAxis(TOUCH_SWAP_XY);
 
-    // Inicializa o controle de toque com a biblioteca personalizada `displayfk`
+    // Inicializa o controle de toque com a biblioteca personalizada `displaywx`
     // Passa as dimensões do display, rotação, pino CS do touch, SPI compartilhado, ponteiro do display, frequência do touch e do display
     myDisplay.startTouchXPT2046(DISPLAY_W, DISPLAY_H, rotationScreen, TC_CS, &spi_shared, tft, TOUCH_FREQUENCY, DISP_FREQUENCY, DISP_CS);
 

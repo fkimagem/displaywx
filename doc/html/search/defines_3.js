@@ -1,7 +1,7 @@
 var searchData=
 [
   ['debug_5fd_0',['DEBUG_D',['../debug_8h.html#ad39aa088705b1724bdfa0ae5e7e9e1ca',1,'debug.h']]],
-  ['debug_5fdisplay_1',['DEBUG_DISPLAY',['../displayfk_8h.html#a557fb2398dc12bfb2bcb903d011930c2',1,'displayfk.h']]],
+  ['debug_5fdisplay_1',['DEBUG_DISPLAY',['../displaywx_8h.html#a557fb2398dc12bfb2bcb903d011930c2',1,'displaywx.h']]],
   ['debug_5fe_2',['DEBUG_E',['../debug_8h.html#aad29e330171797d7f8e2bb3b34b54eb4',1,'debug.h']]],
   ['debug_5fi_3',['DEBUG_I',['../debug_8h.html#acc930740fa2e24d1ab0811b618717da1',1,'debug.h']]],
   ['debug_5fprint_4',['DEBUG_PRINT',['../_f_t6336_u_8h.html#a88edd2aa4feabff4af21a997d5d8aa23',1,'FT6336U.h']]],

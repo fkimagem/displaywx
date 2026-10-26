@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.6"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>LCode: Tutorial da Biblioteca DisplayFK</title>
+<title>LCode: Tutorial da Biblioteca DisplayWX</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -70,7 +70,7 @@ $(function() {
 
 </div><!-- top -->
 <div><div class="header">
-  <div class="headertitle"><div class="title">Tutorial da Biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> </div></div>
+  <div class="headertitle"><div class="title">Tutorial da Biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> </div></div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>Esta biblioteca fornece uma solução completa para gerenciar interfaces gráficas em displays TFT usando ESP32. Com uma variedade de widgets personalizáveis, você pode criar interfaces ricas e funcionais para seus projetos de forma simples.</p>
@@ -78,7 +78,7 @@ $(function() {
 <h1><a class="anchor" id="autotoc_md4"></a>
 Instalação</h1>
 <ol type="1">
-<li>Baixe a biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></li>
+<li>Baixe a biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></li>
 <li>Coloque a pasta da biblioteca no diretório: <code>[Diretório do Arduino]/libraries/</code><ul>
 <li>No Windows: <code>Documentos/Arduino/libraries/</code></li>
 <li>No macOS: <code>~/Documents/Arduino/libraries/</code></li>
@@ -182,7 +182,7 @@ Exemplos de Uso</h1>
 <div class="line"><span class="comment">// Include for plugins of chip 1</span></div>
 <div class="line"><span class="comment">// Include external libraries and files</span></div>
 <div class="line"><span class="preprocessor">#include &lt;Arduino_GFX_Library.h&gt;</span></div>
-<div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;SPI.h&gt;</span></div>
 <div class="line"> </div>
 <div class="line">SPIClass spi_shared(FSPI);</div>
@@ -191,7 +191,7 @@ Exemplos de Uso</h1>
 <div class="line">uint8_t rotationScreen = 1;</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line"><span class="keyword">const</span> uint8_t qtdToggleBtn = 1;</div>
 <div class="line"><a class="code hl_class" href="class_toggle_button.html">ToggleButton</a> arrayTogglebtn[qtdToggleBtn] = {<a class="code hl_class" href="class_toggle_button.html">ToggleButton</a>(70, 190, 0)};</div>
 <div class="line"><span class="keywordtype">bool</span> myToggle = <span class="keyword">false</span>;</div>
@@ -241,18 +241,18 @@ Exemplos de Uso</h1>
 <div class="line">    myToggle = arrayTogglebtn[0].<a class="code hl_function" href="class_toggle_button.html#acb4dce897fee5f6c101f22514036a07a">getStatus</a>();</div>
 <div class="line">    Serial.print(<span class="stringliteral">&quot;New value for toggle is: &quot;</span>);Serial.println(myToggle);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayFK</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition:</b> displayfk.h:200</div></div>
-<div class="ttc" id="aclass_display_f_k_html_a52aad6aa180044fc779ba6f54c7fbf0a"><div class="ttname"><a href="class_display_f_k.html#a52aad6aa180044fc779ba6f54c7fbf0a">DisplayFK::createTask</a></div><div class="ttdeci">void createTask()</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:1599</div></div>
-<div class="ttc" id="aclass_display_f_k_html_a85ddb2b73c9dc44d9b2833b6e09f866f"><div class="ttname"><a href="class_display_f_k.html#a85ddb2b73c9dc44d9b2833b6e09f866f">DisplayFK::setToggle</a></div><div class="ttdeci">void setToggle(ToggleButton *array, uint8_t amount)</div><div class="ttdoc">Configures the toggle button array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:559</div></div>
-<div class="ttc" id="aclass_display_f_k_html_a95f85297c0e6fdeb32691b9c4d13ede1"><div class="ttname"><a href="class_display_f_k.html#a95f85297c0e6fdeb32691b9c4d13ede1">DisplayFK::startTouch</a></div><div class="ttdeci">void startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *_sharedSPI)</div><div class="ttdoc">Initializes the touch system.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:1300</div></div>
-<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayFK::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:1319</div></div>
-<div class="ttc" id="aclass_display_f_k_html_ab75d18eca7ec125d66a6796266bb11ec"><div class="ttname"><a href="class_display_f_k.html#ab75d18eca7ec125d66a6796266bb11ec">DisplayFK::checkCalibration</a></div><div class="ttdeci">void checkCalibration()</div><div class="ttdoc">Checks and performs touch calibration.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:2123</div></div>
+<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayWX</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition:</b> displaywx.h:200</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a52aad6aa180044fc779ba6f54c7fbf0a"><div class="ttname"><a href="class_display_f_k.html#a52aad6aa180044fc779ba6f54c7fbf0a">DisplayWX::createTask</a></div><div class="ttdeci">void createTask()</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:1599</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a85ddb2b73c9dc44d9b2833b6e09f866f"><div class="ttname"><a href="class_display_f_k.html#a85ddb2b73c9dc44d9b2833b6e09f866f">DisplayWX::setToggle</a></div><div class="ttdeci">void setToggle(ToggleButton *array, uint8_t amount)</div><div class="ttdoc">Configures the toggle button array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:559</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a95f85297c0e6fdeb32691b9c4d13ede1"><div class="ttname"><a href="class_display_f_k.html#a95f85297c0e6fdeb32691b9c4d13ede1">DisplayWX::startTouch</a></div><div class="ttdeci">void startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *_sharedSPI)</div><div class="ttdoc">Initializes the touch system.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:1300</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayWX::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:1319</div></div>
+<div class="ttc" id="aclass_display_f_k_html_ab75d18eca7ec125d66a6796266bb11ec"><div class="ttname"><a href="class_display_f_k.html#ab75d18eca7ec125d66a6796266bb11ec">DisplayWX::checkCalibration</a></div><div class="ttdeci">void checkCalibration()</div><div class="ttdoc">Checks and performs touch calibration.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:2123</div></div>
 <div class="ttc" id="aclass_toggle_button_html"><div class="ttname"><a href="class_toggle_button.html">ToggleButton</a></div><div class="ttdoc">Represents a toggle button widget with customizable size and color, which switches state on each pres...</div><div class="ttdef"><b>Definition:</b> wtoggle.h:16</div></div>
 <div class="ttc" id="aclass_toggle_button_html_acb4dce897fee5f6c101f22514036a07a"><div class="ttname"><a href="class_toggle_button.html#acb4dce897fee5f6c101f22514036a07a">ToggleButton::getStatus</a></div><div class="ttdeci">bool getStatus()</div><div class="ttdoc">Retrieves the current status of the button.</div><div class="ttdef"><b>Definition:</b> wtoggle.cpp:227</div></div>
 <div class="ttc" id="aclass_widget_base_html_a2221912a74a9725474724a506c37de5f"><div class="ttname"><a href="class_widget_base.html#a2221912a74a9725474724a506c37de5f">WidgetBase::loadScreen</a></div><div class="ttdeci">static functionLoadScreen_t loadScreen</div><div class="ttdoc">Pointer to the function that loads the screen.</div><div class="ttdef"><b>Definition:</b> widgetbase.h:96</div></div>
 <div class="ttc" id="aclass_widget_base_html_a77a9f894591cb7871282cd5868a36a15"><div class="ttname"><a href="class_widget_base.html#a77a9f894591cb7871282cd5868a36a15">WidgetBase::backgroundColor</a></div><div class="ttdeci">static uint16_t backgroundColor</div><div class="ttdoc">Background color for the widget.</div><div class="ttdef"><b>Definition:</b> widgetbase.h:97</div></div>
 <div class="ttc" id="aclass_widget_base_html_acf87d2e062c74fbaaa32de5829cfb20b"><div class="ttname"><a href="class_widget_base.html#acf87d2e062c74fbaaa32de5829cfb20b">WidgetBase::objTFT</a></div><div class="ttdeci">static Arduino_GFX * objTFT</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition:</b> widgetbase.h:87</div></div>
-<div class="ttc" id="adisplayfk_8h_html"><div class="ttname"><a href="displayfk_8h.html">displayfk.h</a></div></div>
+<div class="ttc" id="adisplaywx_8h_html"><div class="ttname"><a href="displaywx_8h.html">displaywx.h</a></div></div>
 <div class="ttc" id="astruct_toggle_button_config_html"><div class="ttname"><a href="struct_toggle_button_config.html">ToggleButtonConfig</a></div><div class="ttdoc">Configuration structure for ToggleButton.</div><div class="ttdef"><b>Definition:</b> wtoggle.h:7</div></div>
 <div class="ttc" id="astruct_toggle_button_config_html_af75ecfa18ea59e20bacf43c8073448ed"><div class="ttname"><a href="struct_toggle_button_config.html#af75ecfa18ea59e20bacf43c8073448ed">ToggleButtonConfig::width</a></div><div class="ttdeci">uint16_t width</div><div class="ttdoc">Width of the button.</div><div class="ttdef"><b>Definition:</b> wtoggle.h:8</div></div>
 <div class="ttc" id="auser__setup_8h_html_a25c1985212c0cf75aaeba7e655120fda"><div class="ttname"><a href="user__setup_8h.html#a25c1985212c0cf75aaeba7e655120fda">DISP_MISO</a></div><div class="ttdeci">#define DISP_MISO</div><div class="ttdef"><b>Definition:</b> user_setup.h:12</div></div>
@@ -291,7 +291,7 @@ Exemplos de Uso</h1>
 <div class="line">    <span class="comment">// Faça algo quando o botão circular for pressionado</span></div>
 <div class="line">}</div>
 <div class="ttc" id="aclass_circle_button_html"><div class="ttname"><a href="class_circle_button.html">CircleButton</a></div><div class="ttdoc">Represents a circular button widget.</div><div class="ttdef"><b>Definition:</b> wcirclebutton.h:15</div></div>
-<div class="ttc" id="aclass_display_f_k_html_a700417dd9771db6e319be1c8d51b94af"><div class="ttname"><a href="class_display_f_k.html#a700417dd9771db6e319be1c8d51b94af">DisplayFK::setCircleButton</a></div><div class="ttdeci">void setCircleButton(CircleButton *array, uint8_t amount)</div><div class="ttdoc">Configures the circle button array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:244</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a700417dd9771db6e319be1c8d51b94af"><div class="ttname"><a href="class_display_f_k.html#a700417dd9771db6e319be1c8d51b94af">DisplayWX::setCircleButton</a></div><div class="ttdeci">void setCircleButton(CircleButton *array, uint8_t amount)</div><div class="ttdoc">Configures the circle button array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:244</div></div>
 <div class="ttc" id="astruct_circle_button_config_html"><div class="ttname"><a href="struct_circle_button_config.html">CircleButtonConfig</a></div><div class="ttdoc">Configuration structure for CircleButton.</div><div class="ttdef"><b>Definition:</b> wcirclebutton.h:7</div></div>
 <div class="ttc" id="astruct_circle_button_config_html_a51d298938d15dc33a3d57f8e7d59acc6"><div class="ttname"><a href="struct_circle_button_config.html#a51d298938d15dc33a3d57f8e7d59acc6">CircleButtonConfig::radius</a></div><div class="ttdeci">uint16_t radius</div><div class="ttdoc">Radius of the circular button.</div><div class="ttdef"><b>Definition:</b> wcirclebutton.h:8</div></div>
 </div><!-- fragment --><h2><a class="anchor" id="autotoc_md10"></a>
@@ -360,7 +360,7 @@ Exemplos de Uso</h1>
 <div class="line">    Serial.println(<span class="stringliteral">&quot;Text button clicked!&quot;</span>);</div>
 <div class="line">    <span class="comment">// Faça algo quando o botão for clicado</span></div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a093b1b15cd009645f0762c57847f2081"><div class="ttname"><a href="class_display_f_k.html#a093b1b15cd009645f0762c57847f2081">DisplayFK::setTextButton</a></div><div class="ttdeci">void setTextButton(TextButton *array, uint8_t amount)</div><div class="ttdoc">Configures the text button array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:474</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a093b1b15cd009645f0762c57847f2081"><div class="ttname"><a href="class_display_f_k.html#a093b1b15cd009645f0762c57847f2081">DisplayWX::setTextButton</a></div><div class="ttdeci">void setTextButton(TextButton *array, uint8_t amount)</div><div class="ttdoc">Configures the text button array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:474</div></div>
 <div class="ttc" id="aclass_text_button_html"><div class="ttname"><a href="class_text_button.html">TextButton</a></div><div class="ttdoc">Represents a button widget with customizable text, colors, and rounded corners.</div><div class="ttdef"><b>Definition:</b> wtextbutton.h:19</div></div>
 <div class="ttc" id="astruct_text_button_config_html"><div class="ttname"><a href="struct_text_button_config.html">TextButtonConfig</a></div><div class="ttdoc">Configuration structure for TextButton.</div><div class="ttdef"><b>Definition:</b> wtextbutton.h:7</div></div>
 <div class="ttc" id="astruct_text_button_config_html_a567100027bc9c3109e53d70119f82dce"><div class="ttname"><a href="struct_text_button_config.html#a567100027bc9c3109e53d70119f82dce">TextButtonConfig::width</a></div><div class="ttdeci">uint16_t width</div><div class="ttdoc">Width of the button.</div><div class="ttdef"><b>Definition:</b> wtextbutton.h:8</div></div>
@@ -393,7 +393,7 @@ Exemplos de Uso</h1>
 <div class="line">    Serial.println(<span class="stringliteral">&quot;Rectangle button pressed!&quot;</span>);</div>
 <div class="line">    <span class="comment">// Faça algo quando o botão retangular for pressionado</span></div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a4608f0ecde1c4d6fc63246f9e4bbf3e0"><div class="ttname"><a href="class_display_f_k.html#a4608f0ecde1c4d6fc63246f9e4bbf3e0">DisplayFK::setRectButton</a></div><div class="ttdeci">void setRectButton(RectButton *array, uint8_t amount)</div><div class="ttdoc">Configures the rectangular button array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:454</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a4608f0ecde1c4d6fc63246f9e4bbf3e0"><div class="ttname"><a href="class_display_f_k.html#a4608f0ecde1c4d6fc63246f9e4bbf3e0">DisplayWX::setRectButton</a></div><div class="ttdeci">void setRectButton(RectButton *array, uint8_t amount)</div><div class="ttdoc">Configures the rectangular button array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:454</div></div>
 <div class="ttc" id="aclass_rect_button_html"><div class="ttname"><a href="class_rect_button.html">RectButton</a></div><div class="ttdoc">Represents a rectangular button widget with customizable size and color.</div><div class="ttdef"><b>Definition:</b> wrectbutton.h:16</div></div>
 <div class="ttc" id="astruct_rect_button_config_html"><div class="ttname"><a href="struct_rect_button_config.html">RectButtonConfig</a></div><div class="ttdoc">Configuration structure for RectButton.</div><div class="ttdef"><b>Definition:</b> wrectbutton.h:7</div></div>
 <div class="ttc" id="astruct_rect_button_config_html_a9689f6bdf5fc9221dddd310cea0697d1"><div class="ttname"><a href="struct_rect_button_config.html#a9689f6bdf5fc9221dddd310cea0697d1">RectButtonConfig::width</a></div><div class="ttdeci">uint16_t width</div><div class="ttdoc">Width of the button.</div><div class="ttdef"><b>Definition:</b> wrectbutton.h:8</div></div>
@@ -445,7 +445,7 @@ Exemplos de Uso</h1>
 <div class="line">    <span class="comment">// Configuração para outros widgets...</span></div>
 <div class="line">    </div>
 <div class="line">    <a class="code hl_struct" href="struct_label_config.html">LabelConfig</a> labelConfig = {</div>
-<div class="line">      .<a class="code hl_variable" href="struct_label_config.html#a055715273c1fc8f2eb0bcbf31df62ede">text</a> = <span class="stringliteral">&quot;Hello, DisplayFK!&quot;</span>,</div>
+<div class="line">      .<a class="code hl_variable" href="struct_label_config.html#a055715273c1fc8f2eb0bcbf31df62ede">text</a> = <span class="stringliteral">&quot;Hello, DisplayWX!&quot;</span>,</div>
 <div class="line">      .fontFamily = &amp;Roboto_Regular10pt7b, <span class="comment">// Use uma fonte disponível</span></div>
 <div class="line">      .datum = <a class="code hl_define" href="widgetsetup_8h.html#af24d5c2d5858ad69bc73418a0518dbfd">MC_DATUM</a>,  <span class="comment">// Texto centralizado</span></div>
 <div class="line">      .color = CFK_BLACK,</div>
@@ -463,7 +463,7 @@ Exemplos de Uso</h1>
 <div class="line">    arrayLabel[0].<a class="code hl_function" href="class_label.html#a6629f2ed812ed1e8c7333400deea4dd9">setText</a>(newText);</div>
 <div class="line">    arrayLabel[0].<a class="code hl_function" href="class_label.html#acfffbfb683f529e02db001080e77029d">forceUpdate</a>();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_aedfb15c1dce3f4ef9f6028f38521a62c"><div class="ttname"><a href="class_display_f_k.html#aedfb15c1dce3f4ef9f6028f38521a62c">DisplayFK::setLabel</a></div><div class="ttdeci">void setLabel(Label *array, uint8_t amount)</div><div class="ttdoc">Configures the label array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:328</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aedfb15c1dce3f4ef9f6028f38521a62c"><div class="ttname"><a href="class_display_f_k.html#aedfb15c1dce3f4ef9f6028f38521a62c">DisplayWX::setLabel</a></div><div class="ttdeci">void setLabel(Label *array, uint8_t amount)</div><div class="ttdoc">Configures the label array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:328</div></div>
 <div class="ttc" id="aclass_label_html"><div class="ttname"><a href="class_label.html">Label</a></div><div class="ttdoc">Represents a text label widget with customizable font and colors.</div><div class="ttdef"><b>Definition:</b> wlabel.h:19</div></div>
 <div class="ttc" id="aclass_label_html_a6629f2ed812ed1e8c7333400deea4dd9"><div class="ttname"><a href="class_label.html#a6629f2ed812ed1e8c7333400deea4dd9">Label::setText</a></div><div class="ttdeci">void setText(const char *str)</div><div class="ttdoc">Sets the text for the label.</div><div class="ttdef"><b>Definition:</b> wlabel.cpp:65</div></div>
 <div class="ttc" id="aclass_label_html_acfffbfb683f529e02db001080e77029d"><div class="ttname"><a href="class_label.html#acfffbfb683f529e02db001080e77029d">Label::forceUpdate</a></div><div class="ttdeci">void forceUpdate()</div><div class="ttdoc">Forces the label to update, refreshing its visual state on next redraw.</div><div class="ttdef"><b>Definition:</b> wlabel.cpp:185</div></div>
@@ -599,7 +599,7 @@ Exemplos de Uso</h1>
 <div class="line">    updateGauge(random(0, 100)); <span class="comment">// Atualiza com valor aleatório</span></div>
 <div class="line">    delay(1000);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a7b01cb6edcfc005a32029f8d45dd375e"><div class="ttname"><a href="class_display_f_k.html#a7b01cb6edcfc005a32029f8d45dd375e">DisplayFK::setGauge</a></div><div class="ttdeci">void setGauge(GaugeSuper *array, uint8_t amount)</div><div class="ttdoc">Configures the gauge array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:265</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a7b01cb6edcfc005a32029f8d45dd375e"><div class="ttname"><a href="class_display_f_k.html#a7b01cb6edcfc005a32029f8d45dd375e">DisplayWX::setGauge</a></div><div class="ttdeci">void setGauge(GaugeSuper *array, uint8_t amount)</div><div class="ttdoc">Configures the gauge array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:265</div></div>
 <div class="ttc" id="aclass_gauge_super_html"><div class="ttname"><a href="class_gauge_super.html">GaugeSuper</a></div><div class="ttdoc">Represents a gauge widget with a needle and color-coded intervals.</div><div class="ttdef"><b>Definition:</b> wgaugesuper.h:28</div></div>
 <div class="ttc" id="aclass_gauge_super_html_a497351fdb33ce00e83a16730fbe4b67b"><div class="ttname"><a href="class_gauge_super.html#a497351fdb33ce00e83a16730fbe4b67b">GaugeSuper::setValue</a></div><div class="ttdeci">void setValue(int newValue)</div><div class="ttdoc">Sets the value of the gauge.</div><div class="ttdef"><b>Definition:</b> wgaugesuper.cpp:382</div></div>
 <div class="ttc" id="astruct_gauge_config_html"><div class="ttname"><a href="struct_gauge_config.html">GaugeConfig</a></div><div class="ttdoc">Configuration structure for GaugeSuper.</div><div class="ttdef"><b>Definition:</b> wgaugesuper.h:8</div></div>
@@ -678,7 +678,7 @@ Exemplos de Uso</h1>
 <div class="line">    updateVBar(random(0, 100)); <span class="comment">// Atualiza com valor aleatório</span></div>
 <div class="line">    delay(1000);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a6d0e8aa74c64d232b01ba16449abd9c0"><div class="ttname"><a href="class_display_f_k.html#a6d0e8aa74c64d232b01ba16449abd9c0">DisplayFK::setVBar</a></div><div class="ttdeci">void setVBar(VBar *array, uint8_t amount)</div><div class="ttdoc">Configures the vertical bar array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:619</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a6d0e8aa74c64d232b01ba16449abd9c0"><div class="ttname"><a href="class_display_f_k.html#a6d0e8aa74c64d232b01ba16449abd9c0">DisplayWX::setVBar</a></div><div class="ttdeci">void setVBar(VBar *array, uint8_t amount)</div><div class="ttdoc">Configures the vertical bar array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:619</div></div>
 <div class="ttc" id="aclass_v_bar_html"><div class="ttname"><a href="class_v_bar.html">VBar</a></div><div class="ttdoc">Represents a vertical bar widget, used to display a value as a filled bar within a specified range.</div><div class="ttdef"><b>Definition:</b> wverticalbar.h:17</div></div>
 <div class="ttc" id="aclass_v_bar_html_ad7801204d7aca156a319302d26a3b147"><div class="ttname"><a href="class_v_bar.html#ad7801204d7aca156a319302d26a3b147">VBar::setValue</a></div><div class="ttdeci">void setValue(uint32_t newValue)</div><div class="ttdoc">Sets the value of the VBar widget.</div><div class="ttdef"><b>Definition:</b> wverticalbar.cpp:44</div></div>
 <div class="ttc" id="astruct_vertical_bar_config_html"><div class="ttname"><a href="struct_vertical_bar_config.html">VerticalBarConfig</a></div><div class="ttdoc">Configuration structure for VBar.</div><div class="ttdef"><b>Definition:</b> wverticalbar.h:7</div></div>
@@ -724,7 +724,7 @@ Exemplos de Uso</h1>
 <div class="line">    updateVAnalog(random(0, 100)); <span class="comment">// Atualiza com valor aleatório</span></div>
 <div class="line">    delay(1000);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a6fdb93f1730b5e5d69b6d3a497776767"><div class="ttname"><a href="class_display_f_k.html#a6fdb93f1730b5e5d69b6d3a497776767">DisplayFK::setVAnalog</a></div><div class="ttdeci">void setVAnalog(VAnalog *array, uint8_t amount)</div><div class="ttdoc">Configures the analog viewer array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:599</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a6fdb93f1730b5e5d69b6d3a497776767"><div class="ttname"><a href="class_display_f_k.html#a6fdb93f1730b5e5d69b6d3a497776767">DisplayWX::setVAnalog</a></div><div class="ttdeci">void setVAnalog(VAnalog *array, uint8_t amount)</div><div class="ttdoc">Configures the analog viewer array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:599</div></div>
 <div class="ttc" id="aclass_v_analog_html"><div class="ttname"><a href="class_v_analog.html">VAnalog</a></div><div class="ttdoc">Represents a vertical analog display widget, used to visualize numeric values on a vertical scale.</div><div class="ttdef"><b>Definition:</b> wverticalanalog.h:22</div></div>
 <div class="ttc" id="aclass_v_analog_html_abeb9dae345a77940af3b3a813d2106c4"><div class="ttname"><a href="class_v_analog.html#abeb9dae345a77940af3b3a813d2106c4">VAnalog::setValue</a></div><div class="ttdeci">void setValue(int newValue, bool _viewValue)</div><div class="ttdoc">Sets the value to be displayed on the analog scale.</div><div class="ttdef"><b>Definition:</b> wverticalanalog.cpp:110</div></div>
 <div class="ttc" id="astruct_vertical_analog_config_html"><div class="ttname"><a href="struct_vertical_analog_config.html">VerticalAnalogConfig</a></div><div class="ttdoc">Configuration structure for VAnalog.</div><div class="ttdef"><b>Definition:</b> wverticalanalog.h:8</div></div>
@@ -811,13 +811,13 @@ Exemplos de Uso</h1>
 <div class="line">}</div>
 <div class="ttc" id="aclass_circular_bar_html"><div class="ttname"><a href="class_circular_bar.html">CircularBar</a></div><div class="ttdoc">Represents a circular bar widget used to display a value as a filled arc within a specified range.</div><div class="ttdef"><b>Definition:</b> wcircularbar.h:24</div></div>
 <div class="ttc" id="aclass_circular_bar_html_a317d21233604ab132f1f5dc80eb0ed13"><div class="ttname"><a href="class_circular_bar.html#a317d21233604ab132f1f5dc80eb0ed13">CircularBar::setValue</a></div><div class="ttdeci">void setValue(int newValue)</div><div class="ttdoc">Sets the value of the circular bar.</div><div class="ttdef"><b>Definition:</b> wcircularbar.cpp:69</div></div>
-<div class="ttc" id="aclass_display_f_k_html_aec1b0788f2fc98f2336263cbb7c227df"><div class="ttname"><a href="class_display_f_k.html#aec1b0788f2fc98f2336263cbb7c227df">DisplayFK::setCircularBar</a></div><div class="ttdeci">void setCircularBar(CircularBar *array, uint8_t amount)</div><div class="ttdoc">Configures the circular bar array.</div><div class="ttdef"><b>Definition:</b> displayfk.cpp:286</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aec1b0788f2fc98f2336263cbb7c227df"><div class="ttname"><a href="class_display_f_k.html#aec1b0788f2fc98f2336263cbb7c227df">DisplayWX::setCircularBar</a></div><div class="ttdeci">void setCircularBar(CircularBar *array, uint8_t amount)</div><div class="ttdoc">Configures the circular bar array.</div><div class="ttdef"><b>Definition:</b> displaywx.cpp:286</div></div>
 <div class="ttc" id="astruct_circular_bar_config_html"><div class="ttname"><a href="struct_circular_bar_config.html">CircularBarConfig</a></div><div class="ttdoc">Configuration structure for CircularBar.</div><div class="ttdef"><b>Definition:</b> wcircularbar.h:8</div></div>
 <div class="ttc" id="astruct_circular_bar_config_html_ae48be0536a608e7db4bf335d57d1e558"><div class="ttname"><a href="struct_circular_bar_config.html#ae48be0536a608e7db4bf335d57d1e558">CircularBarConfig::radius</a></div><div class="ttdeci">uint16_t radius</div><div class="ttdoc">Radius of the circular bar.</div><div class="ttdef"><b>Definition:</b> wcircularbar.h:9</div></div>
 </div><!-- fragment --><h1><a class="anchor" id="autotoc_md23"></a>
 Dicas e Boas Práticas</h1>
 <ol type="1">
-<li><b>Inicialização Correta</b>: Sempre certifique-se de inicializar a biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> corretamente, chamando <code>myDisplay.createTask()</code> para começar a processar os eventos de toque.</li>
+<li><b>Inicialização Correta</b>: Sempre certifique-se de inicializar a biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> corretamente, chamando <code>myDisplay.createTask()</code> para começar a processar os eventos de toque.</li>
 <li><b>Funções de Callback</b>: Lembre-se de declarar os protótipos das funções de callback no início do código.</li>
 <li><b>Armazenamento de Valores</b>: Guarde os valores dos widgets em variáveis globais e atualize-as nas funções de callback.</li>
 <li><b>Atualização da Tela</b>: Use <code>myDisplay.drawWidgetsOnScreen(screen_number)</code> para desenhar todos os widgets associados a uma tela específica.</li>
@@ -832,7 +832,7 @@ Solução de Problemas</h1>
 <li><b>Widgets Não Aparecem</b>: Verifique se você está chamando <code>myDisplay.setXXX()</code> corretamente para cada tipo de widget e se o número da tela (último parâmetro na criação do widget) corresponde à tela que você está tentando exibir.</li>
 <li><b>Callbacks Não São Chamadas</b>: Certifique-se de que a função de callback foi passada corretamente na configuração do widget e que a função está declarada no escopo global.</li>
 </ul>
-<p>Aproveite a biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> para criar interfaces incríveis para seus projetos ESP32! </p>
+<p>Aproveite a biblioteca <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> para criar interfaces incríveis para seus projetos ESP32! </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->

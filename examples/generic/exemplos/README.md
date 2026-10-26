@@ -1,6 +1,6 @@
-# Exemplos DisplayFK — ESP32 / ESP32-S3
+# Exemplos DisplayWX — ESP32 / ESP32-S3
 
-Este diretório reúne **exemplos prontos** de widgets da biblioteca **DisplayFK** para ESP32/ESP32-S3, com código `.ino`, documentação `.md`, projeto do **EdgeWX** (`.json`) e um **print da tela** (`screenshot.png`).  
+Este diretório reúne **exemplos prontos** de widgets da biblioteca **DisplayWX** para ESP32/ESP32-S3, com código `.ino`, documentação `.md`, projeto do **EdgeWX** (`.json`) e um **print da tela** (`screenshot.png`).  
 Além dos exemplos, há imagens e arquivos de montagem para referência rápida.
 
 ---

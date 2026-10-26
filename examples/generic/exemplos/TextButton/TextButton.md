@@ -1,6 +1,6 @@
 # Exemplo com TextButton (toggle do LED)
 
-Este exemplo mostra como **usar um TextButton** na tela touchscreen (DisplayFK) para **alternar** o estado de um LED físico no ESP32.  
+Este exemplo mostra como **usar um TextButton** na tela touchscreen (DisplayWX) para **alternar** o estado de um LED físico no ESP32.  
 Ao tocar no botão, o LED no **GPIO16** muda entre **ligado** e **desligado**.
 
 ---

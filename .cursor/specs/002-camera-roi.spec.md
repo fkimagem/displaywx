@@ -27,7 +27,7 @@ Fora de escopo: crop no registrador do sensor, um fps por widget, gravar a ROI e
 
 Status: feito.
 
-Onde: `CameraMipiConfig` e `CameraMipi` em `src/widgets/cameramipi/wcameramipi.h` e `wcameramipi.cpp`. Fps em `DisplayFK`, `src/displayfk.h` e `src/displayfk.cpp`.
+Onde: `CameraMipiConfig` e `CameraMipi` em `src/widgets/cameramipi/wcameramipi.h` e `wcameramipi.cpp`. Fps em `DisplayWX`, `src/displaywx.h` e `src/displaywx.cpp`.
 
 Problema: o widget só conhece largura, altura e um zoom de três valores. Não há centro do recorte, nem a escolha do que a tela cheia mostra, nem um ritmo de miniatura separado do ritmo máximo.
 
@@ -38,7 +38,7 @@ Mudança:
    - `keepZoomOnMaximized`, `bool`, padrão `false`.
 2. Guardar no widget o centro efetivo, o nível de zoom (`uint8_t`, padrão 1) e o valor do checkbox. `setup()` copia a config. Centro negativo permanece “ainda não resolvido” até o primeiro frame.
 3. `setZoomLevel(level)` passa a aceitar qualquer nível `>= 1`. Nível `0` é rejeitado com `ESP_LOGW`. Os níveis 1, 2 e 4 usados em `examples/generic/ESP32P4/cameras/p4_eye/p4_eye.ino` continuam válidos.
-4. `DisplayFK::setCameraPreviewFps(uint8_t fps)` grava o fps das miniaturas. Valor fora de 5–24 é limitado a esse intervalo, com `ESP_LOGW`. O padrão é 5. `cameraPreviewFps()` devolve o valor guardado.
+4. `DisplayWX::setCameraPreviewFps(uint8_t fps)` grava o fps das miniaturas. Valor fora de 5–24 é limitado a esse intervalo, com `ESP_LOGW`. O padrão é 5. `cameraPreviewFps()` devolve o valor guardado.
 5. Getters no widget: centro efetivo, nível de zoom, `keepZoomOnMaximized()`, e um setter `setKeepZoomOnMaximized(bool)` para o sketch. O item 6 é quem altera esses campos pela tela de configuração.
 
 Aceite: um sketch que não preenche os campos novos continua compilando e começa com centro no meio do frame, zoom 1 e checkbox desligado. `setCameraPreviewFps(3)` guarda 5. `setCameraPreviewFps(30)` guarda 24. `setZoomLevel(2)` continua aceito. Nenhum pixel muda ainda.
@@ -49,7 +49,7 @@ Aceite: um sketch que não preenche os campos novos continua compilando e começ
 
 Status: feito.
 
-Onde: `cameraZoomCrop()`, `blitCameraDmaCropped()` e `updateCameraMipi()` em `src/displayfk.cpp`. Leitura do centro e do zoom em `CameraMipi`.
+Onde: `cameraZoomCrop()`, `blitCameraDmaCropped()` e `updateCameraMipi()` em `src/displaywx.cpp`. Leitura do centro e do zoom em `CameraMipi`.
 
 Problema: o crop é sempre central e o tamanho sai só de 1, 2 ou 4. A miniatura precisa mostrar a região escolhida para aquele widget, com a mesma proporção do widget, ampliada até encher o retângulo do widget.
 
@@ -70,7 +70,7 @@ Aceite: dois widgets no mesmo frame podem ter centros e zooms diferentes e cada 
 
 Status: feito.
 
-Onde: ramo `onlyFullScreen` de `updateCameraMipi()` e `blitCameraDmaCropped()` / `blitCameraDmaFullScreen()` em `src/displayfk.cpp`.
+Onde: ramo `onlyFullScreen` de `updateCameraMipi()` e `blitCameraDmaCropped()` / `blitCameraDmaFullScreen()` em `src/displaywx.cpp`.
 
 Problema: a tela cheia corta um pedaço do tamanho do display em escala 1 quando o frame é maior que o painel. O uso pedido é outro: ver a imagem completa encaixada na tela, ou ver só a ROI da miniatura, em tempo real.
 
@@ -90,7 +90,7 @@ Aceite: checkbox desligado cobre a tela inteira com o mesmo centro e o mesmo zoo
 
 Status: feito.
 
-Onde: `TaskCamera` e `kCameraFramePeriodMs` em `src/displayfk.cpp`. Rótulo em `drawCameraZoomLabel()` ou numa função ao lado, chamada por `updateCameraMipi()`.
+Onde: `TaskCamera` e `kCameraFramePeriodMs` em `src/displaywx.cpp`. Rótulo em `drawCameraZoomLabel()` ou numa função ao lado, chamada por `updateCameraMipi()`.
 
 Problema: a espera da task é 33 ms fixos, na miniatura e na tela cheia. A miniatura da esteira precisa ir devagar. A tela cheia precisa acompanhar o frame o mais rápido que a captura e o PPA permitirem.
 
@@ -110,7 +110,7 @@ Aceite: sem tela cheia, o intervalo entre capturas fica na faixa do fps configur
 
 Status: feito.
 
-Onde: `CameraController::captureFrame()` / `releaseFrame()` e a task da câmera. Buffer novo ao lado de `m_cameraPreviewFb` em `DisplayFK`.
+Onde: `CameraController::captureFrame()` / `releaseFrame()` e a task da câmera. Buffer novo ao lado de `m_cameraPreviewFb` em `DisplayWX`.
 
 Problema: `openConfig()` precisa desenhar o último frame parado. O buffer do driver só existe entre `captureFrame()` e `releaseFrame()`, e `cameraTask()` solta o frame no fim de cada volta.
 
@@ -120,7 +120,7 @@ Mudança:
 2. O pedido nasce na task de UI ou no `loop()` do sketch. A cópia nasce na task da câmera, com o mutex da câmera ainda seguro, antes de `releaseFrame()`. `memcpy` do RGB565. Um `TaskNotify` avisa quem pediu.
 3. Quem pediu espera no máximo 500 ms. Estouro de tempo libera o buffer, registra `ESP_LOGW` e não abre a tela.
 4. A cópia guarda também largura e altura. Ela não é atualizada de novo enquanto a tela de configuração estiver aberta.
-5. O destrutor de `DisplayFK` libera esse buffer depois que a task da câmera parou, no mesmo ponto em que `m_cameraPreviewFb` já é liberado.
+5. O destrutor de `DisplayWX` libera esse buffer depois que a task da câmera parou, no mesmo ponto em que `m_cameraPreviewFb` já é liberado.
 
 Aceite: um pedido com a câmera a capturar produz um buffer na PSRAM do tamanho do frame e a task segue soltando os frames seguintes. Sem PSRAM livre, nada é aberto e a miniatura continua. O sensor não muda de modo.
 
@@ -130,7 +130,7 @@ Aceite: um pedido com a câmera a capturar produz um buffer na PSRAM do tamanho 
 
 Status: feito.
 
-Onde: classe nova ao lado do widget, no estilo de `Numpad` em relação a `NumberBox`. Sugestão de arquivos: `src/widgets/cameramipi/cameraroi.h` e `cameraroi.cpp`. `CameraMipi::openConfig()` e o despacho de toque em `DisplayFK`, no mesmo lugar em que `serviceNumpad()` trata o numpad. Sem desenho de tecla dentro de `displayfk.cpp`.
+Onde: classe nova ao lado do widget, no estilo de `Numpad` em relação a `NumberBox`. Sugestão de arquivos: `src/widgets/cameramipi/cameraroi.h` e `cameraroi.cpp`. `CameraMipi::openConfig()` e o despacho de toque em `DisplayWX`, no mesmo lugar em que `serviceNumpad()` trata o numpad. Sem desenho de tecla dentro de `displaywx.cpp`.
 
 Problema: o enquadramento da esteira é escolhido olhando a cena, não por número. A tela cobre o display, mostra o frame parado, um retângulo com a proporção do widget, e controles para zoom, posição e o checkbox.
 

@@ -89,7 +89,7 @@ void test_io();
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #if defined(TEST_IO)
 #include <esp_io_expander.hpp>
 #endif
@@ -118,7 +118,7 @@ void test_io();
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 1;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 GaugeSuper widget(185, 420, 0);
 const uint8_t qtdGauge = 1;
 GaugeSuper *arrayGauge[qtdGauge] = {&widget};

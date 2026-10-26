@@ -4,7 +4,7 @@
 
 This project is an example of using one RectButton and three Led widgets to show motor enable state
 and end/start sensor status. The RectButton toggles the motor enable output; when the user touches
-it and the state changes, the DisplayFK library calls btncontrolmotor_cb, which updates the enable
+it and the state changes, the DisplayWX library calls btncontrolmotor_cb, which updates the enable
 pin and the global motor state. The three LEDs are updated in the loop: led1 shows whether the motor
 is enabled (same as the button state), led2 shows the end sensor (pin 17) and led3 shows the start
 sensor (pin 18). startCustomDraw and finishCustomDraw group the LED updates so the display is
@@ -25,7 +25,7 @@ background and drawWidgetsOnScreen(0).
 
 Este projeto é um exemplo de uso de um RectButton e de três widgets Led para exibir o estado de
 habilitação do motor e o status dos sensores de fim e início. O RectButton alterna a saída de
-habilitação do motor; quando o usuário toca e o estado muda, a biblioteca DisplayFK chama
+habilitação do motor; quando o usuário toca e o estado muda, a biblioteca DisplayWX chama
 btncontrolmotor_cb, que atualiza o pino de enable e o estado global do motor. Os três LEDs são
 atualizados no loop: led1 indica se o motor está habilitado (mesmo estado do botão), led2 indica o
 sensor de fim (pino 17) e led3 o sensor de início (pino 18). startCustomDraw e finishCustomDraw
@@ -51,7 +51,7 @@ fundo branco e drawWidgetsOnScreen(0).
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -99,7 +99,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 Led led1(150, 110, 0);
 Led led2(150, 170, 0);

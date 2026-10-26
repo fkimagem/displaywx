@@ -2,7 +2,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <ESP_Video.h>
 
 
@@ -56,7 +56,7 @@ void esvaziar3_cb();
 #define DISP_LED 26
 Arduino_ESP32DSIPanel *bus = nullptr;
 Arduino_DSI_Display *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 TextButton esvaziar1(810, 95, 0);
 TextButton esvaziar2(810, 185, 0);

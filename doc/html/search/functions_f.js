@@ -1,7 +1,7 @@
 var searchData=
 [
   ['tamc_5fgt911_0',['TAMC_GT911',['../class_t_a_m_c___g_t911.html#a7cf6de3a6c5ccee732983899d20aad6d',1,'TAMC_GT911']]],
-  ['taskeventotouch_1',['TaskEventoTouch',['../class_display_f_k.html#a2e418d9092a5ee97dbcc750db22ecc33',1,'DisplayFK']]],
+  ['taskeventotouch_1',['TaskEventoTouch',['../class_display_f_k.html#a2e418d9092a5ee97dbcc750db22ecc33',1,'DisplayWX']]],
   ['taskprocessbutton_2',['TaskProcessButton',['../esp32__tasks_8ino.html#a650d7115b2718031f63a864f92412256',1,'esp32_tasks.ino']]],
   ['taskprocesstouch_3',['TaskProcessTouch',['../esp32__tasks_8ino.html#a1a055c6aefc9a083f4c8d0e907b9e204',1,'esp32_tasks.ino']]],
   ['textbox_4',['TextBox',['../class_text_box.html#a215ebe6e6c6add97aea63d67566a7431',1,'TextBox::TextBox(uint16_t _x, uint16_t _y, uint8_t _screen)'],['../class_text_box.html#a25b67e5ff6788c60b8aef3f3540879d0',1,'TextBox::TextBox()']]],

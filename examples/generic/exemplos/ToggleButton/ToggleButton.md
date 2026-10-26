@@ -9,7 +9,7 @@ Quando o usuário alterna o estado do `ToggleButton`, o LED conectado ao
 
 ## Breve descrição do projeto
 
--   O projeto utiliza a biblioteca **DisplayFK** em conjunto com o
+-   O projeto utiliza a biblioteca **DisplayWX** em conjunto com o
     ESP32.\
 -   Um `ToggleButton` é exibido na tela para interação via toque.\
 -   Cada alteração no `ToggleButton` aciona o **callback**, que atualiza

@@ -10,7 +10,7 @@ Ao tocar na imagem **Okpng**, o LED no **GPIO16** acende; ao tocar na **Closepng
 - O projeto inicializa display/touch e carrega **duas imagens** do **SPIFFS**:
   - `/Okpng.fki` → callback `okpng_cb()` → `digitalWrite(pinLed, HIGH)`
   - `/Closepng.fki` → callback `closepng_cb()` → `digitalWrite(pinLed, LOW)`
-- As imagens são configuradas com `ImageFromFileConfig` e registradas no DisplayFK.
+- As imagens são configuradas com `ImageFromFileConfig` e registradas no DisplayWX.
 - `pinLed` é configurado como saída no `setup()`:
   ```cpp
   pinMode(pinLed, OUTPUT); // pinLed = 16

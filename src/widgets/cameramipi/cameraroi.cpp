@@ -1,5 +1,5 @@
 #include "cameraroi.h"
-#include "../../displayfk.h"
+#include "../../displaywx.h"
 #include <string.h>
 
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -285,9 +285,9 @@ void CameraRoi::pan(int16_t directionX, int16_t directionY)
   uint32_t cropH = 2;
   int16_t centerX = m_centerX;
   int16_t centerY = m_centerY;
-  if (DisplayFK::instance != nullptr)
+  if (DisplayWX::instance != nullptr)
   {
-    DisplayFK::instance->clampCameraRoiCenter(m_frameW, m_frameH, m_plotW, m_plotH, &centerX, &centerY, m_zoom, &cropW, &cropH);
+    DisplayWX::instance->clampCameraRoiCenter(m_frameW, m_frameH, m_plotW, m_plotH, &centerX, &centerY, m_zoom, &cropW, &cropH);
   }
   uint32_t stepX = cropW / 16u;
   uint32_t stepY = cropH / 16u;
@@ -313,22 +313,22 @@ void CameraRoi::pan(int16_t directionX, int16_t directionY)
 
 void CameraRoi::clampDraft()
 {
-  if (DisplayFK::instance == nullptr)
+  if (DisplayWX::instance == nullptr)
   {
     return;
   }
   uint32_t cropW = 0;
   uint32_t cropH = 0;
-  DisplayFK::instance->clampCameraRoiCenter(m_frameW, m_frameH, m_plotW, m_plotH, &m_centerX, &m_centerY, m_zoom, &cropW, &cropH);
+  DisplayWX::instance->clampCameraRoiCenter(m_frameW, m_frameH, m_plotW, m_plotH, &m_centerX, &m_centerY, m_zoom, &cropW, &cropH);
 }
 
 void CameraRoi::redraw()
 {
   layout();
   CameraConfigView view;
-  if (DisplayFK::instance != nullptr)
+  if (DisplayWX::instance != nullptr)
   {
-    DisplayFK::instance->drawFrozenCamera(m_widget, m_centerX, m_centerY, m_zoom, 0, 0, m_screenW, m_previewH, &view);
+    DisplayWX::instance->drawFrozenCamera(m_widget, m_centerX, m_centerY, m_zoom, 0, 0, m_screenW, m_previewH, &view);
   }
   if (WidgetBase::objTFT != nullptr && view.roiW > 2 && view.roiH > 2)
   {

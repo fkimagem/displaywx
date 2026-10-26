@@ -3,7 +3,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 // #define DFK_SD
 // Defines for font and files
 #define FORMAT_SPIFFS_IF_FAILED false
@@ -43,7 +43,7 @@ void closepng_cb();
 Arduino_ESP32DSIPanel *bus = nullptr;
 Arduino_DSI_Display *tft = nullptr;
 const uint8_t rotationScreen = 0; // This value can be changed depending of orientation of your screen
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 GaugeSuper widget(780, 220, 0);
@@ -296,7 +296,7 @@ void loop(){
     thermometer2.setValue(counters[2]); //Use this command to change widget value.
     thermometer3.setValue(counters[0]); //Use this command to change widget value.
 
-        myDisplay.finishCustomDraw();// Libera a task do displayfk para desenha
+        myDisplay.finishCustomDraw();// Libera a task do displaywx para desenha
         flagAtualizarTela = false;
         increaseCounters();
     }

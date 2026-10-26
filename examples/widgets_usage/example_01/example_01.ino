@@ -4,7 +4,7 @@
 
 This project is an example of using three CheckBox widgets to control three relays. Each CheckBox
 allows the user to check or uncheck an option on screen; when the user touches and changes the
-checkbox state, the DisplayFK library calls the callback associated with that widget. The program
+checkbox state, the DisplayWX library calls the callback associated with that widget. The program
 uses these callbacks to turn the corresponding relay on or off, keeping the relay state in sync with
 the checked or unchecked state of the checkbox on screen.
 
@@ -28,7 +28,7 @@ drawWidgetsOnScreen(0) to draw the three CheckBoxes on screen 0.
 
 Este projeto é um exemplo de uso de três widgets CheckBox para comando de três relés. Cada CheckBox
 permite marcar ou desmarcar uma opção na tela; quando o usuário toca e altera o estado do checkbox,
-a biblioteca DisplayFK chama a função de callback associada a esse widget. O programa usa essas
+a biblioteca DisplayWX chama a função de callback associada a esse widget. O programa usa essas
 callbacks para ligar ou desligar o relé correspondente, mantendo o estado do relé sincronizado com
 o estado marcado ou desmarcado do checkbox na tela.
 
@@ -58,7 +58,7 @@ drawWidgetsOnScreen(0) para desenhar os três CheckBoxes na tela 0.
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -108,7 +108,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 CheckBox checkbox1(90, 80, 0);
 CheckBox checkbox2(90, 130, 0);

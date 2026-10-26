@@ -8,7 +8,7 @@
 #include <LinkerWX.h>
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <string.h>
 #include <stdlib.h>
 #include "esp_system.h"
@@ -110,7 +110,7 @@ void numberbox_cb();
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 0;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 Label txtlog(80, 125, 0);
 Label txttemp(70, 270, 0);

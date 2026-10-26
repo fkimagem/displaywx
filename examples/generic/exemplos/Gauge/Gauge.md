@@ -1,6 +1,6 @@
 # Exemplo com Gauge (GaugeSuper)
 
-Esse exemplo mostra como **exibir em tempo real o valor de um potenciômetro** em um **medidor analógico (Gauge)** na tela touchscreen usando a biblioteca **DisplayFK**.  
+Esse exemplo mostra como **exibir em tempo real o valor de um potenciômetro** em um **medidor analógico (Gauge)** na tela touchscreen usando a biblioteca **DisplayWX**.  
 Ao girar o potenciômetro, o valor lido é atualizado no widget `GaugeSuper`, mudando o ponteiro e (se configurado) as faixas de cor.
 
 ---

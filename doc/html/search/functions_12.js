@@ -11,5 +11,5 @@ var searchData=
   ['write_5foffset_5fleft_5fright_8',['write_offset_left_right',['../class_f_t6336_u.html#a0aae3cb455ea66e8e13bbad11d8f80d4',1,'FT6336U']]],
   ['write_5foffset_5fup_5fdown_9',['write_offset_up_down',['../class_f_t6336_u.html#a1c441c1f39f32db57caf8544f4a5c330',1,'FT6336U']]],
   ['write_5fradian_5fvalue_10',['write_radian_value',['../class_f_t6336_u.html#ac178a3a741e02dc8e930a02bee56a7ec',1,'FT6336U']]],
-  ['writefile_11',['writeFile',['../class_display_f_k.html#aee1ab84561d721ece98fd5188c15fb33',1,'DisplayFK']]]
+  ['writefile_11',['writeFile',['../class_display_f_k.html#aee1ab84561d721ece98fd5188c15fb33',1,'DisplayWX']]]
 ];

@@ -2,7 +2,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -51,7 +51,7 @@ constexpr int LCD_RGB_TIMING_VBP = 8;   // Vertical back porch
 constexpr int LCD_RGB_TIMING_VFP = 8;   // Vertical front porch
 Arduino_ESP32RGBPanel *bus = nullptr;
 Arduino_RGB_Display *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 
 void setup(){

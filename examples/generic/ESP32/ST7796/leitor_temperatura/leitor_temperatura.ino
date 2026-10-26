@@ -49,7 +49,7 @@ void spinbox0sb_cb();   // Função para o primeiro spinbox
 
 // Inclusão das bibliotecas para o display
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 // Protótipos das funções de tela
@@ -66,7 +66,7 @@ SPIClass spi_shared(FSPI);      // Objeto para a comunicação SPI
 Arduino_DataBus *bus = nullptr; // Objeto para a comunicação com o display (Arduino GFX)
 Arduino_GFX *tft = nullptr;     // Objeto para a comunicação com o display (Arduino GFX)
 uint8_t rotationScreen = 1;     // Valor de rotação do display
-DisplayFK myDisplay;            // Objeto para a comunicação com o display (DisplayFK)
+DisplayWX myDisplay;            // Objeto para a comunicação com o display (DisplayWX)
 
 // Sensor de temperatura
 #ifdef USE_SENSOR

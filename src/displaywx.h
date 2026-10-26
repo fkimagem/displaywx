@@ -1,5 +1,5 @@
 /**
- * @mainpage DisplayFK Library Documentation
+ * @mainpage DisplayWX Library Documentation
  *
  * @brief A C++ library for creating graphical user interfaces on microcontrollers
  * based on the Arduino_GFX library.
@@ -20,7 +20,7 @@
  * ## Getting Started
  * To use this library in your project:
  * 1. Include the necessary header files
- * 2. Initialize the DisplayFK object
+ * 2. Initialize the DisplayWX object
  * 3. Configure your widgets
  * 4. Start the main loop
  *
@@ -356,11 +356,11 @@ enum class TouchSwipeDirection
 #define ENABLE_ON_RELEASE
 
 /// @brief Represents the main display framework class, managing various widget types, SD card functionality, and touch input.
-class DisplayFK
+class DisplayWX
 {
 public:
     // Variáveis públicas estáticas
-    static DisplayFK *instance;
+    static DisplayWX *instance;
     static bool sdcardOK; ///< Indicates if the SD card is successfully initialized.
 
     // Variáveis públicas
@@ -373,8 +373,8 @@ public:
 #endif
 
     // Métodos públicos
-    DisplayFK();
-    ~DisplayFK();
+    DisplayWX();
+    ~DisplayWX();
 
     void setup();
     void startKeyboards();
@@ -413,7 +413,7 @@ public:
     void enableTouchLog();
     void disableTouchLog();
     void addLog(const char *data);
-    void displayfkTask();
+    void displaywxTask();
     void cameraTask();
     TaskHandle_t getTaskHandle() const;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -840,7 +840,7 @@ private:
     // Métodos privados
     char randomHexChar();
 
-    // Helper functions for displayfkTask
+    // Helper functions for displaywxTask
     void processLogQueue();
     void processLogBuffer();
     void processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressure, uint8_t gesture);

@@ -24,13 +24,13 @@ void toggle0tgb_cb();
 // Include for plugins of chip 2
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 SPIClass spi_shared(FSPI); // Objeto para a comunicação SPI
 Arduino_DataBus *bus = nullptr; // Objeto para a comunicação com o display (Arduino GFX)
 Arduino_GFX *tft = nullptr; // Objeto para a comunicação com o display (Arduino GFX)
 uint8_t rotationScreen = 1; // Valor de rotação do display
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 const uint8_t qtdToggleBtn = 1;
 ToggleButton arrayTogglebtn[qtdToggleBtn] = {ToggleButton(35, 165, 0)};
 //SPIClass spi_shared(FSPI);

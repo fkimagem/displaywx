@@ -54,7 +54,7 @@ const char *PASSWORD = "SUA_SENHA";
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
 #include <SPI.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 /* Project setup:
  * MCU: ESP32S3
@@ -101,7 +101,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 GaugeSuper widget1(245, 165, 0);
 const uint8_t qtdGauge = 1;

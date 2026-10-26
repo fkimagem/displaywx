@@ -1,6 +1,6 @@
 # Exemplo com CircularBar
 
-Esse exemplo mostra como **exibir um nível percentual** (0–100%) em um **indicador circular (CircularBar)** na tela touchscreen usando a biblioteca **DisplayFK**.  
+Esse exemplo mostra como **exibir um nível percentual** (0–100%) em um **indicador circular (CircularBar)** na tela touchscreen usando a biblioteca **DisplayWX**.  
 No código, o valor é atualizado com números aleatórios para demonstrar a animação do widget.
 
 ---

@@ -26,7 +26,7 @@ void loadWidgets();
 #include <ModbusMaster.h>
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
@@ -35,7 +35,7 @@ void loadWidgets();
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 1;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 GaugeSuper gaugecorrente(660, 244, 0);
 GaugeSuper gaugetensao(659, 122, 0);
 GaugeSuper gaugecorrente2(276, 220, 0);

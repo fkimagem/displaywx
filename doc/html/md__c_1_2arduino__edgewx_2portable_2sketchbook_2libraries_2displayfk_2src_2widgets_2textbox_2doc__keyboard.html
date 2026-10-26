@@ -94,7 +94,7 @@ Características Principais</h2>
 <li>💾 Integrado com <a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a></li>
 <li>🔒 Proteção com validação de entrada</li>
 <li>👁️ Pode ser mostrado/ocultado dinamicamente</li>
-<li>🔗 Integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></li>
+<li>🔗 Integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></li>
 </ul>
 <hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md788"></a>
@@ -103,12 +103,12 @@ Características Principais</h2>
 KeyboardType Enum</h2>
 <p>Enum para especificar tipos de entrada do teclado:</p>
 <div class="fragment"><div class="line"><span class="keyword">enum class</span> KeyboardType {</div>
-<div class="line">  <a class="code hl_enumvalue" href="displayfk_8h.html#af9360ba7e12726eabae0c635d317ee6aab50339a10e1de285ac99d4c3990b8693">NONE</a> = 0,         <span class="comment">// Nenhum tipo específico</span></div>
+<div class="line">  <a class="code hl_enumvalue" href="displaywx_8h.html#af9360ba7e12726eabae0c635d317ee6aab50339a10e1de285ac99d4c3990b8693">NONE</a> = 0,         <span class="comment">// Nenhum tipo específico</span></div>
 <div class="line">  ALPHANUMERIC = 1, <span class="comment">// Entrada alfanumérica</span></div>
 <div class="line">  INTEGER = 2,      <span class="comment">// Entrada inteira</span></div>
 <div class="line">  DECIMAL = 3       <span class="comment">// Entrada decimal</span></div>
 <div class="line">};</div>
-<div class="ttc" id="adisplayfk_8h_html_af9360ba7e12726eabae0c635d317ee6aab50339a10e1de285ac99d4c3990b8693"><div class="ttname"><a href="displayfk_8h.html#af9360ba7e12726eabae0c635d317ee6aab50339a10e1de285ac99d4c3990b8693">TouchEventType::NONE</a></div><div class="ttdeci">@ NONE</div><div class="ttdef"><b>Definition</b> displayfk.h:306</div></div>
+<div class="ttc" id="adisplaywx_8h_html_af9360ba7e12726eabae0c635d317ee6aab50339a10e1de285ac99d4c3990b8693"><div class="ttname"><a href="displaywx_8h.html#af9360ba7e12726eabae0c635d317ee6aab50339a10e1de285ac99d4c3990b8693">TouchEventType::NONE</a></div><div class="ttdeci">@ NONE</div><div class="ttdef"><b>Definition</b> displaywx.h:306</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md790"></a>
 Layout do Teclado</h2>
 <p>O teclado tem dois layouts (minúsculas e maiúsculas), com 5 linhas e 10 colunas:</p>
@@ -214,18 +214,18 @@ hide()</h2>
 💻 Como Usar no Arduino IDE</h1>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md806"></a>
 📚 Passo 1: Incluir as Bibliotecas</h2>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"><span class="comment">// Incluir outras bibliotecas necessárias</span></div>
-<div class="ttc" id="adisplayfk_8h_html"><div class="ttname"><a href="displayfk_8h.html">displayfk.h</a></div></div>
+<div class="ttc" id="adisplaywx_8h_html"><div class="ttname"><a href="displaywx_8h.html">displaywx.h</a></div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md807"></a>
 🏗️ Passo 2: Configurar Cores Globais (Opcional)</h2>
-<div class="fragment"><div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="fragment"><div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Configurar cores globais do Keyboard</span></div>
 <div class="line">Keyboard::m_backgroundColor = <a class="code hl_variable" href="widgetsetup_8h.html#af0896c6694781bb10bd957c3738c566f">CFK_GREY3</a>;</div>
 <div class="line">Keyboard::m_letterColor = <a class="code hl_variable" href="widgetsetup_8h.html#ae3af9efaedb7f97822568c5b8ba267c6">CFK_BLACK</a>;</div>
 <div class="line">Keyboard::m_keyColor = <a class="code hl_variable" href="widgetsetup_8h.html#ae0bdce199f0fb656fb0ad1c0656d97a0">CFK_GREY13</a>;</div>
-<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayFK</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition</b> displayfk.h:327</div></div>
+<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayWX</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition</b> displaywx.h:327</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_ae0bdce199f0fb656fb0ad1c0656d97a0"><div class="ttname"><a href="widgetsetup_8h.html#ae0bdce199f0fb656fb0ad1c0656d97a0">CFK_GREY13</a></div><div class="ttdeci">constexpr uint16_t CFK_GREY13</div><div class="ttdef"><b>Definition</b> widgetsetup.h:214</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_ae3af9efaedb7f97822568c5b8ba267c6"><div class="ttname"><a href="widgetsetup_8h.html#ae3af9efaedb7f97822568c5b8ba267c6">CFK_BLACK</a></div><div class="ttdeci">constexpr uint16_t CFK_BLACK</div><div class="ttdef"><b>Definition</b> widgetsetup.h:133</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_af0896c6694781bb10bd957c3738c566f"><div class="ttname"><a href="widgetsetup_8h.html#af0896c6694781bb10bd957c3738c566f">CFK_GREY3</a></div><div class="ttdeci">constexpr uint16_t CFK_GREY3</div><div class="ttdef"><b>Definition</b> widgetsetup.h:204</div></div>
@@ -247,9 +247,9 @@ hide()</h2>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">loadScreen</a>(screen0);</div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">createTask</a>(<span class="keyword">false</span>, 3);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a3482413c8180fd5d46a17a285fae5875"><div class="ttname"><a href="class_display_f_k.html#a3482413c8180fd5d46a17a285fae5875">DisplayFK::setDrawObject</a></div><div class="ttdeci">void setDrawObject(Arduino_GFX *objTFT)</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:3128</div></div>
-<div class="ttc" id="aclass_display_f_k_html_aa2bd44d7cafe83fa5246bf57d6e0388b"><div class="ttname"><a href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">DisplayFK::loadScreen</a></div><div class="ttdeci">void loadScreen(functionLoadScreen_t screen)</div><div class="ttdef"><b>Definition</b> displayfk.cpp:3123</div></div>
-<div class="ttc" id="aclass_display_f_k_html_afdf6a30e9dabe0fe3306f7ea82214ae5"><div class="ttname"><a href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">DisplayFK::createTask</a></div><div class="ttdeci">void createTask(bool enableWatchdog, uint16_t timeout_s=3)</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:2151</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a3482413c8180fd5d46a17a285fae5875"><div class="ttname"><a href="class_display_f_k.html#a3482413c8180fd5d46a17a285fae5875">DisplayWX::setDrawObject</a></div><div class="ttdeci">void setDrawObject(Arduino_GFX *objTFT)</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:3128</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aa2bd44d7cafe83fa5246bf57d6e0388b"><div class="ttname"><a href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">DisplayWX::loadScreen</a></div><div class="ttdeci">void loadScreen(functionLoadScreen_t screen)</div><div class="ttdef"><b>Definition</b> displaywx.cpp:3123</div></div>
+<div class="ttc" id="aclass_display_f_k_html_afdf6a30e9dabe0fe3306f7ea82214ae5"><div class="ttname"><a href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">DisplayWX::createTask</a></div><div class="ttdeci">void createTask(bool enableWatchdog, uint16_t timeout_s=3)</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:2151</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md810"></a>
 🔧 Passo 5: Configurar o Keyboard</h2>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> loadWidgets() {</div>
@@ -270,7 +270,7 @@ hide()</h2>
 <div class="line">    </div>
 <div class="line">    <span class="comment">// Keyboard é configurado automaticamente pelo sistema</span></div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a146a35f3f39aa36e9c7c426a6d0c4113"><div class="ttname"><a href="class_display_f_k.html#a146a35f3f39aa36e9c7c426a6d0c4113">DisplayFK::setTextbox</a></div><div class="ttdeci">void setTextbox(TextBox *array[], uint8_t amount)</div><div class="ttdoc">Configures the text box array.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:492</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a146a35f3f39aa36e9c7c426a6d0c4113"><div class="ttname"><a href="class_display_f_k.html#a146a35f3f39aa36e9c7c426a6d0c4113">DisplayWX::setTextbox</a></div><div class="ttdeci">void setTextbox(TextBox *array[], uint8_t amount)</div><div class="ttdoc">Configures the text box array.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:492</div></div>
 <div class="ttc" id="astruct_text_box_config_html"><div class="ttname"><a href="struct_text_box_config.html">TextBoxConfig</a></div><div class="ttdoc">Estrutura de configuração para o TextBox.</div><div class="ttdef"><b>Definition</b> wtextbox.h:10</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_a271e653bf0992ffe6837daa1db6ea081"><div class="ttname"><a href="widgetsetup_8h.html#a271e653bf0992ffe6837daa1db6ea081">CFK_COLOR01</a></div><div class="ttdeci">constexpr uint16_t CFK_COLOR01</div><div class="ttdef"><b>Definition</b> widgetsetup.h:169</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_ac2eb83c89c3a81998a14dcb2e999403c"><div class="ttname"><a href="widgetsetup_8h.html#ac2eb83c89c3a81998a14dcb2e999403c">CFK_WHITE</a></div><div class="ttdeci">constexpr uint16_t CFK_WHITE</div><div class="ttdef"><b>Definition</b> widgetsetup.h:134</div></div>
@@ -289,7 +289,7 @@ hide()</h2>
 <div class="line">    </div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">drawWidgetsOnScreen</a>(0);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayFK::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:1844</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayWX::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:1844</div></div>
 <div class="ttc" id="aclass_widget_base_html_a77a9f894591cb7871282cd5868a36a15"><div class="ttname"><a href="class_widget_base.html#a77a9f894591cb7871282cd5868a36a15">WidgetBase::backgroundColor</a></div><div class="ttdeci">static uint16_t backgroundColor</div><div class="ttdoc">Cor de fundo para os widgets.</div><div class="ttdef"><b>Definition</b> widgetbase.h:418</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md813"></a>
 🔄 Passo 8: Exemplo de Uso</h2>
@@ -301,10 +301,10 @@ hide()</h2>
 </div><!-- fragment --><hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md815"></a>
 📝 Exemplo Completo</h1>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;<a class="code" href="_roboto_regular10pt7b_8h.html">fonts/RobotoRegular/RobotoRegular10pt7b.h</a>&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line">Arduino_DataBus *bus = <span class="keyword">nullptr</span>;</div>
 <div class="line">Arduino_GFX *gfx = <span class="keyword">nullptr</span>;</div>
 <div class="line"> </div>
@@ -430,12 +430,12 @@ hide()</h2>
 </ul>
 <hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md827"></a>
-🔗 Integração com DisplayFK</h1>
-<p>O <span class="tt">Keyboard</span> integra-se com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a>:</p>
+🔗 Integração com DisplayWX</h1>
+<p>O <span class="tt">Keyboard</span> integra-se com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a>:</p>
 <ol type="1">
 <li><b>Abertura Automática:</b> Quando o usuário toca em um <a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a></li>
 <li><b>Bloqueio:</b> Outros widgets ficam bloqueados quando o Keyboard está aberto</li>
-<li><b>Gerenciamento:</b> Controlado pelo loop principal do <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></li>
+<li><b>Gerenciamento:</b> Controlado pelo loop principal do <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></li>
 <li><b>Aplicação:</b> Texto aplicado automaticamente ao <a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a> ao fechar</li>
 <li><b>Proteção:</b> usingKeyboard ativa durante uso</li>
 </ol>
@@ -473,7 +473,7 @@ Keyboard não abre</h2>
 <li>Verifique se o <a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a> está configurado</li>
 <li>Confirme que o usuário tocou no <a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a></li>
 <li>Verifique se funcPtr foi configurado</li>
-<li>Certifique-se que <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> foi inicializado</li>
+<li>Certifique-se que <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> foi inicializado</li>
 </ul>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md833"></a>
 Teclas não respondem</h2>
@@ -513,7 +513,7 @@ Caps Lock não funciona</h2>
 <ul>
 <li><b>Classe Base:</b> <span class="tt"><a class="el" href="class_widget_base.html" title="Classe base abstrata para todos os widgets.">WidgetBase</a></span> (<a class="el" href="widgetbase_8h.html">src/widgets/widgetbase.h</a>)</li>
 <li><b><a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a>:</b> <span class="tt"><a class="el" href="class_text_box.html" title="Widget de caixa de texto para exibir e editar texto.">TextBox</a></span> (<a class="el" href="wtextbox_8h.html">src/widgets/textbox/wtextbox.h</a>)</li>
-<li><b><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> Principal:</b> <span class="tt"><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></span> (<a class="el" href="displayfk_8h.html">src/displayfk.h</a>)</li>
+<li><b><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> Principal:</b> <span class="tt"><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></span> (<a class="el" href="displaywx_8h.html">src/displaywx.h</a>)</li>
 <li><b>Cores Padrão:</b> CFK_GREY3, CFK_BLACK, CFK_GREY13 </li>
 </ul>
 </div></div><!-- contents -->

@@ -42,7 +42,7 @@ void callbackOfGroup_grupo1();
 #endif
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
@@ -51,7 +51,7 @@ void callbackOfGroup_grupo1();
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 1;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 CheckBox checkbox(475, 185, 0);
 CheckBox checkbox1(475, 220, 0);
 CheckBox checkbox2(475, 255, 0);

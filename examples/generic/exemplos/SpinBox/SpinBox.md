@@ -1,6 +1,6 @@
 # Exemplo com SpinBox (controle de brilho do LED)
 
-Este exemplo mostra como **controlar o brilho de um LED** usando um **SpinBox** na tela touchscreen (DisplayFK).  
+Este exemplo mostra como **controlar o brilho de um LED** usando um **SpinBox** na tela touchscreen (DisplayWX).  
 O valor numérico do `SpinBox` (0–255) é enviado para `analogWrite()` no **GPIO16**, ajustando o **PWM** e, portanto, o brilho do LED.
 
 ---

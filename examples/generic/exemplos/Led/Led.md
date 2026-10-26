@@ -1,6 +1,6 @@
 # Exemplo com Led (widget LED) — Pull-up no GPIO22
 
-Este exemplo usa **pull-up** para o botão no **GPIO22** e espelha o estado no **LED da interface** (widget `Led`) com a biblioteca **DisplayFK**.  
+Este exemplo usa **pull-up** para o botão no **GPIO22** e espelha o estado no **LED da interface** (widget `Led`) com a biblioteca **DisplayWX**.  
 Como o pino fica **alto** por padrão (pull-up), **apertar o botão** puxa para **LOW**; por isso, a lógica é **invertida** no código.
 
 ---

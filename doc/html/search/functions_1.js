@@ -4,5 +4,5 @@ var searchData=
   ['begintouchcommunication_1',['beginTouchCommunication',['../class_x_p_t2046.html#a5a2905590695b60013a028c3961160fd',1,'XPT2046']]],
   ['blendcolors_2',['blendColors',['../color_8h.html#ab1a85336b0be428364c03721d5c90244',1,'color.h']]],
   ['blendcolorsrgb_3',['blendColorsRGB',['../color_8h.html#a1a606e1b60f4399d8e01b61fac5bed90',1,'color.h']]],
-  ['blocklooptask_4',['blockLoopTask',['../class_display_f_k.html#a6f3851beccc60e9ec057818a8df45774',1,'DisplayFK']]]
+  ['blocklooptask_4',['blockLoopTask',['../class_display_f_k.html#a6f3851beccc60e9ec057818a8df45774',1,'DisplayWX']]]
 ];

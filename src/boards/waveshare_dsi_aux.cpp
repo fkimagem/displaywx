@@ -1,4 +1,4 @@
-#include "../displayfk.h"
+#include "../displaywx.h"
 #include <Arduino.h>
 
 #if defined(HAS_CAMERA_MIPI)
@@ -65,12 +65,12 @@ bool applyPowerSequence()
 
 }  // namespace
 
-bool DisplayFK::waveshareDsiAuxBacklight(uint8_t brightness)
+bool DisplayWX::waveshareDsiAuxBacklight(uint8_t brightness)
 {
     return writeRegister(kBacklightRegister, brightness);
 }
 
-bool DisplayFK::waveshareDsiAuxBegin(int sda, int scl)
+bool DisplayWX::waveshareDsiAuxBegin(int sda, int scl)
 {
     if (!openSharedBus(sda, scl)) {
         return false;

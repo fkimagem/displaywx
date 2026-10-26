@@ -92,7 +92,7 @@ Características Principais</h2>
 <li>🔢 Casas decimais configuráveis</li>
 <li>👁️ Pode ser mostrado/ocultado dinamicamente</li>
 <li>💾 Gerenciamento inteligente de memória</li>
-<li>🔗 Integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></li>
+<li>🔗 Integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></li>
 </ul>
 <hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md356"></a>
@@ -225,12 +225,12 @@ hide()</h2>
 💻 Como Usar no Arduino IDE</h1>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md376"></a>
 📚 Passo 1: Incluir as Bibliotecas</h2>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"><span class="comment">// Incluir outras bibliotecas necessárias (SPI, display, etc.)</span></div>
-<div class="ttc" id="adisplayfk_8h_html"><div class="ttname"><a href="displayfk_8h.html">displayfk.h</a></div></div>
+<div class="ttc" id="adisplaywx_8h_html"><div class="ttname"><a href="displaywx_8h.html">displaywx.h</a></div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md377"></a>
 🏗️ Passo 2: Declarar Objetos Globais</h2>
-<div class="fragment"><div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="fragment"><div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Criar labels: Label(x, y, tela)</span></div>
 <div class="line"><a class="code hl_class" href="class_label.html">Label</a> text(60, 40, 0);</div>
@@ -240,7 +240,7 @@ hide()</h2>
 <div class="line"><span class="comment">// Criar array de ponteiros</span></div>
 <div class="line"><span class="keyword">const</span> uint8_t qtdLabel = 3;</div>
 <div class="line"><a class="code hl_class" href="class_label.html">Label</a> *arrayLabel[qtdLabel] = {&amp;text, &amp;line1, &amp;line2};</div>
-<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayFK</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition</b> displayfk.h:327</div></div>
+<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayWX</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition</b> displaywx.h:327</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md378"></a>
 📝 Passo 3: Prototipar Funções</h2>
 <div class="fragment"><div class="line"><span class="comment">// Labels não usam callbacks normalmente</span></div>
@@ -254,9 +254,9 @@ hide()</h2>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">loadScreen</a>(screen0);</div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">createTask</a>(<span class="keyword">false</span>, 3);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a3482413c8180fd5d46a17a285fae5875"><div class="ttname"><a href="class_display_f_k.html#a3482413c8180fd5d46a17a285fae5875">DisplayFK::setDrawObject</a></div><div class="ttdeci">void setDrawObject(Arduino_GFX *objTFT)</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:3128</div></div>
-<div class="ttc" id="aclass_display_f_k_html_aa2bd44d7cafe83fa5246bf57d6e0388b"><div class="ttname"><a href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">DisplayFK::loadScreen</a></div><div class="ttdeci">void loadScreen(functionLoadScreen_t screen)</div><div class="ttdef"><b>Definition</b> displayfk.cpp:3123</div></div>
-<div class="ttc" id="aclass_display_f_k_html_afdf6a30e9dabe0fe3306f7ea82214ae5"><div class="ttname"><a href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">DisplayFK::createTask</a></div><div class="ttdeci">void createTask(bool enableWatchdog, uint16_t timeout_s=3)</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:2151</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a3482413c8180fd5d46a17a285fae5875"><div class="ttname"><a href="class_display_f_k.html#a3482413c8180fd5d46a17a285fae5875">DisplayWX::setDrawObject</a></div><div class="ttdeci">void setDrawObject(Arduino_GFX *objTFT)</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:3128</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aa2bd44d7cafe83fa5246bf57d6e0388b"><div class="ttname"><a href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">DisplayWX::loadScreen</a></div><div class="ttdeci">void loadScreen(functionLoadScreen_t screen)</div><div class="ttdef"><b>Definition</b> displaywx.cpp:3123</div></div>
+<div class="ttc" id="aclass_display_f_k_html_afdf6a30e9dabe0fe3306f7ea82214ae5"><div class="ttname"><a href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">DisplayWX::createTask</a></div><div class="ttdeci">void createTask(bool enableWatchdog, uint16_t timeout_s=3)</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:2151</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md380"></a>
 🔧 Passo 5: Configurar os Widgets</h2>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> loadWidgets() {</div>
@@ -296,10 +296,10 @@ hide()</h2>
 <div class="line">    };</div>
 <div class="line">    line2.setup(configLabel2);</div>
 <div class="line">    </div>
-<div class="line">    <span class="comment">// Registrar no DisplayFK</span></div>
+<div class="line">    <span class="comment">// Registrar no DisplayWX</span></div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#a26ef9b13619e13891a0ecabf0b9a7b25">setLabel</a>(arrayLabel, qtdLabel);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a26ef9b13619e13891a0ecabf0b9a7b25"><div class="ttname"><a href="class_display_f_k.html#a26ef9b13619e13891a0ecabf0b9a7b25">DisplayFK::setLabel</a></div><div class="ttdeci">void setLabel(Label *array[], uint8_t amount)</div><div class="ttdoc">Configures the label array.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:261</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a26ef9b13619e13891a0ecabf0b9a7b25"><div class="ttname"><a href="class_display_f_k.html#a26ef9b13619e13891a0ecabf0b9a7b25">DisplayWX::setLabel</a></div><div class="ttdeci">void setLabel(Label *array[], uint8_t amount)</div><div class="ttdoc">Configures the label array.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:261</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_a067e01c37384dbb6e7cc57d82fbf8a5e"><div class="ttname"><a href="widgetsetup_8h.html#a067e01c37384dbb6e7cc57d82fbf8a5e">CFK_COLOR09</a></div><div class="ttdeci">constexpr uint16_t CFK_COLOR09</div><div class="ttdef"><b>Definition</b> widgetsetup.h:177</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_a9ef228b5a2263774ad4bbfbcac2d480f"><div class="ttname"><a href="widgetsetup_8h.html#a9ef228b5a2263774ad4bbfbcac2d480f">CFK_COLOR04</a></div><div class="ttdeci">constexpr uint16_t CFK_COLOR04</div><div class="ttdef"><b>Definition</b> widgetsetup.h:172</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_ab5e3647e20719a695e2557fad717b54a"><div class="ttname"><a href="widgetsetup_8h.html#ab5e3647e20719a695e2557fad717b54a">TL_DATUM</a></div><div class="ttdeci">#define TL_DATUM</div><div class="ttdef"><b>Definition</b> widgetsetup.h:113</div></div>
@@ -317,7 +317,7 @@ hide()</h2>
 <div class="line">    <span class="comment">// Desenhar todos os widgets na tela 0</span></div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">drawWidgetsOnScreen</a>(0);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayFK::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:1844</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayWX::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:1844</div></div>
 <div class="ttc" id="aclass_widget_base_html_a77a9f894591cb7871282cd5868a36a15"><div class="ttname"><a href="class_widget_base.html#a77a9f894591cb7871282cd5868a36a15">WidgetBase::backgroundColor</a></div><div class="ttdeci">static uint16_t backgroundColor</div><div class="ttdoc">Cor de fundo para os widgets.</div><div class="ttdef"><b>Definition</b> widgetbase.h:418</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md383"></a>
 🔄 Passo 8: Atualizar Texto (Exemplo de Uso)</h2>
@@ -343,10 +343,10 @@ hide()</h2>
 </div><!-- fragment --><hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md385"></a>
 📝 Exemplo Completo</h1>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;<a class="code" href="_roboto_regular10pt7b_8h.html">fonts/RobotoRegular/RobotoRegular10pt7b.h</a>&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line">Arduino_DataBus *bus = <span class="keyword">nullptr</span>;</div>
 <div class="line">Arduino_GFX *gfx = <span class="keyword">nullptr</span>;</div>
 <div class="line"> </div>
@@ -519,11 +519,11 @@ hide()</h2>
 </ul>
 <hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md398"></a>
-🔗 Integração com DisplayFK</h1>
-<p>O <span class="tt"><a class="el" href="class_label.html">Label</a></span> integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a>:</p>
+🔗 Integração com DisplayWX</h1>
+<p>O <span class="tt"><a class="el" href="class_label.html">Label</a></span> integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a>:</p>
 <ol type="1">
 <li><b>Renderização:</b> Automática quando usando <span class="tt">drawWidgetsOnScreen()</span></li>
-<li><b>Gerenciamento:</b> Controlado pelo loop principal do <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></li>
+<li><b>Gerenciamento:</b> Controlado pelo loop principal do <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></li>
 <li><b>Sincronização:</b> Estados sincronizados entre diferentes telas</li>
 <li><b>Memória:</b> Gerenciamento automático de alocação</li>
 <li><b>Performance:</b> Redesenho apenas quando necessário</li>
@@ -618,9 +618,9 @@ Cores não aparecem corretamente</h2>
 📚 Referências</h1>
 <ul>
 <li><b>Classe Base:</b> <span class="tt"><a class="el" href="class_widget_base.html" title="Classe base abstrata para todos os widgets.">WidgetBase</a></span> (<a class="el" href="widgetbase_8h.html">src/widgets/widgetbase.h</a>)</li>
-<li><b><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> Principal:</b> <span class="tt"><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></span> (<a class="el" href="displayfk_8h.html">src/displayfk.h</a>)</li>
+<li><b><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> Principal:</b> <span class="tt"><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></span> (<a class="el" href="displaywx_8h.html">src/displaywx.h</a>)</li>
 <li><b>Exemplos:</b> examples/Embed_ESP32S3/Display_Test/</li>
-<li><b>Cores Padrão:</b> Definidas em <a class="el" href="displayfk_8h.html">displayfk.h</a> (CFK_COLOR01-CFK_COLOR28, CFK_GREY*, CFK_WHITE, CFK_BLACK)</li>
+<li><b>Cores Padrão:</b> Definidas em <a class="el" href="displaywx_8h.html">displaywx.h</a> (CFK_COLOR01-CFK_COLOR28, CFK_GREY*, CFK_WHITE, CFK_BLACK)</li>
 <li><b>Datums:</b> Definidos em Arduino_GFX_Library (TL_DATUM, TC_DATUM, etc.) </li>
 </ul>
 </div></div><!-- contents -->

@@ -4,7 +4,7 @@
 
 This project is an example of using two RadioGroup widgets to choose the blink rate of two LEDs.
 Each RadioGroup shows a set of radio buttons where only one can be selected at a time. When the user
-touches a different option, the DisplayFK library calls the callback for that group; the program uses
+touches a different option, the DisplayWX library calls the callback for that group; the program uses
 these callbacks to update volatile variables (pulseLed1, pulseLed2) that define the delay between
 blinks. Two FreeRTOS tasks (taskLed1 and taskLed2) run on core 0 and blink the LEDs on pins 16 and
 17; the selected option in each group is intended to control the blink frequency for the
@@ -25,7 +25,7 @@ screen is drawn in screen0 with a white background and drawWidgetsOnScreen(0).
 
 Este projeto é um exemplo de uso de dois widgets RadioGroup para escolher a frequência de piscar de
 dois LEDs. Cada RadioGroup exibe um conjunto de botões de rádio dos quais apenas um pode estar
-selecionado por vez. Quando o usuário toca em uma opção diferente, a biblioteca DisplayFK chama o
+selecionado por vez. Quando o usuário toca em uma opção diferente, a biblioteca DisplayWX chama o
 callback daquele grupo; o programa usa essas callbacks para atualizar variáveis voláteis (pulseLed1,
 pulseLed2) que definem o intervalo entre os piscar. Duas tarefas FreeRTOS (taskLed1 e taskLed2) rodam
 no core 0 e piscam os LEDs nos pinos 16 e 17; a opção selecionada em cada grupo define a
@@ -51,7 +51,7 @@ vazio; a tela é desenhada em screen0 com fundo branco e drawWidgetsOnScreen(0).
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -100,7 +100,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 RadioGroup grupo1(0);
 RadioGroup grupo2(0);

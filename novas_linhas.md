@@ -9,7 +9,7 @@ Referência dos sketches (não alterar os exemplos):
 
 Alvo: ESP32-P4, ESP-IDF >= 5.4. A câmera só existe com um `CAM_*` em `user_setup.h`. `src/check_camera.h` define `HAS_CAMERA_MIPI` a partir desse sensor. O gerador não emite `#define HAS_CAMERA_MIPI` nem o nome antigo `USE_CAMERA_CSI`.
 
-Só um `CAM_*` e só um `TOUCH_*` ficam ativos. O `startTouch*` do sketch tem que ser o mesmo do `#define`: as funções são `#elif` em `displayfk.h`. Sem o define certo, a chamada não compila. `HAS_TOUCH` também nasce sozinho em `src/check_touch.h`.
+Só um `CAM_*` e só um `TOUCH_*` ficam ativos. O `startTouch*` do sketch tem que ser o mesmo do `#define`: as funções são `#elif` em `displaywx.h`. Sem o define certo, a chamada não compila. `HAS_TOUCH` também nasce sozinho em `src/check_touch.h`.
 
 `DFK_CAMERA_MIPI` já está em `src/widgets/widgetsetup.h`. O sketch não define isso.
 
@@ -36,7 +36,7 @@ Dentro de `startDisplay()`, depois de `tft->begin()`:
 #define CAMERA_MIRROR_X false
 #define CAMERA_MIRROR_Y false
 
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 
 CameraMipi cam01(x, y, screen);   // um objeto por widget
 const uint8_t qtdCameraMipi = 1;  // tamanho do array
@@ -54,7 +54,7 @@ myDisplay.setCameraMipi(arrayCameraMipi, qtdCameraMipi);
 
 `setZoomLevel` aceita 1, 2 ou 4. `showZoomLevel` só desenha o rótulo 1x/2x/3x no canto do widget.
 
-Includes que os quatro usam: `Arduino.h`, `Arduino_GFX_Library.h`, `displayfk.h`.
+Includes que os quatro usam: `Arduino.h`, `Arduino_GFX_Library.h`, `displaywx.h`.
 
 ## user_setup.h por modelo
 
@@ -255,7 +255,7 @@ Widgets de exemplo: `cam01(10, 10, 0)` 100x100 e `cam02(200, 200, 0)` 200x200, z
 
 Painel DSI JD9365, nativo 800x1280. Orientação de exemplo: 1. Touch GSL3680. INT e RST existem.
 
-Includes iguais ao 4": `SPI.h`, `ESP_Video.h`, `Arduino_GFX_Library.h`, `displayfk.h`.
+Includes iguais ao 4": `SPI.h`, `ESP_Video.h`, `Arduino_GFX_Library.h`, `displaywx.h`.
 
 ```cpp
 #define ORIENTATION 1
@@ -439,7 +439,7 @@ Include extra, nesta ordem: `ESP_Video.h`, `SPI.h`, o limite de DMA, depois a GF
 #define ESP32SPIDMA_MAX_PIXELS_AT_ONCE 4096
 #endif
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 ```
 
 ```cpp

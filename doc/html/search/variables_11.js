@@ -3,7 +3,7 @@ var searchData=
   ['s_0',['s',['../struct_h_s_v__t.html#a89db740179b828cbf012dc3401fcae22',1,'HSV_t']]],
   ['screenheight_1',['screenHeight',['../class_widget_base.html#ad6f4a969c42306301f9ae0f23149f148',1,'WidgetBase']]],
   ['screenwidth_2',['screenWidth',['../class_widget_base.html#ab821dc9c6ddf1cc9388ef79ec1c90183',1,'WidgetBase']]],
-  ['sdcardok_3',['sdcardOK',['../class_display_f_k.html#a906f821e380cde6509c9f4229178786f',1,'DisplayFK']]],
+  ['sdcardok_3',['sdcardOK',['../class_display_f_k.html#a906f821e380cde6509c9f4229178786f',1,'DisplayWX']]],
   ['show_5fall_4',['SHOW_ALL',['../class_line_chart.html#a448c0b570e54c50730e1fff727f68113',1,'LineChart']]],
   ['showdots_5',['showDots',['../struct_line_chart_config.html#ad3ee9d13b47f8e58c5ae0c733505e531',1,'LineChartConfig']]],
   ['showinglog_6',['showingLog',['../class_widget_base.html#a220f8e75d0060fdc5fafaec4a7b4f4e4',1,'WidgetBase']]],

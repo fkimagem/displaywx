@@ -23,7 +23,7 @@ void toggle0tgb_cb();
 // Include for plugins of chip 2
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
@@ -31,7 +31,7 @@ void toggle0tgb_cb();
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 1;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 const uint8_t qtdToggleBtn = 1;
 ToggleButton arrayTogglebtn[qtdToggleBtn] = {ToggleButton(35, 165, 0)};
 //SPIClass spi_shared(FSPI);

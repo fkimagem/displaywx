@@ -1,6 +1,6 @@
 # Exemplo com VBar (barra vertical)
 
-Este exemplo mostra como **exibir o nível lido de um potenciômetro** em uma **barra vertical (VBar / VerticalBar)** na tela touchscreen usando a biblioteca **DisplayFK**.  
+Este exemplo mostra como **exibir o nível lido de um potenciômetro** em uma **barra vertical (VBar / VerticalBar)** na tela touchscreen usando a biblioteca **DisplayWX**.  
 O widget é atualizado com a leitura **ADC (0–4095)** do ESP32 no **GPIO17**.
 
 ---

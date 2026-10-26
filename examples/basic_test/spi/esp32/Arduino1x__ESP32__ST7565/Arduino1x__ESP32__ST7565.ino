@@ -2,7 +2,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <U8g2lib.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -42,7 +42,7 @@ void u8g2_prepare(void) {
     tft->setFontPosTop();
     tft->setFontDirection(0);
 }
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 
 void setup(){

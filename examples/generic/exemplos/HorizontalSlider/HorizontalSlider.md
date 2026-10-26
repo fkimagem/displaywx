@@ -1,6 +1,6 @@
 # Exemplo com HSlider (controle de brilho do LED)
 
-Este exemplo mostra como **controlar o brilho de um LED** usando um **HSlider** na tela touchscreen (DisplayFK).  
+Este exemplo mostra como **controlar o brilho de um LED** usando um **HSlider** na tela touchscreen (DisplayWX).  
 O valor do slider (0–255) é enviado para `analogWrite()` no **GPIO16**, ajustando o **PWM** e, portanto, o brilho do LED.
 
 ---

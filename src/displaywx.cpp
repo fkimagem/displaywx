@@ -1,4 +1,4 @@
-#include "displayfk.h"
+#include "displaywx.h"
 #include "freertos_stats.h"
 #include <memory>
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -35,29 +35,29 @@ static StaticTask_t s_cameraTaskTcb;
 
 #define RESET_WDT                                                                                              \
     {                                                                                                          \
-        if (DisplayFK::instance && DisplayFK::instance->m_enableWTD &&                                        \
-            DisplayFK::instance->m_watchdogInitialized &&                                                      \
-            xTaskGetCurrentTaskHandle() == DisplayFK::instance->m_hndTaskEventoTouch)                          \
+        if (DisplayWX::instance && DisplayWX::instance->m_enableWTD &&                                        \
+            DisplayWX::instance->m_watchdogInitialized &&                                                      \
+            xTaskGetCurrentTaskHandle() == DisplayWX::instance->m_hndTaskEventoTouch)                          \
         {                                                                                                      \
             esp_task_wdt_reset();                                                                              \
         }                                                                                                      \
     };
 
-DisplayFK *DisplayFK::instance = nullptr;
-bool DisplayFK::sdcardOK = false;
-QueueHandle_t DisplayFK::xFilaLog;
-logMessage_t DisplayFK::bufferLog[LOG_LENGTH];
-uint8_t DisplayFK::logIndex = 0;
-uint16_t DisplayFK::logFileCount = 1;
-StringPool DisplayFK::stringPool;
-const char *DisplayFK::TAG = "DisplayFK";
-int DisplayFK::offsetSwipe = 50;
+DisplayWX *DisplayWX::instance = nullptr;
+bool DisplayWX::sdcardOK = false;
+QueueHandle_t DisplayWX::xFilaLog;
+logMessage_t DisplayWX::bufferLog[LOG_LENGTH];
+uint8_t DisplayWX::logIndex = 0;
+uint16_t DisplayWX::logFileCount = 1;
+StringPool DisplayWX::stringPool;
+const char *DisplayWX::TAG = "DisplayWX";
+int DisplayWX::offsetSwipe = 50;
 
 #ifdef DFK_SD
 
 #endif
 
-void DisplayFK::logHeapPorTipo(const char *nome, uint32_t capacidades)
+void DisplayWX::logHeapPorTipo(const char *nome, uint32_t capacidades)
 {
     multi_heap_info_t info = {};
     heap_caps_get_info(&info, capacidades);
@@ -73,7 +73,7 @@ void DisplayFK::logHeapPorTipo(const char *nome, uint32_t capacidades)
     );
 }
 
-void DisplayFK::logMemoriaSistema()
+void DisplayWX::logMemoriaSistema()
 {
     logHeapPorTipo(
         "RAM interna",
@@ -94,7 +94,7 @@ void DisplayFK::logMemoriaSistema()
 /**
  * @brief Enables or disables the watchdog timer
  */
-void DisplayFK::changeWTD()
+void DisplayWX::changeWTD()
 {
     if (!m_enableWTD)
     {
@@ -139,10 +139,10 @@ void DisplayFK::changeWTD()
  * @brief Generates a unique filename for logs using string pool
  * @return Pointer to the generated filename (managed by string pool)
  */
-const char *DisplayFK::generateNameFile() const
+const char *DisplayWX::generateNameFile() const
 {
     // Try to use string pool first with exception safety
-    char *filename = const_cast<DisplayFK *>(this)->allocateStringSafe("generateNameFile");
+    char *filename = const_cast<DisplayWX *>(this)->allocateStringSafe("generateNameFile");
     if (!filename)
     {
         ESP_LOGE(TAG, "String pool exhausted, falling back to dynamic allocation");
@@ -185,7 +185,7 @@ const char *DisplayFK::generateNameFile() const
  * @brief Returns the current log filename
  * @return Current log filename
  */
-const char *DisplayFK::getLogFileName() const
+const char *DisplayWX::getLogFileName() const
 {
     return m_nameLogFile;
 }
@@ -199,7 +199,7 @@ const char *DisplayFK::getLogFileName() const
  * @param array Pointer to the checkbox array
  * @param amount Number of checkboxes in the array
  */
-void DisplayFK::setCheckbox(CheckBox *array[], uint8_t amount)
+void DisplayWX::setCheckbox(CheckBox *array[], uint8_t amount)
 {
     if (m_checkboxConfigured)
     {
@@ -229,7 +229,7 @@ void DisplayFK::setCheckbox(CheckBox *array[], uint8_t amount)
  * @param array Pointer to the circle button array
  * @param amount Number of buttons in the array
  */
-void DisplayFK::setCircleButton(CircleButton *array[], uint8_t amount)
+void DisplayWX::setCircleButton(CircleButton *array[], uint8_t amount)
 {
     if (m_circleButtonConfigured)
     {
@@ -259,7 +259,7 @@ void DisplayFK::setCircleButton(CircleButton *array[], uint8_t amount)
  * @param array Pointer to the gauge array
  * @param amount Number of gauges in the array
  */
-void DisplayFK::setGauge(GaugeSuper *array[], uint8_t amount)
+void DisplayWX::setGauge(GaugeSuper *array[], uint8_t amount)
 {
     if (m_gaugeConfigured)
     {
@@ -288,7 +288,7 @@ void DisplayFK::setGauge(GaugeSuper *array[], uint8_t amount)
  * @param array Pointer to the circular bar array
  * @param amount Number of bars in the array
  */
-void DisplayFK::setCircularBar(CircularBar *array[], uint8_t amount)
+void DisplayWX::setCircularBar(CircularBar *array[], uint8_t amount)
 {
     if (m_circularBarConfigured)
     {
@@ -317,7 +317,7 @@ void DisplayFK::setCircularBar(CircularBar *array[], uint8_t amount)
  * @param array Pointer to the slider array
  * @param amount Number of sliders in the array
  */
-void DisplayFK::setHSlider(HSlider *array[], uint8_t amount)
+void DisplayWX::setHSlider(HSlider *array[], uint8_t amount)
 {
     if (m_hSliderConfigured)
     {
@@ -346,7 +346,7 @@ void DisplayFK::setHSlider(HSlider *array[], uint8_t amount)
  * @param array Pointer to the label array
  * @param amount Number of labels in the array
  */
-void DisplayFK::setLabel(Label *array[], uint8_t amount)
+void DisplayWX::setLabel(Label *array[], uint8_t amount)
 {
     if (m_labelConfigured)
     {
@@ -373,7 +373,7 @@ void DisplayFK::setLabel(Label *array[], uint8_t amount)
  * @param array Pointer to the LED array
  * @param amount Number of LEDs in the array
  */
-void DisplayFK::setLed(Led *array[], uint8_t amount)
+void DisplayWX::setLed(Led *array[], uint8_t amount)
 {
     if (m_ledConfigured)
     {
@@ -402,7 +402,7 @@ void DisplayFK::setLed(Led *array[], uint8_t amount)
  * @param array Pointer to the line chart array
  * @param amount Number of charts in the array
  */
-void DisplayFK::setLineChart(LineChart *array[], uint8_t amount)
+void DisplayWX::setLineChart(LineChart *array[], uint8_t amount)
 {
     if (m_lineChartConfigured)
     {
@@ -428,7 +428,7 @@ void DisplayFK::setLineChart(LineChart *array[], uint8_t amount)
  * @param array Pointer to the number box array
  * @param amount Number of boxes in the array
  */
-void DisplayFK::setNumberbox(NumberBox *array[], uint8_t amount)
+void DisplayWX::setNumberbox(NumberBox *array[], uint8_t amount)
 {
     if (m_numberboxConfigured)
     {
@@ -451,21 +451,21 @@ void DisplayFK::setNumberbox(NumberBox *array[], uint8_t amount)
 /**
  * @brief Sets up the numeric keypad
  */
-void DisplayFK::setupNumpad()
+void DisplayWX::setupNumpad()
 {
     // m_pNumpad.setup();
-    // DisplayFK::numpad = &m_pNumpad;
+    // DisplayWX::numpad = &m_pNumpad;
 }
 
 /**
  * @brief Inserts a character into the numeric keypad
  * @param c Character to be inserted
  */
-void DisplayFK::insertCharNumpad(char c)
+void DisplayWX::insertCharNumpad(char c)
 {
-    if (DisplayFK::numpad)
+    if (DisplayWX::numpad)
     {
-        DisplayFK::numpad->insertChar(c);
+        DisplayWX::numpad->insertChar(c);
     }
     else
     {
@@ -481,7 +481,7 @@ void DisplayFK::insertCharNumpad(char c)
  * @param array Pointer to the radio group array
  * @param amount Number of groups in the array
  */
-void DisplayFK::setRadioGroup(RadioGroup *array[], uint8_t amount)
+void DisplayWX::setRadioGroup(RadioGroup *array[], uint8_t amount)
 {
     if (m_radioGroupConfigured)
     {
@@ -507,7 +507,7 @@ void DisplayFK::setRadioGroup(RadioGroup *array[], uint8_t amount)
  * @param array Pointer to the button array
  * @param amount Number of buttons in the array
  */
-void DisplayFK::setRectButton(RectButton *array[], uint8_t amount)
+void DisplayWX::setRectButton(RectButton *array[], uint8_t amount)
 {
     if (m_rectButtonConfigured)
     {
@@ -533,7 +533,7 @@ void DisplayFK::setRectButton(RectButton *array[], uint8_t amount)
  * @param array Pointer to the button array
  * @param amount Number of buttons in the array
  */
-void DisplayFK::setTextButton(TextButton *array[], uint8_t amount)
+void DisplayWX::setTextButton(TextButton *array[], uint8_t amount)
 {
     if (m_textButtonConfigured)
     {
@@ -559,7 +559,7 @@ void DisplayFK::setTextButton(TextButton *array[], uint8_t amount)
  * @param array Pointer to the spin box array
  * @param amount Number of boxes in the array
  */
-void DisplayFK::setSpinbox(SpinBox *array[], uint8_t amount)
+void DisplayWX::setSpinbox(SpinBox *array[], uint8_t amount)
 {
     if (m_spinboxConfigured)
     {
@@ -585,7 +585,7 @@ void DisplayFK::setSpinbox(SpinBox *array[], uint8_t amount)
  * @param array Pointer to the text box array
  * @param amount Number of boxes in the array
  */
-void DisplayFK::setTextbox(TextBox *array[], uint8_t amount)
+void DisplayWX::setTextbox(TextBox *array[], uint8_t amount)
 {
     if (m_textboxConfigured)
     {
@@ -608,19 +608,19 @@ void DisplayFK::setTextbox(TextBox *array[], uint8_t amount)
 /**
  * @brief Sets up the virtual keyboard
  */
-void DisplayFK::setupKeyboard()
+void DisplayWX::setupKeyboard()
 {
     // m_pKeyboard.setup();
-    // DisplayFK::keyboard = &m_pKeyboard;
+    // DisplayWX::keyboard = &m_pKeyboard;
 }
 
 /**
  * @brief Inserts a character into the text box
  * @param c Character to be inserted
  */
-void DisplayFK::insertCharTextbox(char c)
+void DisplayWX::insertCharTextbox(char c)
 {
-    if (DisplayFK::keyboard)
+    if (DisplayWX::keyboard)
     {
         keyboard->insertChar(c);
     }
@@ -638,7 +638,7 @@ void DisplayFK::insertCharTextbox(char c)
  * @param array Pointer to the thermometer array
  * @param amount Number of thermometers in the array
  */
-void DisplayFK::setThermometer(Thermometer *array[], uint8_t amount)
+void DisplayWX::setThermometer(Thermometer *array[], uint8_t amount)
 {
     if (m_thermometerConfigured)
     {
@@ -664,7 +664,7 @@ void DisplayFK::setThermometer(Thermometer *array[], uint8_t amount)
  * @param array Pointer to the button array
  * @param amount Number of buttons in the array
  */
-void DisplayFK::setToggle(ToggleButton *array[], uint8_t amount)
+void DisplayWX::setToggle(ToggleButton *array[], uint8_t amount)
 {
     if (m_toggleConfigured)
     {
@@ -690,7 +690,7 @@ void DisplayFK::setToggle(ToggleButton *array[], uint8_t amount)
  * @param array Pointer to the touch area array
  * @param amount Number of areas in the array
  */
-void DisplayFK::setTouchArea(TouchArea *array[], uint8_t amount)
+void DisplayWX::setTouchArea(TouchArea *array[], uint8_t amount)
 {
     if (m_touchAreaConfigured)
     {
@@ -716,7 +716,7 @@ void DisplayFK::setTouchArea(TouchArea *array[], uint8_t amount)
  * @param array Pointer to the viewer array
  * @param amount Number of viewers in the array
  */
-void DisplayFK::setVAnalog(VAnalog *array[], uint8_t amount)
+void DisplayWX::setVAnalog(VAnalog *array[], uint8_t amount)
 {
     if (m_vAnalogConfigured)
     {
@@ -742,7 +742,7 @@ void DisplayFK::setVAnalog(VAnalog *array[], uint8_t amount)
  * @param array Pointer to the bar array
  * @param amount Number of bars in the array
  */
-void DisplayFK::setVBar(VBar *array[], uint8_t amount)
+void DisplayWX::setVBar(VBar *array[], uint8_t amount)
 {
     if (m_vBarConfigured)
     {
@@ -768,7 +768,7 @@ void DisplayFK::setVBar(VBar *array[], uint8_t amount)
  * @param array Pointer to the image array
  * @param amount Number of images in the array
  */
-void DisplayFK::setImage(Image *array[], uint8_t amount)
+void DisplayWX::setImage(Image *array[], uint8_t amount)
 {
     if (m_imageConfigured)
     {
@@ -790,7 +790,7 @@ void DisplayFK::setImage(Image *array[], uint8_t amount)
 
 #ifdef DFK_CAMERA_MIPI
 
-void DisplayFK::setCameraMipi(CameraMipi *array[], uint8_t amount)
+void DisplayWX::setCameraMipi(CameraMipi *array[], uint8_t amount)
 {
     if (m_cameraMipiConfigured)
     {
@@ -818,7 +818,7 @@ void DisplayFK::setCameraMipi(CameraMipi *array[], uint8_t amount)
  * @param spiShared Pointer to the shared SPI interface
  * @return true if initialization was successful, false otherwise
  */
-bool DisplayFK::startSD(uint8_t pinCS, SPIClass *spiShared)
+bool DisplayWX::startSD(uint8_t pinCS, SPIClass *spiShared)
 {
     return startSD(pinCS, spiShared, 0);
 }
@@ -830,7 +830,7 @@ bool DisplayFK::startSD(uint8_t pinCS, SPIClass *spiShared)
  * @param hz SPI interface frequency in Hz
  * @return true if initialization was successful, false otherwise
  */
-bool DisplayFK::startSD(uint8_t pinCS, SPIClass *spiShared, int hz)
+bool DisplayWX::startSD(uint8_t pinCS, SPIClass *spiShared, int hz)
 {
     // Use exception-safe method
     return startSDSafe(pinCS, spiShared, hz);
@@ -842,9 +842,9 @@ bool DisplayFK::startSD(uint8_t pinCS, SPIClass *spiShared, int hz)
  * @param dirname Directory name
  * @param levels Listing depth level
  */
-void DisplayFK::listFiles(fs::FS *fs, const char *dirname, uint8_t levels)
+void DisplayWX::listFiles(fs::FS *fs, const char *dirname, uint8_t levels)
 {
-    if (!DisplayFK::sdcardOK)
+    if (!DisplayWX::sdcardOK)
     {
         ESP_LOGE(TAG, "SD not configured");
         return;
@@ -912,9 +912,9 @@ void DisplayFK::listFiles(fs::FS *fs, const char *dirname, uint8_t levels)
  * @param path File path
  * @param message Message to be appended
  */
-void DisplayFK::appendFile(fs::FS *fs, const char *path, const char *message)
+void DisplayWX::appendFile(fs::FS *fs, const char *path, const char *message)
 {
-    if (!DisplayFK::sdcardOK)
+    if (!DisplayWX::sdcardOK)
     {
         ESP_LOGE(TAG, "SD not configured");
         return;
@@ -931,7 +931,7 @@ void DisplayFK::appendFile(fs::FS *fs, const char *path, const char *message)
         if (SD.totalBytes() == 0)
         {
             ESP_LOGE(TAG, "SD card empty");
-            DisplayFK::sdcardOK = false;
+            DisplayWX::sdcardOK = false;
         }
         return;
     }
@@ -966,9 +966,9 @@ void DisplayFK::appendFile(fs::FS *fs, const char *path, const char *message)
  * @param fs Pointer to the file system
  * @param path File path
  */
-void DisplayFK::readFile(fs::FS *fs, const char *path)
+void DisplayWX::readFile(fs::FS *fs, const char *path)
 {
-    if (!DisplayFK::sdcardOK)
+    if (!DisplayWX::sdcardOK)
     {
         ESP_LOGE(TAG, "SD not configured");
         return;
@@ -995,9 +995,9 @@ void DisplayFK::readFile(fs::FS *fs, const char *path)
  * @param fs Pointer to the file system
  * @param path Directory path
  */
-void DisplayFK::createDir(fs::FS *fs, const char *path)
+void DisplayWX::createDir(fs::FS *fs, const char *path)
 {
-    if (!DisplayFK::sdcardOK)
+    if (!DisplayWX::sdcardOK)
     {
         ESP_LOGE(TAG, "SD not configured");
         return;
@@ -1019,9 +1019,9 @@ void DisplayFK::createDir(fs::FS *fs, const char *path)
  * @param path File path
  * @param message Message to be written
  */
-void DisplayFK::writeFile(fs::FS *fs, const char *path, const char *message)
+void DisplayWX::writeFile(fs::FS *fs, const char *path, const char *message)
 {
-    if (!DisplayFK::sdcardOK)
+    if (!DisplayWX::sdcardOK)
     {
         ESP_LOGE(TAG, "SD not configured");
         return;
@@ -1054,9 +1054,9 @@ void DisplayFK::writeFile(fs::FS *fs, const char *path, const char *message)
  * @param amount Number of messages
  * @param createNewFile true to create new file if needed
  */
-void DisplayFK::appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
+void DisplayWX::appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
 {
-    if (!DisplayFK::sdcardOK)
+    if (!DisplayWX::sdcardOK)
     {
         ESP_LOGE(TAG, "SD not configured");
         return;
@@ -1074,7 +1074,7 @@ void DisplayFK::appendLog(fs::FS *fs, const char *path, const logMessage_t *line
         if (SD.totalBytes() == 0)
         {
             ESP_LOGE(TAG, "SD card empty");
-            DisplayFK::sdcardOK = false;
+            DisplayWX::sdcardOK = false;
         }
         return;
     }
@@ -1125,7 +1125,7 @@ void DisplayFK::appendLog(fs::FS *fs, const char *path, const logMessage_t *line
  * @brief Generates a random hexadecimal character
  * @return Random hexadecimal character
  */
-char DisplayFK::randomHexChar()
+char DisplayWX::randomHexChar()
 {
     const char hexDigits[] = "0123456789abcdef";
     int indice = random(0, 16);
@@ -1136,7 +1136,7 @@ char DisplayFK::randomHexChar()
  * @brief Adds a message to the log queue
  * @param data Message to be added
  */
-void DisplayFK::addLog(const char *data)
+void DisplayWX::addLog(const char *data)
 {
     // Robust input validation
     if (!data)
@@ -1151,13 +1151,13 @@ void DisplayFK::addLog(const char *data)
         return;
     }
 
-    if (DisplayFK::xFilaLog == NULL)
+    if (DisplayWX::xFilaLog == NULL)
     {
         ESP_LOGE(TAG, "Log queue not initialized");
         return;
     }
 
-    if (uxQueueSpacesAvailable(DisplayFK::xFilaLog) <= 0)
+    if (uxQueueSpacesAvailable(DisplayWX::xFilaLog) <= 0)
     {
         ESP_LOGE(TAG, "Log queue is full");
         return;
@@ -1172,7 +1172,7 @@ void DisplayFK::addLog(const char *data)
     message.line[max_length - 1] = '\0'; // Ensure null termination
     message.line_length = max_length;
 
-    BaseType_t ret = xQueueSend(DisplayFK::xFilaLog, &message, 0);
+    BaseType_t ret = xQueueSend(DisplayWX::xFilaLog, &message, 0);
     if (ret == pdTRUE)
     {
         ESP_LOGD(TAG, "Log message queued: %s", message.line);
@@ -1188,12 +1188,12 @@ void DisplayFK::addLog(const char *data)
 }
 
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-CameraController &DisplayFK::getCamera()
+CameraController &DisplayWX::getCamera()
 {
     return m_camera;
 }
 
-void DisplayFK::setRotationCamera(uint8_t rotation, bool mirrorX, bool mirrorY)
+void DisplayWX::setRotationCamera(uint8_t rotation, bool mirrorX, bool mirrorY)
 {
     if (rotation > 3)
     {
@@ -1205,17 +1205,17 @@ void DisplayFK::setRotationCamera(uint8_t rotation, bool mirrorX, bool mirrorY)
     m_cameraMirrorY = mirrorY;
 }
 
-bool DisplayFK::startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
+bool DisplayWX::startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
 {
     return m_camera.begin(sccbPort, sclPin, sdaPin, i2cFreq, resetPin, pwdnPin, sensorWidth, sensorHeight);
 }
 
-bool DisplayFK::isCameraReady() const
+bool DisplayWX::isCameraReady() const
 {
     return m_camera.isReady();
 }
 
-void DisplayFK::setCameraPreviewFps(uint8_t fps)
+void DisplayWX::setCameraPreviewFps(uint8_t fps)
 {
     if (fps < 5 || fps > 24)
     {
@@ -1232,20 +1232,20 @@ void DisplayFK::setCameraPreviewFps(uint8_t fps)
     m_cameraPreviewFps = fps;
 }
 
-uint8_t DisplayFK::cameraPreviewFps() const
+uint8_t DisplayWX::cameraPreviewFps() const
 {
     return m_cameraPreviewFps;
 }
 #endif
 
 /**
- * @brief Constructor of the DisplayFK class
+ * @brief Constructor of the DisplayWX class
  */
-DisplayFK::DisplayFK()
+DisplayWX::DisplayWX()
     : m_hndTaskEventoTouch(nullptr), m_runningTransaction(false), m_configs(), m_timer(nullptr), m_intervalMs(0), m_xAutoClick(0), m_yAutoClick(0), m_simulateAutoClick(false), m_debugTouch(false), m_x0(0), m_y0(0), m_x1(0), m_y1(0), m_invertXAxis(false), m_invertYAxis(false), m_swapAxis(false), m_widthScreen(0), m_heightScreen(0), m_rotationScreen(0), m_timeoutWTD(0), m_enableWTD(false), m_watchdogInitialized(false), m_loopSemaphore(nullptr), m_transactionSemaphore(nullptr), m_lastTouchState(TouchEventType::NONE), m_lastTouchSwipeDirection(TouchSwipeDirection::NONE)
 {
     // Set instance pointer (must be done first)
-    DisplayFK::instance = this;
+    DisplayWX::instance = this;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     m_cameraRotation = 0;
     m_cameraMirrorX = false;
@@ -1294,13 +1294,13 @@ DisplayFK::DisplayFK()
         ESP_LOGE(TAG, "Constructor initialization failed");
     }
 
-    ESP_LOGD(TAG, "DisplayFK constructor completed");
+    ESP_LOGD(TAG, "DisplayWX constructor completed");
 }
 
 /**
  * @brief Initialize all widget configuration flags to false
  */
-void DisplayFK::initializeWidgetFlags()
+void DisplayWX::initializeWidgetFlags()
 {
 // Initialize widget configuration flags based on compile-time defines
 #if defined(DFK_TOUCHAREA)
@@ -1434,7 +1434,7 @@ void DisplayFK::initializeWidgetFlags()
  * @brief Validate that the constructor completed successfully
  * @return true if initialization was successful, false otherwise
  */
-bool DisplayFK::validateInitialization() const
+bool DisplayWX::validateInitialization() const
 {
     // Check critical resources
     if (!m_loopSemaphore)
@@ -1444,7 +1444,7 @@ bool DisplayFK::validateInitialization() const
     }
 
     // Check instance pointer
-    if (DisplayFK::instance != this)
+    if (DisplayWX::instance != this)
     {
         ESP_LOGE(TAG, "Instance pointer not set correctly");
         return false;
@@ -1454,7 +1454,7 @@ bool DisplayFK::validateInitialization() const
     return true;
 }
 
-bool DisplayFK::waitForUiTaskToStop()
+bool DisplayWX::waitForUiTaskToStop()
 {
     const bool waitUi = m_hndTaskEventoTouch != nullptr;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -1513,7 +1513,7 @@ bool DisplayFK::waitForUiTaskToStop()
     return true;
 }
 
-void DisplayFK::stopUiTaskAndDelete()
+void DisplayWX::stopUiTaskAndDelete()
 {
     if (m_transactionSemaphore != nullptr && xSemaphoreGetMutexHolder(m_transactionSemaphore) == xTaskGetCurrentTaskHandle())
     {
@@ -1550,7 +1550,7 @@ void DisplayFK::stopUiTaskAndDelete()
     vTaskDelete(nullptr);
 }
 
-void DisplayFK::cleanupFreeRTOSResources()
+void DisplayWX::cleanupFreeRTOSResources()
 {
     ESP_LOGD(TAG, "Cleaning up FreeRTOS resources");
 
@@ -1619,7 +1619,7 @@ void DisplayFK::cleanupFreeRTOSResources()
 /**
  * @brief Clean up dynamic memory allocations
  */
-void DisplayFK::cleanupDynamicMemory()
+void DisplayWX::cleanupDynamicMemory()
 {
     ESP_LOGD(TAG, "Cleaning up dynamic memory");
 
@@ -1649,7 +1649,7 @@ void DisplayFK::cleanupDynamicMemory()
 /**
  * @brief Clean up widget resources
  */
-void DisplayFK::cleanupWidgets()
+void DisplayWX::cleanupWidgets()
 {
     ESP_LOGD(TAG, "Cleaning up widget resources");
 
@@ -1688,7 +1688,7 @@ void DisplayFK::cleanupWidgets()
  * @brief Validate that cleanup was successful
  * @return true if cleanup was successful, false otherwise
  */
-bool DisplayFK::validateCleanup() const
+bool DisplayWX::validateCleanup() const
 {
     ESP_LOGD(TAG, "Validating cleanup");
 
@@ -1770,7 +1770,7 @@ bool DisplayFK::validateCleanup() const
 /**
  * @brief Manual cleanup function for external use
  */
-void DisplayFK::cleanup()
+void DisplayWX::cleanup()
 {
     ESP_LOGD(TAG, "Manual cleanup started");
 
@@ -1799,7 +1799,7 @@ void DisplayFK::cleanup()
 /**
  * @brief Blocks the main loop task
  */
-void DisplayFK::blockLoopTask()
+void DisplayWX::blockLoopTask()
 {
     // Tenta pegar o semáforo (sem timeout, bloqueia até conseguir)
     if (m_loopSemaphore != nullptr && WidgetBase::usingKeyboard == false)
@@ -1809,14 +1809,14 @@ void DisplayFK::blockLoopTask()
 /**
  * @brief Unblocks the main loop task
  */
-void DisplayFK::freeLoopTask()
+void DisplayWX::freeLoopTask()
 {
     // Libera o semáforo para permitir que a Task continue
     if (m_loopSemaphore != nullptr && WidgetBase::usingKeyboard == false)
         xSemaphoreGive(m_loopSemaphore);
 }
 
-void DisplayFK::startKeyboards()
+void DisplayWX::startKeyboards()
 {
 #ifdef DFK_TEXTBOX
     if (!keyboard)
@@ -1849,11 +1849,11 @@ void DisplayFK::startKeyboards()
 }
 
 /**
- * @brief Destructor of the DisplayFK class
+ * @brief Destructor of the DisplayWX class
  */
-DisplayFK::~DisplayFK()
+DisplayWX::~DisplayWX()
 {
-    ESP_LOGD(TAG, "DisplayFK destructor started");
+    ESP_LOGD(TAG, "DisplayWX destructor started");
 
     if (!waitForUiTaskToStop())
     {
@@ -1888,16 +1888,16 @@ DisplayFK::~DisplayFK()
         ESP_LOGE(TAG, "Cleanup validation failed");
     }
 
-    ESP_LOGD(TAG, "DisplayFK destructor completed");
+    ESP_LOGD(TAG, "DisplayWX destructor completed");
 }
 
 /**
  * @brief Sets up the display
  */
-void DisplayFK::setup()
+void DisplayWX::setup()
 {
     ESP_LOGD(TAG, "Initializing queues");
-    DisplayFK::xFilaLog = xQueueCreate(LOG_LENGTH, sizeof(logMessage_t));
+    DisplayWX::xFilaLog = xQueueCreate(LOG_LENGTH, sizeof(logMessage_t));
     if (WidgetBase::xFilaCallback == nullptr)
     {
         WidgetBase::xFilaCallback = xQueueCreate(16, sizeof(functionCB_t));
@@ -1910,7 +1910,7 @@ void DisplayFK::setup()
             ESP_LOGD(TAG, "Callback queue created");
         }
     }
-    if (DisplayFK::xFilaLog == NULL)
+    if (DisplayWX::xFilaLog == NULL)
     {
         ESP_LOGE(TAG, "Fail while creating log queue");
     }
@@ -1923,7 +1923,7 @@ void DisplayFK::setup()
 /**
  * @brief Starts a drawing transaction
  */
-void DisplayFK::startCustomDraw()
+void DisplayWX::startCustomDraw()
 {
     if (!m_transactionSemaphore)
     {
@@ -1948,7 +1948,7 @@ void DisplayFK::startCustomDraw()
 /**
  * @brief Finishes a drawing transaction
  */
-void DisplayFK::finishCustomDraw()
+void DisplayWX::finishCustomDraw()
 {
     if (!m_transactionSemaphore)
     {
@@ -1970,7 +1970,7 @@ void DisplayFK::finishCustomDraw()
  * @brief Sets the normal font for widgets
  * @param _font Pointer to the font
  */
-void DisplayFK::setFontNormal(const GFXfont *_font)
+void DisplayWX::setFontNormal(const GFXfont *_font)
 {
     WidgetBase::fontNormal = _font;
 }
@@ -1979,7 +1979,7 @@ void DisplayFK::setFontNormal(const GFXfont *_font)
  * @brief Sets the bold font for widgets
  * @param _font Pointer to the font
  */
-void DisplayFK::setFontBold(const GFXfont *_font)
+void DisplayWX::setFontBold(const GFXfont *_font)
 {
     WidgetBase::fontBold = _font;
 }
@@ -1994,7 +1994,7 @@ void DisplayFK::setFontBold(const GFXfont *_font)
  * @param _rotation Screen rotation
  * @param _sharedSPI Pointer to the shared SPI interface
  */
-void DisplayFK::startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *_sharedSPI = nullptr)
+void DisplayWX::startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *_sharedSPI = nullptr)
 {
     ESP_LOGE(TAG, "startTouch not implemented.");
     /*touchExterno = new TouchScreen();
@@ -2005,7 +2005,7 @@ void DisplayFK::startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *
     }*/
 }
 
-void DisplayFK::setTouchCorners(int x0, int x1, int y0, int y1)
+void DisplayWX::setTouchCorners(int x0, int x1, int y0, int y1)
 {
     m_x0 = x0;
     m_x1 = x1;
@@ -2016,19 +2016,19 @@ void DisplayFK::setTouchCorners(int x0, int x1, int y0, int y1)
     // Serial.print("Y0: "); Serial.print(m_y0); Serial.print(" Y1: "); Serial.println(m_y1);
 }
 
-void DisplayFK::setInvertAxis(bool invertX, bool invertY)
+void DisplayWX::setInvertAxis(bool invertX, bool invertY)
 {
     m_invertXAxis = invertX;
     m_invertYAxis = invertY;
 }
 
-void DisplayFK::setSwapAxis(bool swap)
+void DisplayWX::setSwapAxis(bool swap)
 {
     m_swapAxis = swap;
 }
 
 #if defined(TOUCH_XPT2046)
-void DisplayFK::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
+void DisplayWX::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
 {
     // Robust input validation
     if (!validateDimensions(w, h))
@@ -2085,7 +2085,7 @@ void DisplayFK::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int
         }
     }
 }
-void DisplayFK::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSclk, int8_t pinMosi, int8_t pinMiso, int8_t pinCS, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
+void DisplayWX::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSclk, int8_t pinMosi, int8_t pinMiso, int8_t pinCS, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2107,7 +2107,7 @@ void DisplayFK::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int
     }
 }
 #elif defined(TOUCH_FT6236U)
-void DisplayFK::startTouchFT6236U(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, uint8_t pinINT, int8_t pinRST)
+void DisplayWX::startTouchFT6236U(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, uint8_t pinINT, int8_t pinRST)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2129,7 +2129,7 @@ void DisplayFK::startTouchFT6236U(uint16_t w, uint16_t h, uint8_t _rotation, int
     }
 }
 #elif defined(TOUCH_FT6336)
-void DisplayFK::startTouchFT6336(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
+void DisplayWX::startTouchFT6336(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2151,7 +2151,7 @@ void DisplayFK::startTouchFT6336(uint16_t w, uint16_t h, uint8_t _rotation, int8
     }
 }
 #elif defined(TOUCH_CST816)
-void DisplayFK::startTouchCST816(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
+void DisplayWX::startTouchCST816(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2173,7 +2173,7 @@ void DisplayFK::startTouchCST816(uint16_t w, uint16_t h, uint8_t _rotation, int8
     }
 }
 #elif defined(TOUCH_GT911)
-void DisplayFK::startTouchGT911(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
+void DisplayWX::startTouchGT911(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2195,7 +2195,7 @@ void DisplayFK::startTouchGT911(uint16_t w, uint16_t h, uint8_t _rotation, int8_
     }
 }
 #elif defined(TOUCH_GT911_WAVESHARE)
-void DisplayFK::startTouchGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL)
+void DisplayWX::startTouchGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2217,7 +2217,7 @@ void DisplayFK::startTouchGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotati
     }
 }
 #elif defined(TOUCH_GSL3680)
-void DisplayFK::startTouchGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
+void DisplayWX::startTouchGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2239,7 +2239,7 @@ void DisplayFK::startTouchGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, int
     }
 }
 #elif defined(TOUCH_CST820)
-void DisplayFK::startTouchCST820(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
+void DisplayWX::startTouchCST820(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
     m_widthScreen = w;
     m_rotationScreen = _rotation;
@@ -2268,7 +2268,7 @@ void DisplayFK::startTouchCST820(uint16_t w, uint16_t h, uint8_t _rotation, int8
  * @brief Draws widgets on the current screen
  * @param currentScreenIndex Current screen index
  */
-void DisplayFK::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
+void DisplayWX::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
 {
     CHECK_TFT_VOID
     uint32_t startMillis = millis();
@@ -2590,7 +2590,7 @@ void DisplayFK::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
 /**
  * @brief Creates the event processing task
  */
-void DisplayFK::createTask(bool enableWatchdog, uint16_t timeout_s)
+void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
 {
     if (m_hndTaskEventoTouch != nullptr)
     {
@@ -2647,7 +2647,7 @@ void DisplayFK::createTask(bool enableWatchdog, uint16_t timeout_s)
         kUiTaskCore = (ARDUINO_RUNNING_CORE == 0) ? static_cast<BaseType_t>(1) : static_cast<BaseType_t>(0);
     }
 
-    m_hndTaskEventoTouch = xTaskCreateStaticPinnedToCore(DisplayFK::TaskEventoTouch, "TaskEventoTouch", kUiTaskStackBytes, this, kUiTaskPriority, s_uiTaskStack, &s_uiTaskTcb, kUiTaskCore);
+    m_hndTaskEventoTouch = xTaskCreateStaticPinnedToCore(DisplayWX::TaskEventoTouch, "TaskEventoTouch", kUiTaskStackBytes, this, kUiTaskPriority, s_uiTaskStack, &s_uiTaskTcb, kUiTaskCore);
     if (m_hndTaskEventoTouch == nullptr)
     {
         ESP_LOGE(TAG, "Cant create task to read touch or draw widgets");
@@ -2674,7 +2674,7 @@ void DisplayFK::createTask(bool enableWatchdog, uint16_t timeout_s)
         }
         m_cameraTaskStopped.store(false);
         m_hndTaskCamera = xTaskCreateStaticPinnedToCore(
-            DisplayFK::TaskCamera, "TaskCamera", DFK_UI_STACK_CAMERA_BYTES, this,
+            DisplayWX::TaskCamera, "TaskCamera", DFK_UI_STACK_CAMERA_BYTES, this,
             kCameraTaskPriority, s_cameraTaskStack, &s_cameraTaskTcb, kCameraTaskCore);
         if (m_hndTaskCamera == nullptr)
         {
@@ -2705,7 +2705,7 @@ void DisplayFK::createTask(bool enableWatchdog, uint16_t timeout_s)
  * @param _w Image width
  * @param _h Image height
  */
-void DisplayFK::drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], const uint8_t _mask[], uint16_t _w, uint16_t _h)
+void DisplayWX::drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], const uint8_t _mask[], uint16_t _w, uint16_t _h)
 {
     for (auto i = 0; i < _w; ++i)
     {
@@ -2730,7 +2730,7 @@ void DisplayFK::drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], cons
 /**
  * @brief Processes the callback queue
  */
-void DisplayFK::processCallback()
+void DisplayWX::processCallback()
 {
     if (!WidgetBase::xFilaCallback)
     {
@@ -2754,7 +2754,7 @@ void DisplayFK::processCallback()
 /**
  * @brief Processes the log queue
  */
-void DisplayFK::processLogQueue()
+void DisplayWX::processLogQueue()
 {
 
     if (!xFilaLog)
@@ -2786,7 +2786,7 @@ void DisplayFK::processLogQueue()
 /**
  * @brief Processes the log buffer
  */
-void DisplayFK::processLogBuffer()
+void DisplayWX::processLogBuffer()
 {
     Serial.printf("Write log file %i lines\n", logIndex);
 
@@ -2813,7 +2813,7 @@ void DisplayFK::processLogBuffer()
  * @param zPressure Touch pressure
  * @param gesture Detected gesture
  */
-void DisplayFK::processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressure, uint8_t gesture)
+void DisplayWX::processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressure, uint8_t gesture)
 {
     UNUSED(gesture);
     UNUSED(zPressure);
@@ -2842,7 +2842,7 @@ void DisplayFK::processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressur
 #endif
 }
 
-void DisplayFK::processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+void DisplayWX::processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
 {
     if (hasTouch && (m_lastTouchState == TouchEventType::NONE || m_lastTouchState == TouchEventType::TOUCH_UP))
     {
@@ -2961,7 +2961,7 @@ void DisplayFK::processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTou
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processTouchableWidgets(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processTouchableWidgets(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
     if (WidgetBase::usingKeyboard)
     {
@@ -2991,7 +2991,7 @@ void DisplayFK::processTouchableWidgets(uint16_t xTouch, uint16_t yTouch, bool c
     processCameraMipiTouch(xTouch, yTouch, collectMode);
 }
 
-bool DisplayFK::processTouchOnCameraFullScreen()
+bool DisplayWX::processTouchOnCameraFullScreen()
 {
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     if (!m_camera.isReady() || !CameraMipi::hasFullScreen())
@@ -3005,7 +3005,7 @@ bool DisplayFK::processTouchOnCameraFullScreen()
 #endif
 }
 
-void DisplayFK::exitCameraFullScreen()
+void DisplayWX::exitCameraFullScreen()
 {
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     CameraMipi::exitFullScreen();
@@ -3026,7 +3026,7 @@ void DisplayFK::exitCameraFullScreen()
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processEmptyAreaTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processEmptyAreaTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #if defined(DFK_TOUCHAREA)
     if (!m_touchAreaConfigured || !arrayTouchArea)
@@ -3063,7 +3063,7 @@ void DisplayFK::processEmptyAreaTouch(uint16_t xTouch, uint16_t yTouch, bool col
  * @param widget Pointer to the widget to add
  * @details Only adds if widget is not already in array and array has space
  */
-void DisplayFK::addTouchedWidget(WidgetBase *widget)
+void DisplayWX::addTouchedWidget(WidgetBase *widget)
 {
     if (!widget)
         return;
@@ -3091,7 +3091,7 @@ void DisplayFK::addTouchedWidget(WidgetBase *widget)
  * @details Calls onRelease() before removing, which sets m_isPressed = false
  *          and m_shouldRedraw = true (if widget overrides onRelease)
  */
-void DisplayFK::removeTouchedWidget(WidgetBase *widget)
+void DisplayWX::removeTouchedWidget(WidgetBase *widget)
 {
     if (!widget)
         return;
@@ -3126,7 +3126,7 @@ void DisplayFK::removeTouchedWidget(WidgetBase *widget)
  * @param widget Pointer to the widget to check
  * @return true if widget is in array, false otherwise
  */
-bool DisplayFK::isWidgetInTouchedArray(WidgetBase *widget) const
+bool DisplayWX::isWidgetInTouchedArray(WidgetBase *widget) const
 {
     if (!widget)
         return false;
@@ -3147,7 +3147,7 @@ bool DisplayFK::isWidgetInTouchedArray(WidgetBase *widget) const
  * @param yTouch Current touch Y coordinate
  * @details Removes widgets from array if touch is no longer within their bounds
  */
-void DisplayFK::checkWidgetsStillTouched(uint16_t xTouch, uint16_t yTouch)
+void DisplayWX::checkWidgetsStillTouched(uint16_t xTouch, uint16_t yTouch)
 {
     // Create a temporary array to avoid modifying while iterating
     WidgetBase *widgetsToCheck[5];
@@ -3193,7 +3193,7 @@ void DisplayFK::checkWidgetsStillTouched(uint16_t xTouch, uint16_t yTouch)
  * @details When callOnRelease is true, onRelease() is called for each widget,
  *          which sets m_isPressed = false and m_shouldRedraw = true (if overridden)
  */
-void DisplayFK::clearTouchedWidgets(bool callOnRelease)
+void DisplayWX::clearTouchedWidgets(bool callOnRelease)
 {
     if (callOnRelease)
     {
@@ -3220,7 +3220,7 @@ void DisplayFK::clearTouchedWidgets(bool callOnRelease)
 }
 #endif
 
-void DisplayFK::processCameraMipiTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processCameraMipiTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     if (!m_camera.isReady() || !m_cameraMipiConfigured || !arrayCameraMipi)
@@ -3257,7 +3257,7 @@ void DisplayFK::processCameraMipiTouch(uint16_t xTouch, uint16_t yTouch, bool co
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processCheckboxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processCheckboxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_CHECKBOX
     if (!m_checkboxConfigured || !arrayCheckbox)
@@ -3301,7 +3301,7 @@ void DisplayFK::processCheckboxTouch(uint16_t xTouch, uint16_t yTouch, bool coll
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processCircleButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processCircleButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_CIRCLEBTN
     if (!m_circleButtonConfigured || !arrayCircleBtn)
@@ -3341,7 +3341,7 @@ void DisplayFK::processCircleButtonTouch(uint16_t xTouch, uint16_t yTouch, bool 
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processHSliderTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processHSliderTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_HSLIDER
     if (!m_hSliderConfigured || !arrayHSlider)
@@ -3384,7 +3384,7 @@ void DisplayFK::processHSliderTouch(uint16_t xTouch, uint16_t yTouch, bool colle
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processRadioGroupTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processRadioGroupTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_RADIO
     if (!m_radioGroupConfigured || !arrayRadioGroup)
@@ -3421,7 +3421,7 @@ void DisplayFK::processRadioGroupTouch(uint16_t xTouch, uint16_t yTouch, bool co
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processRectButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processRectButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_RECTBTN
     if (!m_rectButtonConfigured || !arrayRectBtn)
@@ -3461,7 +3461,7 @@ void DisplayFK::processRectButtonTouch(uint16_t xTouch, uint16_t yTouch, bool co
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processImageTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processImageTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_IMAGE
     if (!m_imageConfigured || !arrayImage)
@@ -3507,7 +3507,7 @@ void DisplayFK::processImageTouch(uint16_t xTouch, uint16_t yTouch, bool collect
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processSpinboxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processSpinboxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_SPINBOX
     if (!m_spinboxConfigured || !arraySpinbox)
@@ -3548,7 +3548,7 @@ void DisplayFK::processSpinboxTouch(uint16_t xTouch, uint16_t yTouch, bool colle
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processToggleTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processToggleTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_TOGGLE
     if (!m_toggleConfigured || !arrayToggleBtn)
@@ -3589,7 +3589,7 @@ void DisplayFK::processToggleTouch(uint16_t xTouch, uint16_t yTouch, bool collec
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processTextButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processTextButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_TEXTBUTTON
     if (!m_textButtonConfigured || !arrayTextButton)
@@ -3627,7 +3627,7 @@ void DisplayFK::processTextButtonTouch(uint16_t xTouch, uint16_t yTouch, bool co
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processTextBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processTextBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_TEXTBOX
     if (!m_textboxConfigured || !arrayTextBox || !keyboard)
@@ -3668,7 +3668,7 @@ void DisplayFK::processTextBoxTouch(uint16_t xTouch, uint16_t yTouch, bool colle
 #endif
 }
 
-void DisplayFK::serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+void DisplayWX::serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
 {
 #ifdef DFK_TEXTBOX
     if (m_stopTask.load() || !WidgetBase::usingKeyboard || !keyboard)
@@ -3733,7 +3733,7 @@ void DisplayFK::serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
  * @param yTouch Touch Y position
  * @param collectMode If true, collects all widgets without early return
  */
-void DisplayFK::processNumberBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
+void DisplayWX::processNumberBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode)
 {
 #ifdef DFK_NUMBERBOX
     if (!m_numberboxConfigured || !arrayNumberbox || !numpad)
@@ -3774,7 +3774,7 @@ void DisplayFK::processNumberBoxTouch(uint16_t xTouch, uint16_t yTouch, bool col
 #endif
 }
 
-void DisplayFK::serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+void DisplayWX::serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
 {
 #ifdef DFK_NUMBERBOX
     if (m_stopTask.load() || !WidgetBase::usingKeyboard || !m_numpadActive || !numpad)
@@ -3846,7 +3846,7 @@ void DisplayFK::serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
 /**
  * @brief Updates screen widgets (optimized for current screen only)
  */
-void DisplayFK::updateWidgets()
+void DisplayWX::updateWidgets()
 {
     if (m_runningTransaction)
         return;
@@ -3882,7 +3882,7 @@ void DisplayFK::updateWidgets()
     //updateCameraMipi();
 }
 
-void DisplayFK::refreshScreen()
+void DisplayWX::refreshScreen()
 {
     if (m_lastScreen)
     {
@@ -3891,13 +3891,13 @@ void DisplayFK::refreshScreen()
     }
 }
 
-void DisplayFK::loadScreen(functionLoadScreen_t screen)
+void DisplayWX::loadScreen(functionLoadScreen_t screen)
 {
     WidgetBase::loadScreen = screen;
 }
 
 #if defined(DISP_DEFAULT)
-void DisplayFK::setDrawObject(Arduino_GFX *objTFT)
+void DisplayWX::setDrawObject(Arduino_GFX *objTFT)
 {
     WidgetBase::objTFT = objTFT;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI) && defined(CONFIG_IDF_TARGET_ESP32P4)
@@ -3906,7 +3906,7 @@ void DisplayFK::setDrawObject(Arduino_GFX *objTFT)
 }
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
-void DisplayFK::setDrawObject(Arduino_DSI_Display *objTFT)
+void DisplayWX::setDrawObject(Arduino_DSI_Display *objTFT)
 {
     WidgetBase::objTFT = objTFT;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -3915,23 +3915,23 @@ void DisplayFK::setDrawObject(Arduino_DSI_Display *objTFT)
 }
 #endif
 #elif defined(DISP_PCD8544)
-void DisplayFK::setDrawObject(Adafruit_PCD8544 *objTFT)
+void DisplayWX::setDrawObject(Adafruit_PCD8544 *objTFT)
 {
     WidgetBase::objTFT = objTFT;
 }
 #elif defined(DISP_SSD1306)
-void DisplayFK::setDrawObject(Adafruit_SSD1306 *objTFT)
+void DisplayWX::setDrawObject(Adafruit_SSD1306 *objTFT)
 {
     WidgetBase::objTFT = objTFT;
 }
 #elif defined(DISP_U8G2)
-void DisplayFK::setDrawObject(U8G2 *objTFT)
+void DisplayWX::setDrawObject(U8G2 *objTFT)
 {
     WidgetBase::objTFT = objTFT;
 }
 #endif
 
-void DisplayFK::cameraTask()
+void DisplayWX::cameraTask()
 {
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     if (!m_camera.isReady() || m_stopTask.load() || WidgetBase::usingKeyboard)
@@ -3981,7 +3981,7 @@ void DisplayFK::cameraTask()
 /**
  * @brief Main task loop
  */
-void DisplayFK::displayfkTask()
+void DisplayWX::displaywxTask()
 {
     if (m_stopTask.load())
     {
@@ -3994,7 +3994,7 @@ void DisplayFK::displayfkTask()
 
     if (!m_transactionSemaphore)
     {
-        ESP_LOGE(TAG, "Transaction semaphore not initialized in displayfkTask");
+        ESP_LOGE(TAG, "Transaction semaphore not initialized in displaywxTask");
         vTaskDelay(pdMS_TO_TICKS(1));
         return;
     }
@@ -4082,7 +4082,7 @@ void DisplayFK::displayfkTask()
 
     if (startTime >= MIN_LOOPTASK_TIME_LOG)
     {
-        ESP_LOGD(TAG, "displayfkTask finished: %lu ms\n", startTime);
+        ESP_LOGD(TAG, "displaywxTask finished: %lu ms\n", startTime);
     }
 
     // esp_task_wdt_reset();
@@ -4095,7 +4095,7 @@ void DisplayFK::displayfkTask()
  * @brief Touch event task callback function
  * @param pvParameters Task parameters
  */
-void DisplayFK::TaskEventoTouch(void *pvParameters)
+void DisplayWX::TaskEventoTouch(void *pvParameters)
 {
     //(void)pvParameters;
 
@@ -4103,29 +4103,29 @@ void DisplayFK::TaskEventoTouch(void *pvParameters)
     ESP_LOGD(TAG, "TaskEventoTouch created");
 
 #if defined(HAS_TOUCH)
-    if (DisplayFK::instance && DisplayFK::instance->touchExterno)
+    if (DisplayWX::instance && DisplayWX::instance->touchExterno)
     {
-        DisplayFK::instance->touchExterno->armInterruptNotify(xTaskGetCurrentTaskHandle());
+        DisplayWX::instance->touchExterno->armInterruptNotify(xTaskGetCurrentTaskHandle());
     }
 #endif
 
     for (;;)
     {
-        if (DisplayFK::instance && DisplayFK::instance->m_stopTask.load())
+        if (DisplayWX::instance && DisplayWX::instance->m_stopTask.load())
         {
-            DisplayFK::instance->stopUiTaskAndDelete();
+            DisplayWX::instance->stopUiTaskAndDelete();
         }
 
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30));
 
-        if (DisplayFK::instance && DisplayFK::instance->m_stopTask.load())
+        if (DisplayWX::instance && DisplayWX::instance->m_stopTask.load())
         {
-            DisplayFK::instance->stopUiTaskAndDelete();
+            DisplayWX::instance->stopUiTaskAndDelete();
         }
 
-        if (DisplayFK::instance)
+        if (DisplayWX::instance)
         {
-            DisplayFK::instance->displayfkTask();
+            DisplayWX::instance->displaywxTask();
         }
         RESET_WDT
 
@@ -4158,7 +4158,7 @@ void DisplayFK::TaskEventoTouch(void *pvParameters)
  * @return Task handle
  */
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-void DisplayFK::stopCameraTaskAndDelete()
+void DisplayWX::stopCameraTaskAndDelete()
 {
     m_camera.releaseFrame();
 
@@ -4172,38 +4172,38 @@ void DisplayFK::stopCameraTaskAndDelete()
     vTaskDelete(nullptr);
 }
 
-void DisplayFK::TaskCamera(void *pvParameters)
+void DisplayWX::TaskCamera(void *pvParameters)
 {
     (void)pvParameters;
     ESP_LOGD(TAG, "Camera task created");
 
     for (;;)
     {
-        if (DisplayFK::instance == nullptr)
+        if (DisplayWX::instance == nullptr)
         {
             ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kCameraFramePeriodMs));
             continue;
         }
 
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(DisplayFK::instance->cameraPreviewWaitMs()));
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(DisplayWX::instance->cameraPreviewWaitMs()));
 
-        if (DisplayFK::instance->m_stopTask.load())
+        if (DisplayWX::instance->m_stopTask.load())
         {
-            DisplayFK::instance->stopCameraTaskAndDelete();
+            DisplayWX::instance->stopCameraTaskAndDelete();
         }
 
-        DisplayFK::instance->cameraTask();
+        DisplayWX::instance->cameraTask();
     }
 }
 #endif
 
-TaskHandle_t DisplayFK::getTaskHandle() const
+TaskHandle_t DisplayWX::getTaskHandle() const
 {
     return m_hndTaskEventoTouch;
 }
 
 /** @brief Enables touch log */
-void DisplayFK::enableTouchLog()
+void DisplayWX::enableTouchLog()
 {
     m_debugTouch = true;
 #if defined(HAS_TOUCH)
@@ -4215,7 +4215,7 @@ void DisplayFK::enableTouchLog()
 }
 
 /** @brief Disables touch log */
-void DisplayFK::disableTouchLog()
+void DisplayWX::disableTouchLog()
 {
     m_debugTouch = false;
 #if defined(HAS_TOUCH)
@@ -4231,7 +4231,7 @@ void DisplayFK::disableTouchLog()
 /**
  * @brief Checks and performs touch calibration
  */
-void DisplayFK::checkCalibration()
+void DisplayWX::checkCalibration()
 {
 #if defined(HAS_TOUCH)
     if (!WidgetBase::objTFT)
@@ -4355,7 +4355,7 @@ void DisplayFK::checkCalibration()
 /**
  * @brief Forces a new touch calibration
  */
-void DisplayFK::recalibrate()
+void DisplayWX::recalibrate()
 {
     m_configs.begin("iniciais", false);
     // bool jaCalibrado = configs.getBool("jaCalibrado", false);
@@ -4366,7 +4366,7 @@ void DisplayFK::recalibrate()
 #endif
 
 #if defined(USING_GRAPHIC_LIB)
-void DisplayFK::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font)
+void DisplayWX::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font)
 {
     CHECK_TFT_VOID
     if (_font)
@@ -4388,7 +4388,7 @@ void DisplayFK::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t 
 /**
  * @brief Updates circular bars (optimized for current screen)
  */
-void DisplayFK::updateCircularBar()
+void DisplayWX::updateCircularBar()
 {
 #ifdef DFK_CIRCULARBAR
     if (!m_circularBarConfigured)
@@ -4408,7 +4408,7 @@ void DisplayFK::updateCircularBar()
 /**
  * @brief Updates gauges (optimized for current screen)
  */
-void DisplayFK::updateGauge()
+void DisplayWX::updateGauge()
 {
 #ifdef DFK_GAUGE
     if (!m_gaugeConfigured)
@@ -4428,7 +4428,7 @@ void DisplayFK::updateGauge()
 /**
  * @brief Updates labels (optimized for current screen)
  */
-void DisplayFK::updateLabel()
+void DisplayWX::updateLabel()
 {
 #ifdef DFK_LABEL
     if (!m_labelConfigured)
@@ -4448,7 +4448,7 @@ void DisplayFK::updateLabel()
 /**
  * @brief Updates LEDs (optimized for current screen)
  */
-void DisplayFK::updateLed()
+void DisplayWX::updateLed()
 {
 #ifdef DFK_LED
     if (!m_ledConfigured)
@@ -4468,7 +4468,7 @@ void DisplayFK::updateLed()
 /**
  * @brief Updates line charts
  */
-void DisplayFK::updateLineChart()
+void DisplayWX::updateLineChart()
 {
 #ifdef DFK_LINECHART
     if (m_lineChartConfigured)
@@ -4486,7 +4486,7 @@ void DisplayFK::updateLineChart()
 /**
  * @brief Updates vertical bars
  */
-void DisplayFK::updateVBar()
+void DisplayWX::updateVBar()
 {
 #ifdef DFK_VBAR
     if (m_vBarConfigured)
@@ -4904,7 +4904,7 @@ static void syncCameraFramebufferCache(uint16_t *fb, size_t fb_bytes)
     esp_cache_msync((void *)start, (size_t)(end - start), ESP_CACHE_MSYNC_FLAG_DIR_M2C);
 }
 
-bool DisplayFK::blitCameraDmaFullScreen(const uint16_t *src, uint32_t cam_w, uint32_t cam_h)
+bool DisplayWX::blitCameraDmaFullScreen(const uint16_t *src, uint32_t cam_w, uint32_t cam_h)
 {
     ppa_client_handle_t ppa_srm = m_camera.ppaClient();
     if (!WidgetBase::objTFT || !ppa_srm || !src || cam_w == 0 || cam_h == 0)
@@ -4983,7 +4983,7 @@ bool DisplayFK::blitCameraDmaFullScreen(const uint16_t *src, uint32_t cam_w, uin
     return true;
 }
 
-bool DisplayFK::ensureCameraPreview(uint32_t w, uint32_t h)
+bool DisplayWX::ensureCameraPreview(uint32_t w, uint32_t h)
 {
     size_t bytes = (size_t)w * h * sizeof(uint16_t);
     if (m_cameraPreviewFb && m_cameraPreviewFbBytes >= bytes)
@@ -5010,7 +5010,7 @@ bool DisplayFK::ensureCameraPreview(uint32_t w, uint32_t h)
     return true;
 }
 
-void DisplayFK::drawCameraOverlay(CameraMipi *widget, bool fullScreen, bool showFps)
+void DisplayWX::drawCameraOverlay(CameraMipi *widget, bool fullScreen, bool showFps)
 {
     if (!widget || !WidgetBase::objTFT)
     {
@@ -5043,7 +5043,7 @@ void DisplayFK::drawCameraOverlay(CameraMipi *widget, bool fullScreen, bool show
     WidgetBase::objTFT->print(widget->zoomLabel());
 }
 
-bool DisplayFK::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint32_t crop_x, uint32_t crop_y, uint32_t crop_w, uint32_t crop_h, uint32_t scale_num)
+bool DisplayWX::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint32_t crop_x, uint32_t crop_y, uint32_t crop_w, uint32_t crop_h, uint32_t scale_num)
 {
     ppa_client_handle_t ppa_srm = m_camera.ppaClient();
     if (!WidgetBase::objTFT || !ppa_srm || !src || cam_w == 0 || cam_h == 0)
@@ -5200,7 +5200,7 @@ static void noteCameraZoom(CameraMipi *widget, const CameraRoiMeasure &measured)
     }
 }
 
-void DisplayFK::updateCameraMipi(ESPVideoBufferClass *buffer)
+void DisplayWX::updateCameraMipi(ESPVideoBufferClass *buffer)
 {
     if (!m_camera.isReady() || !m_cameraMipiConfigured || !buffer || !buffer->data() || WidgetBase::objTFT == nullptr)
     {
@@ -5321,7 +5321,7 @@ void DisplayFK::updateCameraMipi(ESPVideoBufferClass *buffer)
     }
 }
 
-uint32_t DisplayFK::cameraPreviewWaitMs() const
+uint32_t DisplayWX::cameraPreviewWaitMs() const
 {
     if (CameraMipi::hasFullScreen())
     {
@@ -5351,7 +5351,7 @@ uint32_t DisplayFK::cameraPreviewWaitMs() const
     return fastestMs;
 }
 
-void DisplayFK::releaseCameraFrameCopy()
+void DisplayWX::releaseCameraFrameCopy()
 {
     if (m_frameCopy != nullptr)
     {
@@ -5364,7 +5364,7 @@ void DisplayFK::releaseCameraFrameCopy()
     m_cameraCopyPhase.store(0);
 }
 
-bool DisplayFK::requestCameraFrameCopy()
+bool DisplayWX::requestCameraFrameCopy()
 {
     if (m_cameraCopyPhase.load() == 3 && m_frameCopy != nullptr)
     {
@@ -5408,7 +5408,7 @@ bool DisplayFK::requestCameraFrameCopy()
     return false;
 }
 
-void DisplayFK::publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint32_t height)
+void DisplayWX::publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint32_t height)
 {
     uint8_t expected = 1;
     if (!m_cameraCopyPhase.compare_exchange_strong(expected, (uint8_t)2))
@@ -5450,7 +5450,7 @@ void DisplayFK::publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint
     }
 }
 
-bool DisplayFK::clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t plotW, uint32_t plotH, int16_t *centerX, int16_t *centerY, uint8_t zoom, uint32_t *cropW, uint32_t *cropH) const
+bool DisplayWX::clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t plotW, uint32_t plotH, int16_t *centerX, int16_t *centerY, uint8_t zoom, uint32_t *cropW, uint32_t *cropH) const
 {
     if (centerX == nullptr || centerY == nullptr || cropW == nullptr || cropH == nullptr)
     {
@@ -5473,7 +5473,7 @@ bool DisplayFK::clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t 
     return true;
 }
 
-bool DisplayFK::drawFrozenCamera(CameraMipi *widget, int16_t centerX, int16_t centerY, uint8_t zoom, int areaX, int areaY, int areaW, int areaH, CameraConfigView *view)
+bool DisplayWX::drawFrozenCamera(CameraMipi *widget, int16_t centerX, int16_t centerY, uint8_t zoom, int areaX, int areaY, int areaW, int areaH, CameraConfigView *view)
 {
     if (view == nullptr || m_frameCopy == nullptr || WidgetBase::objTFT == nullptr || areaW < 2 || areaH < 2)
     {
@@ -5550,7 +5550,7 @@ bool DisplayFK::drawFrozenCamera(CameraMipi *widget, int16_t centerX, int16_t ce
     return true;
 }
 
-bool DisplayFK::beginCameraConfig(CameraMipi *widget)
+bool DisplayWX::beginCameraConfig(CameraMipi *widget)
 {
     if (widget == nullptr)
     {
@@ -5610,7 +5610,7 @@ bool DisplayFK::beginCameraConfig(CameraMipi *widget)
     return true;
 }
 
-void DisplayFK::finishCameraConfig(bool apply)
+void DisplayWX::finishCameraConfig(bool apply)
 {
     CameraMipi *widget = m_cameraRoi ? m_cameraRoi->widget() : nullptr;
     if (apply && widget != nullptr && m_cameraRoi)
@@ -5631,7 +5631,7 @@ void DisplayFK::finishCameraConfig(bool apply)
     refreshScreen();
 }
 
-void DisplayFK::serviceCameraRoi(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+void DisplayWX::serviceCameraRoi(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
 {
     if (m_stopTask.load() || !WidgetBase::usingKeyboard || !m_cameraRoiActive || !m_cameraRoi)
     {
@@ -5665,15 +5665,15 @@ void DisplayFK::serviceCameraRoi(bool hasTouch, uint16_t xTouch, uint16_t yTouch
 
 bool CameraMipi::openConfig()
 {
-    if (DisplayFK::instance == nullptr)
+    if (DisplayWX::instance == nullptr)
     {
-        ESP_LOGW(CameraMipi::TAG, "DisplayFK instance missing");
+        ESP_LOGW(CameraMipi::TAG, "DisplayWX instance missing");
         return false;
     }
-    return DisplayFK::instance->beginCameraConfig(this);
+    return DisplayWX::instance->beginCameraConfig(this);
 }
 #else
-void DisplayFK::updateCameraMipi(){
+void DisplayWX::updateCameraMipi(){
     
 }
 #endif
@@ -5681,7 +5681,7 @@ void DisplayFK::updateCameraMipi(){
 /**
  * @brief Updates vertical bars
  */
-void DisplayFK::updateThermometer()
+void DisplayWX::updateThermometer()
 {
 #ifdef DFK_THERMOMETER
     if (m_thermometerConfigured)
@@ -5699,7 +5699,7 @@ void DisplayFK::updateThermometer()
 /**
  * @brief Updates analog viewers
  */
-void DisplayFK::updateVAnalog()
+void DisplayWX::updateVAnalog()
 {
 #ifdef DFK_VANALOG
     if (m_vAnalogConfigured)
@@ -5717,7 +5717,7 @@ void DisplayFK::updateVAnalog()
 /**
  * @brief Updates checkboxes (optimized for current screen)
  */
-void DisplayFK::updateCheckbox()
+void DisplayWX::updateCheckbox()
 {
 #ifdef DFK_CHECKBOX
     if (!m_checkboxConfigured)
@@ -5737,7 +5737,7 @@ void DisplayFK::updateCheckbox()
 /**
  * @brief Updates circle buttons
  */
-void DisplayFK::updateCircleButton()
+void DisplayWX::updateCircleButton()
 {
 #ifdef DFK_CIRCLEBTN
     if (m_circleButtonConfigured)
@@ -5755,7 +5755,7 @@ void DisplayFK::updateCircleButton()
 /**
  * @brief Updates horizontal sliders (optimized for current screen)
  */
-void DisplayFK::updateHSlider()
+void DisplayWX::updateHSlider()
 {
 #ifdef DFK_HSLIDER
     if (!m_hSliderConfigured)
@@ -5775,7 +5775,7 @@ void DisplayFK::updateHSlider()
 /**
  * @brief Updates radio groups
  */
-void DisplayFK::updateRadioGroup()
+void DisplayWX::updateRadioGroup()
 {
 #ifdef DFK_RADIO
     if (m_radioGroupConfigured)
@@ -5793,7 +5793,7 @@ void DisplayFK::updateRadioGroup()
 /**
  * @brief Updates rect buttons
  */
-void DisplayFK::updateRectButton()
+void DisplayWX::updateRectButton()
 {
 #ifdef DFK_RECTBTN
     if (m_rectButtonConfigured)
@@ -5811,7 +5811,7 @@ void DisplayFK::updateRectButton()
 /**
  * @brief Updates toggles (optimized for current screen)
  */
-void DisplayFK::updateToggle()
+void DisplayWX::updateToggle()
 {
 #ifdef DFK_TOGGLE
     if (!m_toggleConfigured)
@@ -5831,7 +5831,7 @@ void DisplayFK::updateToggle()
 /**
  * @brief Updates images
  */
-void DisplayFK::updateImage()
+void DisplayWX::updateImage()
 {
 #ifdef DFK_IMAGE
     if (m_imageConfigured)
@@ -5855,7 +5855,7 @@ void DisplayFK::updateImage()
 /**
  * @brief Updates text buttons
  */
-void DisplayFK::updateTextButton()
+void DisplayWX::updateTextButton()
 {
 #ifdef DFK_TEXTBUTTON
     if (m_textButtonConfigured)
@@ -5873,7 +5873,7 @@ void DisplayFK::updateTextButton()
 /**
  * @brief Updates spinboxes
  */
-void DisplayFK::updateSpinbox()
+void DisplayWX::updateSpinbox()
 {
 #ifdef DFK_SPINBOX
     if (m_spinboxConfigured)
@@ -5891,7 +5891,7 @@ void DisplayFK::updateSpinbox()
 /**
  * @brief Updates text boxes
  */
-void DisplayFK::updateTextBox()
+void DisplayWX::updateTextBox()
 {
 #ifdef DFK_TEXTBOX
     if (m_textboxConfigured)
@@ -5906,7 +5906,7 @@ void DisplayFK::updateTextBox()
 #endif
 }
 
-void DisplayFK::updateNumberBox()
+void DisplayWX::updateNumberBox()
 {
 #ifdef DFK_NUMBERBOX
     if (m_numberboxConfigured)
@@ -5921,7 +5921,7 @@ void DisplayFK::updateNumberBox()
 #endif
 }
 
-void DisplayFK::setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y)
+void DisplayWX::setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y)
 {
     // Robust input validation
     if (intervalMs == 0)
@@ -5963,7 +5963,7 @@ void DisplayFK::setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y)
     ESP_LOGD(TAG, "Auto-click timer configured: %d ms at (%d, %d)", intervalMs, x, y);
 }
 
-void DisplayFK::startAutoClick()
+void DisplayWX::startAutoClick()
 {
     if (m_timer != nullptr)
     {
@@ -5971,7 +5971,7 @@ void DisplayFK::startAutoClick()
     }
 }
 
-void DisplayFK::stopAutoClick()
+void DisplayWX::stopAutoClick()
 {
     if (m_timer != nullptr)
     {
@@ -5980,17 +5980,17 @@ void DisplayFK::stopAutoClick()
     }
 }
 
-void DisplayFK::timerCallback(TimerHandle_t xTimer)
+void DisplayWX::timerCallback(TimerHandle_t xTimer)
 {
     // Recupera a instância da classe
-    DisplayFK *instance = reinterpret_cast<DisplayFK *>(pvTimerGetTimerID(xTimer));
+    DisplayWX *instance = reinterpret_cast<DisplayWX *>(pvTimerGetTimerID(xTimer));
     if (instance)
     {
         instance->m_simulateAutoClick = true;
     }
 }
 
-bool DisplayFK::isRunningAutoClick() const
+bool DisplayWX::isRunningAutoClick() const
 {
     if (m_timer == nullptr)
         return false;
@@ -6001,7 +6001,7 @@ bool DisplayFK::isRunningAutoClick() const
  * @brief Frees a string from the string pool
  * @param str Pointer to the string to free
  */
-void DisplayFK::freeStringFromPool(const char *str)
+void DisplayWX::freeStringFromPool(const char *str)
 {
     if (str)
     {
@@ -6012,7 +6012,7 @@ void DisplayFK::freeStringFromPool(const char *str)
 /**
  * @brief Prints StringPool allocation statistics
  */
-void DisplayFK::printStringPoolStats() const
+void DisplayWX::printStringPoolStats() const
 {
     uint32_t activeAllocations, totalAllocations, totalDeallocations;
     stringPool.getStats(activeAllocations, totalAllocations, totalDeallocations);
@@ -6043,7 +6043,7 @@ void DisplayFK::printStringPoolStats() const
 /**
  * @brief Cleans up all StringPool allocations
  */
-void DisplayFK::cleanupStringPool() const
+void DisplayWX::cleanupStringPool() const
 {
     ESP_LOGD(TAG, "Cleaning up StringPool allocations");
     stringPool.cleanup();
@@ -6065,7 +6065,7 @@ void DisplayFK::cleanupStringPool() const
  * @brief Safe keyboard initialization without exceptions
  * @return true if successful, false otherwise
  */
-bool DisplayFK::startKeyboardsSafe()
+bool DisplayWX::startKeyboardsSafe()
 {
     bool success = true;
 
@@ -6138,7 +6138,7 @@ bool DisplayFK::startKeyboardsSafe()
  * @brief Safe timer creation without exceptions
  * @return true if successful, false otherwise
  */
-bool DisplayFK::createTimerSafe()
+bool DisplayWX::createTimerSafe()
 {
     // Validate parameters before creation
     if (m_intervalMs == 0)
@@ -6157,8 +6157,8 @@ bool DisplayFK::createTimerSafe()
     m_timer = xTimerCreate("AutoClick",
                            pdMS_TO_TICKS(m_intervalMs),
                            pdFALSE,
-                           DisplayFK::instance,
-                           DisplayFK::timerCallback);
+                           DisplayWX::instance,
+                           DisplayWX::timerCallback);
 
     if (!m_timer)
     {
@@ -6174,7 +6174,7 @@ bool DisplayFK::createTimerSafe()
  * @brief Safe semaphore creation without exceptions
  * @return true if successful, false otherwise
  */
-bool DisplayFK::createSemaphoreSafe()
+bool DisplayWX::createSemaphoreSafe()
 {
     // Check if semaphore already exists
     if (m_loopSemaphore != nullptr)
@@ -6221,7 +6221,7 @@ bool DisplayFK::createSemaphoreSafe()
  * @return true if successful, false otherwise
  */
 #if defined(DFK_CHECKBOX)
-bool DisplayFK::setCheckboxSafe(CheckBox *array[], uint8_t amount)
+bool DisplayWX::setCheckboxSafe(CheckBox *array[], uint8_t amount)
 {
     if (m_checkboxConfigured)
     {
@@ -6269,7 +6269,7 @@ bool DisplayFK::setCheckboxSafe(CheckBox *array[], uint8_t amount)
  * @param caller Function name for logging
  * @return Allocated string or nullptr
  */
-char *DisplayFK::allocateStringSafe(const char *caller)
+char *DisplayWX::allocateStringSafe(const char *caller)
 {
     // Validate caller parameter
     if (!caller)
@@ -6306,7 +6306,7 @@ char *DisplayFK::allocateStringSafe(const char *caller)
  * @brief Safe string deallocation without exceptions
  * @param str String to deallocate
  */
-void DisplayFK::deallocateStringSafe(char *str)
+void DisplayWX::deallocateStringSafe(char *str)
 {
     if (!str)
     {
@@ -6333,7 +6333,7 @@ void DisplayFK::deallocateStringSafe(char *str)
  * @param hz SPI frequency
  * @return true if successful, false otherwise
  */
-bool DisplayFK::startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz)
+bool DisplayWX::startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz)
 {
     // Validate input parameters
     if (!validatePinNumber(pinCS))
@@ -6382,7 +6382,7 @@ bool DisplayFK::startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz)
  * @param maxLength Maximum allowed length
  * @return true if valid, false otherwise
  */
-bool DisplayFK::validateInput(const char *input, size_t maxLength) const
+bool DisplayWX::validateInput(const char *input, size_t maxLength) const
 {
     if (!input)
     {
@@ -6421,7 +6421,7 @@ bool DisplayFK::validateInput(const char *input, size_t maxLength) const
  * @param pin Pin number to validate
  * @return true if valid, false otherwise
  */
-bool DisplayFK::validatePinNumber(int8_t pin) const
+bool DisplayWX::validatePinNumber(int8_t pin) const
 {
     if (pin < 0)
     {
@@ -6450,7 +6450,7 @@ bool DisplayFK::validatePinNumber(int8_t pin) const
  * @param frequency Frequency in Hz
  * @return true if valid, false otherwise
  */
-bool DisplayFK::validateFrequency(int frequency) const
+bool DisplayWX::validateFrequency(int frequency) const
 {
     if (frequency <= 0)
     {
@@ -6479,7 +6479,7 @@ bool DisplayFK::validateFrequency(int frequency) const
  * @param height Screen height
  * @return true if valid, false otherwise
  */
-bool DisplayFK::validateDimensions(uint16_t width, uint16_t height) const
+bool DisplayWX::validateDimensions(uint16_t width, uint16_t height) const
 {
     if (width == 0 || height == 0)
     {
@@ -6507,7 +6507,7 @@ bool DisplayFK::validateDimensions(uint16_t width, uint16_t height) const
  * @param count Number of elements
  * @return true if valid, false otherwise
  */
-bool DisplayFK::validateArray(const void *array, uint8_t count) const
+bool DisplayWX::validateArray(const void *array, uint8_t count) const
 {
     if (!array)
     {
@@ -6545,7 +6545,7 @@ bool DisplayFK::validateArray(const void *array, uint8_t count) const
  * @param maxLength Maximum allowed length
  * @return true if valid, false otherwise
  */
-bool DisplayFK::validateString(const char *str, size_t maxLength) const
+bool DisplayWX::validateString(const char *str, size_t maxLength) const
 {
     if (!str)
     {

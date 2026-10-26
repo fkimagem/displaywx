@@ -17,7 +17,7 @@ O valor do potenciômetro é mapeado para um valor entre 0 e 100 e exibido na ba
 Quando o checkbox tem o estado alterado, o callback checkbox1_cb é chamado e o led é ligado ou desligado.
 O loop é responsavel por ler o valor do potenciômetro e mapear para um valor entre 0 e 100 e exibir na barra vertical.
 
-Usamos a startCustomDraw e finishCustomDraw para agrupar mudanças no widgets, ou seja. Quando startCustomDraw o desenho no display é bloqueado pelo classe DisplayFK, dessa maneira podemos modificar todos os widgets que queremos de uma unica vez e quando chamamos o finishCustomDraw o desenho é liberado e o display é atualizado.
+Usamos a startCustomDraw e finishCustomDraw para agrupar mudanças no widgets, ou seja. Quando startCustomDraw o desenho no display é bloqueado pelo classe DisplayWX, dessa maneira podemos modificar todos os widgets que queremos de uma unica vez e quando chamamos o finishCustomDraw o desenho é liberado e o display é atualizado.
 
 
 */
@@ -29,7 +29,7 @@ Usamos a startCustomDraw e finishCustomDraw para agrupar mudanças no widgets, o
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -77,7 +77,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 CheckBox checkbox1(115, 90, 0);
 const uint8_t qtdCheckbox = 1;

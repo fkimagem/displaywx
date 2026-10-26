@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 // Ajuste conforme seus pinos
 #define TP_I2C_SDA 7

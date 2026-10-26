@@ -14,7 +14,7 @@ void rectbutton_cb();
 // Include for plugins of chip 2
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
@@ -22,7 +22,7 @@ void rectbutton_cb();
 Arduino_ESP32RGBPanel *rgbpanel = nullptr;
 Arduino_RGB_Display *tft = nullptr;
 uint8_t rotationScreen = 1;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 Led ledblue(100, 70, 0);
 Led ledgreen(95, 123, 0);
 Led ledred(175, 95, 0);

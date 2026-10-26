@@ -4,7 +4,7 @@
 
 This project is an example of using two TextButton widgets to send start and stop commands over
 UART Serial2. Each TextButton displays a label ("Start" or "Stop") and when the user touches it,
-the DisplayFK library calls the associated callback. The program uses these callbacks to send
+the DisplayWX library calls the associated callback. The program uses these callbacks to send
 formatted strings over Serial2 (">command:start" and ">command:stop"), so an external device
 connected to the UART can receive the commands. Each callback also prints to Serial for debug.
 
@@ -22,7 +22,7 @@ drawWidgetsOnScreen(0).
 
 Este projeto é um exemplo de uso de dois widgets TextButton para enviar comandos de início e parada
 pela UART Serial2. Cada TextButton exibe um rótulo ("Start" ou "Stop") e quando o usuário toca, a
-biblioteca DisplayFK chama o callback associado. O programa usa essas callbacks para enviar
+biblioteca DisplayWX chama o callback associado. O programa usa essas callbacks para enviar
 strings formatadas pela Serial2 (">command:start" e ">command:stop"), permitindo que um
 dispositivo externo conectado à UART receba os comandos. Cada callback também imprime no Serial
 para debug.
@@ -45,7 +45,7 @@ o loop principal fica vazio. A tela é desenhada em screen0 com fundo branco e d
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 
 
     /* Project setup:
@@ -94,7 +94,7 @@ SPIClass spi_shared(HSPI);
 #endif
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 TextButton btnstart(175, 100, 0);
 TextButton btnstop(175, 175, 0);

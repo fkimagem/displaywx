@@ -7,7 +7,7 @@ Quando o usuário pressiona ou solta o `RectButton`, o LED conectado ao **GPIO16
 
 ## Breve descrição do projeto
 
-- O projeto utiliza a biblioteca **DisplayFK** em conjunto com o ESP32.  
+- O projeto utiliza a biblioteca **DisplayWX** em conjunto com o ESP32.  
 - Um `RectButton` é exibido na tela para interação via toque.  
 - Cada alteração no `RectButton` aciona o **callback**, que atualiza o LED físico.  
 - O LED acende quando o `RectButton` está ativo e apaga quando está inativo.

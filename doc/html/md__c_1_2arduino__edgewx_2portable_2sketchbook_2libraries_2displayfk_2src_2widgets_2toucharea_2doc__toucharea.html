@@ -88,7 +88,7 @@ Características Principais</h2>
 <li>🔒 Pode ser habilitado/desabilitado</li>
 <li>👁️ Pode ser mostrado/ocultado dinamicamente</li>
 <li>🎯 Detecção precisa de coordenadas</li>
-<li>🔗 Integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></li>
+<li>🔗 Integra-se automaticamente com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></li>
 </ul>
 <hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md1062"></a>
@@ -165,12 +165,12 @@ hide()</h2>
 💻 Como Usar no Arduino IDE</h1>
 <h2 class="doxsection"><a class="anchor" id="autotoc_md1077"></a>
 📚 Passo 1: Incluir as Bibliotecas</h2>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"><span class="comment">// Incluir outras bibliotecas necessárias</span></div>
-<div class="ttc" id="adisplayfk_8h_html"><div class="ttname"><a href="displayfk_8h.html">displayfk.h</a></div></div>
+<div class="ttc" id="adisplaywx_8h_html"><div class="ttname"><a href="displaywx_8h.html">displaywx.h</a></div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md1078"></a>
 📝 Passo 2: Declarar Objetos Globais</h2>
-<div class="fragment"><div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="fragment"><div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Criar áreas de toque</span></div>
 <div class="line"><a class="code hl_class" href="class_touch_area.html">TouchArea</a> area1(50, 100, 0);</div>
@@ -178,7 +178,7 @@ hide()</h2>
 <div class="line"> </div>
 <div class="line"><span class="keyword">const</span> uint8_t qtdToucharea = 2;</div>
 <div class="line"><a class="code hl_class" href="class_touch_area.html">TouchArea</a> *arrayToucharea[qtdToucharea] = {&amp;area1, &amp;area2};</div>
-<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayFK</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition</b> displayfk.h:327</div></div>
+<div class="ttc" id="aclass_display_f_k_html"><div class="ttname"><a href="class_display_f_k.html">DisplayWX</a></div><div class="ttdoc">Represents the main display framework class, managing various widget types, SD card functionality,...</div><div class="ttdef"><b>Definition</b> displaywx.h:327</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md1079"></a>
 ⚙️ Passo 3: Configurar Display (setup)</h2>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> <a class="code hl_function" href="simple__touch_8ino.html#a7dfd9b79bc5a37d7df40207afbc5431f">setup</a>() {</div>
@@ -191,9 +191,9 @@ hide()</h2>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">loadScreen</a>(screen0);</div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">createTask</a>(<span class="keyword">false</span>, 3);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_a3482413c8180fd5d46a17a285fae5875"><div class="ttname"><a href="class_display_f_k.html#a3482413c8180fd5d46a17a285fae5875">DisplayFK::setDrawObject</a></div><div class="ttdeci">void setDrawObject(Arduino_GFX *objTFT)</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:3128</div></div>
-<div class="ttc" id="aclass_display_f_k_html_aa2bd44d7cafe83fa5246bf57d6e0388b"><div class="ttname"><a href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">DisplayFK::loadScreen</a></div><div class="ttdeci">void loadScreen(functionLoadScreen_t screen)</div><div class="ttdef"><b>Definition</b> displayfk.cpp:3123</div></div>
-<div class="ttc" id="aclass_display_f_k_html_afdf6a30e9dabe0fe3306f7ea82214ae5"><div class="ttname"><a href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">DisplayFK::createTask</a></div><div class="ttdeci">void createTask(bool enableWatchdog, uint16_t timeout_s=3)</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:2151</div></div>
+<div class="ttc" id="aclass_display_f_k_html_a3482413c8180fd5d46a17a285fae5875"><div class="ttname"><a href="class_display_f_k.html#a3482413c8180fd5d46a17a285fae5875">DisplayWX::setDrawObject</a></div><div class="ttdeci">void setDrawObject(Arduino_GFX *objTFT)</div><div class="ttdoc">Pointer to the Arduino display object.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:3128</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aa2bd44d7cafe83fa5246bf57d6e0388b"><div class="ttname"><a href="class_display_f_k.html#aa2bd44d7cafe83fa5246bf57d6e0388b">DisplayWX::loadScreen</a></div><div class="ttdeci">void loadScreen(functionLoadScreen_t screen)</div><div class="ttdef"><b>Definition</b> displaywx.cpp:3123</div></div>
+<div class="ttc" id="aclass_display_f_k_html_afdf6a30e9dabe0fe3306f7ea82214ae5"><div class="ttname"><a href="class_display_f_k.html#afdf6a30e9dabe0fe3306f7ea82214ae5">DisplayWX::createTask</a></div><div class="ttdeci">void createTask(bool enableWatchdog, uint16_t timeout_s=3)</div><div class="ttdoc">Creates the event processing task.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:2151</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md1080"></a>
 🔧 Passo 4: Configurar as Áreas de Toque</h2>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> loadWidgets() {</div>
@@ -213,7 +213,7 @@ hide()</h2>
 <div class="line">    };</div>
 <div class="line">    area2.setup(configArea2);</div>
 <div class="line">    </div>
-<div class="line">    <span class="comment">// Registrar no DisplayFK</span></div>
+<div class="line">    <span class="comment">// Registrar no DisplayWX</span></div>
 <div class="line">    myDisplay.setToucharea(arrayToucharea, qtdToucharea);</div>
 <div class="line">}</div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md1081"></a>
@@ -233,7 +233,7 @@ hide()</h2>
 <div class="line">    </div>
 <div class="line">    myDisplay.<a class="code hl_function" href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">drawWidgetsOnScreen</a>(0);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayFK::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition</b> displayfk.cpp:1844</div></div>
+<div class="ttc" id="aclass_display_f_k_html_aad265784eb7857a23b1a65b0fb9a452c"><div class="ttname"><a href="class_display_f_k.html#aad265784eb7857a23b1a65b0fb9a452c">DisplayWX::drawWidgetsOnScreen</a></div><div class="ttdeci">void drawWidgetsOnScreen(const uint8_t currentScreenIndex)</div><div class="ttdoc">Draws widgets on the current screen.</div><div class="ttdef"><b>Definition</b> displaywx.cpp:1844</div></div>
 <div class="ttc" id="aclass_widget_base_html_a77a9f894591cb7871282cd5868a36a15"><div class="ttname"><a href="class_widget_base.html#a77a9f894591cb7871282cd5868a36a15">WidgetBase::backgroundColor</a></div><div class="ttdeci">static uint16_t backgroundColor</div><div class="ttdoc">Cor de fundo para os widgets.</div><div class="ttdef"><b>Definition</b> widgetbase.h:418</div></div>
 <div class="ttc" id="awidgetsetup_8h_html_ac2eb83c89c3a81998a14dcb2e999403c"><div class="ttname"><a href="widgetsetup_8h.html#ac2eb83c89c3a81998a14dcb2e999403c">CFK_WHITE</a></div><div class="ttdeci">constexpr uint16_t CFK_WHITE</div><div class="ttdef"><b>Definition</b> widgetsetup.h:134</div></div>
 </div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md1083"></a>
@@ -251,9 +251,9 @@ hide()</h2>
 </div><!-- fragment --><hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md1085"></a>
 📝 Exemplo Completo</h1>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displayfk_8h.html">displayfk.h</a>&gt;</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="displaywx_8h.html">displaywx.h</a>&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayFK</a> myDisplay;</div>
+<div class="line"><a class="code hl_class" href="class_display_f_k.html">DisplayWX</a> myDisplay;</div>
 <div class="line">Arduino_DataBus *bus = <span class="keyword">nullptr</span>;</div>
 <div class="line">Arduino_GFX *gfx = <span class="keyword">nullptr</span>;</div>
 <div class="line"> </div>
@@ -396,8 +396,8 @@ hide()</h2>
 </ul>
 <hr  />
 <h1 class="doxsection"><a class="anchor" id="autotoc_md1098"></a>
-🔗 Integração com DisplayFK</h1>
-<p>O <span class="tt"><a class="el" href="class_touch_area.html" title="Representa um widget de área sensível ao toque com tamanho customizável e rastreamento de status.">TouchArea</a></span> integra-se com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a>:</p>
+🔗 Integração com DisplayWX</h1>
+<p>O <span class="tt"><a class="el" href="class_touch_area.html" title="Representa um widget de área sensível ao toque com tamanho customizável e rastreamento de status.">TouchArea</a></span> integra-se com o sistema <a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a>:</p>
 <ol type="1">
 <li><b>Detecção:</b> Automática com <span class="tt">detectTouch()</span></li>
 <li><b>Callbacks:</b> Executados quando área é tocada</li>
@@ -463,8 +463,8 @@ Problemas de posicionamento</h2>
 📚 Referências</h1>
 <ul>
 <li><b>Classe Base:</b> <span class="tt"><a class="el" href="class_widget_base.html" title="Classe base abstrata para todos os widgets.">WidgetBase</a></span> (<a class="el" href="widgetbase_8h.html">src/widgets/widgetbase.h</a>)</li>
-<li><b><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a> Principal:</b> <span class="tt"><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayFK</a></span> (<a class="el" href="displayfk_8h.html">src/displayfk.h</a>)</li>
-<li><b>Cores Padrão:</b> Definidas em <a class="el" href="displayfk_8h.html">displayfk.h</a></li>
+<li><b><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a> Principal:</b> <span class="tt"><a class="el" href="class_display_f_k.html" title="Represents the main display framework class, managing various widget types, SD card functionality,...">DisplayWX</a></span> (<a class="el" href="displaywx_8h.html">src/displaywx.h</a>)</li>
+<li><b>Cores Padrão:</b> Definidas em <a class="el" href="displaywx_8h.html">displaywx.h</a></li>
 <li><b>Exemplos:</b> examples/Embed_ESP32S3/Display_Test/ </li>
 </ul>
 </div></div><!-- contents -->

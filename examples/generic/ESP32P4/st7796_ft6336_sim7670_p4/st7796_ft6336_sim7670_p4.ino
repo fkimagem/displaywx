@@ -26,7 +26,7 @@ bool queueUpdated = false;  // Flag para indicar que a fila foi atualizada
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include "WiFi.h"
 // #define DFK_SD
 // Defines for font and files
@@ -73,7 +73,7 @@ SPIClass spi_shared(HSPI);
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
 uint8_t rotationScreen = 1; // This value can be changed depending of orientation of your screen
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 void setup()
 {

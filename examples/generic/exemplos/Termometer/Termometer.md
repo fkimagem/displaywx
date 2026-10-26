@@ -9,7 +9,7 @@ Quando o usuário marca ou desmarca o `CheckBox`, o LED conectado ao
 
 ## Breve descrição do projeto
 
--   O projeto utiliza a biblioteca **DisplayFK** em conjunto com o
+-   O projeto utiliza a biblioteca **DisplayWX** em conjunto com o
     ESP32.\
 -   Um `CheckBox` é exibido na tela para interação via toque.\
 -   Cada alteração no `CheckBox` aciona o **callback** `checkbox_cb()`,

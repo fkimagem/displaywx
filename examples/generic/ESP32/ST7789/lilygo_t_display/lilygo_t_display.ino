@@ -37,7 +37,7 @@ void loadWidgets();
 #endif
 // Include external libraries and files
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <SPI.h>
 
 // Create global objects. Constructor is: xPos, yPos and indexScreen
@@ -50,7 +50,7 @@ void loadWidgets();
 Arduino_DataBus *bus = nullptr;
 Arduino_GFX *tft = nullptr;
 uint8_t rotationScreen = 1; // This value can be changed depending of orientation of your screen
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Texto de exemplo.
 
 void setup(){

@@ -1,6 +1,6 @@
 # Exemplo com TextBox (comando ON/OFF para LED)
 
-Este exemplo mostra como **usar um TextBox** na tela touchscreen (DisplayFK) para **ligar/desligar** um LED físico no ESP32 digitando um comando de texto.  
+Este exemplo mostra como **usar um TextBox** na tela touchscreen (DisplayWX) para **ligar/desligar** um LED físico no ESP32 digitando um comando de texto.  
 Quando o usuário digita **"ON"** (maiúsculas/minúsculas ignoradas), o LED no **GPIO16** acende; **qualquer outro valor** apaga o LED.
 
 ---

@@ -2,7 +2,7 @@
 // Include external libraries and files
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
-#include <displayfk.h>
+#include <displaywx.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <LinkerWX.h>
@@ -106,7 +106,7 @@ void btnstruct1_cb();
 Arduino_ESP32DSIPanel *bus = nullptr;
 Arduino_DSI_Display *tft = nullptr;
 const uint8_t rotationScreen = 0; // This value can be changed depending of orientation of your screen
-DisplayFK myDisplay;
+DisplayWX myDisplay;
 // Create global objects. Constructor is: xPos, yPos and indexScreen
 Label txtlog(100, 170, 0);
 Label txttemp(90, 440, 0);
