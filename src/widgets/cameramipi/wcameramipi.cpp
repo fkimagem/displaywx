@@ -1,11 +1,13 @@
 #include "wcameramipi.h"
+#include "../../check_camera.h"
+#include <stdio.h>
 
 const char* CameraMipi::TAG = "CameraMipi";
 bool CameraMipi::s_hasFullScreen = false;
 
 CameraMipi::CameraMipi(uint16_t _x, uint16_t _y, uint8_t _screen): WidgetBase(_x, _y, _screen),
-m_status(false), m_shouldRedraw(true), m_initialized(false), m_enabled(false), m_fullScreen(false), m_margin(0), m_zoomLevel(1) {
-  m_config = {.width = 0, .height = 0, .showZoomLevel = false};
+m_status(false), m_shouldRedraw(true), m_initialized(false), m_enabled(false), m_fullScreen(false), m_margin(0), m_zoomLevel(1), m_centerX(-1), m_centerY(-1), m_keepZoomOnMaximized(false), m_zoomClampNoted(false) {
+  m_config = {.width = 0, .height = 0, .showZoomLevel = false, .showFps = false, .fps = 5};
   ESP_LOGD(TAG, "CameraMipi created at (%d, %d) on screen %d", _x, _y, _screen);
 }
 
@@ -19,11 +21,28 @@ void CameraMipi::cleanupMemory() {
 
 void CameraMipi::setup(const CameraMipiConfig& config) {
   m_config = config;
+  if (m_config.fps < 5 || m_config.fps > 24)
+  {
+    ESP_LOGW(TAG, "camera fps %u clamped to 5..24", (unsigned)m_config.fps);
+    if (m_config.fps < 5)
+    {
+      m_config.fps = 5;
+    }
+    if (m_config.fps > 24)
+    {
+      m_config.fps = 24;
+    }
+  }
   m_shouldRedraw = true;
   m_loaded = true;
   m_initialized = true;
   m_fullScreen = false;
   m_zoomLevel = 1;
+  m_centerX = -1;
+  m_centerY = -1;
+  m_keepZoomOnMaximized = false;
+  m_zoomClampNoted = false;
+  m_lastRedrawMs = 0;
   m_locked = false;
   m_visible = true;
   m_enabled = true;
@@ -176,10 +195,14 @@ void CameraMipi::leaveFullScreen()
 
 void CameraMipi::setZoomLevel(uint8_t level)
 {
-  if (level != 1 && level != 2 && level != 4)
+  if (level == 0)
   {
-    ESP_LOGW(TAG, "CameraMipi zoom must be 1, 2 or 4");
+    ESP_LOGW(TAG, "CameraMipi zoom must be >= 1");
     return;
+  }
+  if (m_zoomLevel != level)
+  {
+    m_zoomClampNoted = false;
   }
   m_zoomLevel = level;
 }
@@ -194,18 +217,80 @@ bool CameraMipi::showZoomLevel() const
   return m_config.showZoomLevel;
 }
 
+bool CameraMipi::showFps() const
+{
+  return m_config.showFps;
+}
+
+uint8_t CameraMipi::fps() const
+{
+  return m_config.fps;
+}
+
+bool CameraMipi::isRedrawDue(uint32_t nowMs) const
+{
+  if (m_lastRedrawMs == 0)
+  {
+    return true;
+  }
+  const uint32_t periodMs = 1000u / m_config.fps;
+  return (nowMs - m_lastRedrawMs) >= periodMs;
+}
+
+void CameraMipi::noteRedraw(uint32_t nowMs)
+{
+  m_lastRedrawMs = nowMs;
+}
+
 const char *CameraMipi::zoomLabel() const
 {
-  if (m_zoomLevel == 2)
-  {
-    return "2x";
-  }
-  if (m_zoomLevel == 4)
-  {
-    return "3x";
-  }
-  return "1x";
+  snprintf(m_zoomText, sizeof(m_zoomText), "%ux", (unsigned)m_zoomLevel);
+  return m_zoomText;
 }
+
+int16_t CameraMipi::centerPointX() const
+{
+  return m_centerX;
+}
+
+int16_t CameraMipi::centerPointY() const
+{
+  return m_centerY;
+}
+
+void CameraMipi::setCenterPoint(int16_t x, int16_t y)
+{
+  m_centerX = x;
+  m_centerY = y;
+}
+
+bool CameraMipi::keepZoomOnMaximized() const
+{
+  return m_keepZoomOnMaximized;
+}
+
+void CameraMipi::setKeepZoomOnMaximized(bool keep)
+{
+  m_keepZoomOnMaximized = keep;
+}
+
+void CameraMipi::noteZoomClamped(uint8_t used)
+{
+  if (m_zoomClampNoted || used == m_zoomLevel)
+  {
+    return;
+  }
+  m_zoomClampNoted = true;
+  ESP_LOGW(TAG, "zoom %u reduced to %u to stay inside the PPA scale", (unsigned)m_zoomLevel, (unsigned)used);
+}
+
+#if !defined(HAS_CAMERA_MIPI) || !defined(DFK_CAMERA_MIPI)
+bool CameraMipi::openConfig()
+{
+  ESP_LOGW(TAG, "camera config needs a MIPI sensor");
+  return false;
+}
+#endif
 
 uint16_t CameraMipi::getXPlot() const
 {

@@ -1,0 +1,297 @@
+{
+  "configurations": [
+    {
+      "name": "ESP32-WROOM",
+      "includePath": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32/**",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/WiFi/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPI/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Wire/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/FS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPIFFS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SD/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Preferences/src",
+
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32/include/**",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32/qio_qspi/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32/qio_qspi/include/**",
+
+        "C:/arduino_edgewx/portable/sketchbook/libraries",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/**"
+      ],
+      "browse": {
+        "limitSymbolsToIncludedHeaders": true,
+        "path": [
+          "${workspaceFolder}",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries",
+          "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32/include",
+          "C:/arduino_edgewx/portable/sketchbook/libraries"
+        ]
+      },
+      "defines": [
+        "ARDUINO",
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "ESP32",
+        "ESP_PLATFORM",
+        "CONFIG_IDF_TARGET_ESP32",
+        "ARDUINO_ARCH_ESP32",
+        "ARDUINO_ESP32_DEV",
+        "ARDUINO_VARIANT=\"esp32\"",
+        "ARDUINO_BOARD=\"ESP32_DEV\"",
+        "F_CPU=240000000L",
+        "__XTENSA__",
+        "CORE_DEBUG_LEVEL=0",
+        "ARDUINO=10819",
+        "ESP_ARDUINO_VERSION_MAJOR=3",
+        "ESP_ARDUINO_VERSION_MINOR=3",
+        "ESP_ARDUINO_VERSION_PATCH=5",
+        "ESP_ARDUINO_VERSION=30305"
+      ],
+      "windowsSdkVersion": "10.0.22621.0",
+      "compilerPath": "C:/arduino_edgewx/portable/packages/esp32/tools/esp-x32/2511/bin/xtensa-esp-elf-g++",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64"
+    },
+    {
+      "name": "ESP32-S3",
+      "includePath": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32/**",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32s3",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/WiFi/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPI/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Wire/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/FS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPIFFS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SD/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Preferences/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/USB/src",
+
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32s3/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32s3/include/**",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32s3/qio_qspi/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32s3/qio_qspi/include/**",
+
+        "C:/arduino_edgewx/portable/sketchbook/libraries",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/**"
+      ],
+      "browse": {
+        "limitSymbolsToIncludedHeaders": true,
+        "path": [
+          "${workspaceFolder}",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32s3",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries",
+          "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32s3/include",
+          "C:/arduino_edgewx/portable/sketchbook/libraries"
+        ]
+      },
+      "defines": [
+        "ARDUINO",
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "ESP32",
+        "ESP32S3",
+        "ESP_PLATFORM",
+        "CONFIG_IDF_TARGET_ESP32S3",
+        "ARDUINO_ARCH_ESP32",
+        "ARDUINO_ESP32S3_DEV",
+        "ARDUINO_VARIANT=\"esp32s3\"",
+        "ARDUINO_BOARD=\"ESP32S3_DEV\"",
+        "F_CPU=240000000L",
+        "__XTENSA__",
+        "BOARD_HAS_PSRAM",
+        "CORE_DEBUG_LEVEL=0",
+        "ARDUINO=10819",
+        "ESP_ARDUINO_VERSION_MAJOR=3",
+        "ESP_ARDUINO_VERSION_MINOR=3",
+        "ESP_ARDUINO_VERSION_PATCH=5",
+        "ESP_ARDUINO_VERSION=30305"
+      ],
+      "windowsSdkVersion": "10.0.22621.0",
+      "compilerPath": "C:/arduino_edgewx/portable/packages/esp32/tools/esp-x32/2511/bin/xtensa-esp-elf-g++",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64"
+    },
+    {
+      "name": "ESP32-P4",
+      "includePath": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32/**",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32p4",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/WiFi/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPI/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Wire/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/FS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPIFFS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SD/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Preferences/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/USB/src",
+
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32p4/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32p4/include/**",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32p4/qio_qspi/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32p4/qio_qspi/include/**",
+
+        "C:/arduino_edgewx/portable/sketchbook/libraries",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/**"
+      ],
+      "browse": {
+        "limitSymbolsToIncludedHeaders": true,
+        "path": [
+          "${workspaceFolder}",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32p4",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries",
+          "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32p4/include",
+          "C:/arduino_edgewx/portable/sketchbook/libraries"
+        ]
+      },
+      "defines": [
+        "ARDUINO",
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "ESP32",
+        "ESP32P4",
+        "ESP_PLATFORM",
+        "CONFIG_IDF_TARGET_ESP32P4",
+        "ARDUINO_ARCH_ESP32",
+        "ARDUINO_ESP32P4_DEV",
+        "ARDUINO_VARIANT=\"esp32p4\"",
+        "ARDUINO_BOARD=\"ESP32P4_DEV\"",
+        "F_CPU=360000000L",
+        "SOC_MIPI_DSI_SUPPORTED",
+        "BOARD_HAS_PSRAM",
+        "ARDUINO_PARTITION_app3M_fat9M_16MB",
+        "CORE_DEBUG_LEVEL=0",
+        "ARDUINO=10819",
+        "ESP_ARDUINO_VERSION_MAJOR=3",
+        "ESP_ARDUINO_VERSION_MINOR=3",
+        "ESP_ARDUINO_VERSION_PATCH=5",
+        "ESP_ARDUINO_VERSION=30305"
+      ],
+      "windowsSdkVersion": "10.0.22621.0",
+      "compilerPath": "C:/arduino_edgewx/portable/packages/esp32/tools/esp-rv32/2511/bin/riscv32-esp-elf-g++",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64"
+    },
+    {
+      "name": "ESP32-C3",
+      "includePath": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32/**",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32c3",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/**",
+
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/WiFi/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPI/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Wire/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/FS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SPIFFS/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/SD/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/Preferences/src",
+        "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries/USB/src",
+
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32c3/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32c3/include/**",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32c3/qio_qspi/include",
+        "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32c3/qio_qspi/include/**",
+
+        "C:/arduino_edgewx/portable/sketchbook/libraries",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/GFX_Library_for_Arduino/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/displayfk/**",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/src",
+        "C:/arduino_edgewx/portable/sketchbook/libraries/linkerwx/**"
+      ],
+      "browse": {
+        "limitSymbolsToIncludedHeaders": true,
+        "path": [
+          "${workspaceFolder}",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/cores/esp32",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/variants/esp32c3",
+          "C:/arduino_edgewx/portable/packages/esp32/hardware/esp32/3.3.5/libraries",
+          "C:/arduino_edgewx/portable/packages/esp32/tools/esp32-arduino-libs/idf-release_v5.5-9bb7aa84-v2/esp32c3/include",
+          "C:/arduino_edgewx/portable/sketchbook/libraries"
+        ]
+      },
+      "defines": [
+        "ARDUINO",
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "ESP32",
+        "ESP32C3",
+        "ESP_PLATFORM",
+        "CONFIG_IDF_TARGET_ESP32C3",
+        "ARDUINO_ARCH_ESP32",
+        "ARDUINO_ESP32C3_DEV",
+        "ARDUINO_VARIANT=\"esp32c3\"",
+        "ARDUINO_BOARD=\"ESP32C3_DEV\"",
+        "F_CPU=160000000L",
+        "CORE_DEBUG_LEVEL=0",
+        "ARDUINO=10819",
+        "ESP_ARDUINO_VERSION_MAJOR=3",
+        "ESP_ARDUINO_VERSION_MINOR=3",
+        "ESP_ARDUINO_VERSION_PATCH=5",
+        "ESP_ARDUINO_VERSION=30305"
+      ],
+      "windowsSdkVersion": "10.0.22621.0",
+      "compilerPath": "C:/arduino_edgewx/portable/packages/esp32/tools/esp-rv32/2511/bin/riscv32-esp-elf-g++",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-x64"
+    }
+  ],
+  "version": 4
+}

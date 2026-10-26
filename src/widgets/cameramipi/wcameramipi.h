@@ -9,7 +9,9 @@
 struct CameraMipiConfig {
   uint16_t width;         ///< Largura da câmera MIPI.
   uint16_t height;        ///< Altura da câmera MIPI.
-  bool showZoomLevel = false; ///< Se true, mostra 1x/2x/3x no canto superior do widget.
+  bool showZoomLevel = false; ///< Se true, mostra o nível de zoom no canto do widget.
+  bool showFps = false; ///< Se true, mostra o fps no canto da miniatura.
+  uint8_t fps = 5; ///< Quadros por segundo da miniatura, de 5 a 24.
 };
 
 /// @brief Widget de câmera MIPI com tamanho e cor personalizáveis.
@@ -48,7 +50,18 @@ public:
   void setZoomLevel(uint8_t level);
   uint8_t getZoomLevel() const;
   bool showZoomLevel() const;
+  bool showFps() const;
+  uint8_t fps() const;
+  bool isRedrawDue(uint32_t nowMs) const;
+  void noteRedraw(uint32_t nowMs);
   const char *zoomLabel() const;
+  int16_t centerPointX() const;
+  int16_t centerPointY() const;
+  void setCenterPoint(int16_t x, int16_t y);
+  bool keepZoomOnMaximized() const;
+  void setKeepZoomOnMaximized(bool keep);
+  void noteZoomClamped(uint8_t used);
+  bool openConfig();
   uint16_t getXPlot() const;
   uint16_t getYPlot() const;
   uint16_t getWidthPlot() const;
@@ -66,6 +79,12 @@ private:
   bool m_fullScreen;
   uint8_t m_margin;
   uint8_t m_zoomLevel;
+  int16_t m_centerX = -1;
+  int16_t m_centerY = -1;
+  bool m_keepZoomOnMaximized = false;
+  bool m_zoomClampNoted = false;
+  uint32_t m_lastRedrawMs = 0;
+  mutable char m_zoomText[8] = {'1', 'x', '\0'};
   static bool s_hasFullScreen;
   
   void cleanupMemory();

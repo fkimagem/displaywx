@@ -40,6 +40,9 @@
 
 #ifdef DFK_CAMERA_MIPI
 #include "widgets/cameramipi/wcameramipi.h"
+#if defined(HAS_CAMERA_MIPI)
+#include "widgets/cameramipi/cameraroi.h"
+#endif
 #endif
 
 #ifdef DFK_EXTERNALINPUT

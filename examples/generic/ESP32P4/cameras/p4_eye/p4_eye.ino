@@ -134,7 +134,9 @@ void loadWidgets(){
     CameraMipiConfig configCameraMipi0 = {
             .width = 240,
             .height = 240,
-            .showZoomLevel = false
+            .showZoomLevel = false,
+            .showFps = false,
+            .fps = 5
         };
 
     cameraMipi.setup(configCameraMipi0);

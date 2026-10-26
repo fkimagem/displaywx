@@ -1,0 +1,100 @@
+10:45:48.908 -> ============ Before Setup End ============
+10:45:49.001 -> [   456][V][esp32-hal-uart.c:1085] uartSetPins(): UART0: Driver not yet installed, storing pins for later attachment (RX:38, TX:37)
+10:45:49.001 -> [   468][V][esp32-hal-uart.c:1330] uartBegin(): UART0 baud(115200) Mode(0x800001c) rxPin(38) txPin(37)
+10:45:49.047 -> [   477][V][esp32-hal-uart.c:1417] uartBegin(): UART0 not installed. Starting installation
+10:45:49.047 -> [   485][V][esp32-hal-uart.c:1427] uartBegin(): UART0 RX FIFO full threshold set to 120 (value requested: 120 || FIFO Max = 128)
+10:45:49.047 -> [   496][V][esp32-hal-uart.c:1453] uartBegin(): Setting UART0 to use XTAL clock
+10:45:49.047 -> [   504][V][esp32-hal-uart.c:1492] uartBegin(): UART0: RX and TX signals are set not inverted.
+10:45:49.047 -> [   512][V][esp32-hal-uart.c:1513] uartBegin(): UART0 calling uartSetPins: RX=38, TX=37, CTS=-1, RTS=-1
+10:45:49.093 -> [   521][V][esp32-hal-periman.c:283] perimanClearBusDeinit(): Deinit function for type UART_RX (2) cleared
+10:45:49.093 -> [   531][V][esp32-hal-periman.c:283] perimanClearBusDeinit(): Deinit function for type UART_TX (3) cleared
+10:45:49.093 -> [   540][V][esp32-hal-periman.c:283] perimanClearBusDeinit(): Deinit function for type UART_RX_TX (6) cleared
+10:45:49.093 -> [   550][V][esp32-hal-periman.c:283] perimanClearBusDeinit(): Deinit function for type UART_CTS (4) cleared
+10:45:49.093 -> [   559][V][esp32-hal-periman.c:283] perimanClearBusDeinit(): Deinit function for type UART_RTS (5) cleared
+10:45:49.141 -> [   569][V][esp32-hal-uart.c:998] _uartDetectPin(): RX: pin 38 -> UART0: currently [GPIO], attach=YES
+10:45:49.141 -> [   578][V][esp32-hal-uart.c:998] _uartDetectPin(): TX: pin 37 -> UART0: currently [GPIO], attach=YES
+10:45:49.141 -> [   587][D][esp32-hal-uart.c:1192] uartSetPins(): Attaching pin 38 to UART0 as RX
+10:45:49.141 -> [   594][V][esp32-hal-periman.c:192] perimanSetPinBus(): Pin 38 successfully set to type UART_RX (2) with bus 0x4ff13528
+10:45:49.141 -> [   605][V][esp32-hal-periman.c:267] perimanSetBusDeinit(): Deinit function for type UART_RX (2) successfully set to 0x4001dd76
+10:45:49.188 -> [   616][D][esp32-hal-uart.c:1196] uartSetPins(): Attaching pin 37 to UART0 as TX
+10:45:49.188 -> [   623][V][esp32-hal-periman.c:192] perimanSetPinBus(): Pin 37 successfully set to type UART_TX (3) with bus 0x4ff13528
+10:45:49.188 -> [   634][V][esp32-hal-periman.c:267] perimanSetBusDeinit(): Deinit function for type UART_TX (3) successfully set to 0x4001dc26
+10:45:49.188 -> [   645][V][esp32-hal-uart.c:1522] uartBegin(): UART0 initialization done.
+10:45:49.188 -> [   652][V][esp32-hal-uart.c:1573] uartSetRxFIFOFull(): UART0 RX FIFO Full value set to 120 from a requested value of 120
+10:45:49.188 -> OV5647 MIPI size selected: 1920x1080
+10:45:49.234 -> [   663][I][cameracontroller.cpp:78] selectSensorSize(): [CameraController] OV5647 MIPI size selected: 1920x1080
+10:45:49.234 -> [   676][V][esp32-hal-periman.c:192] perimanSetPinBus(): Pin 8 successfully set to type VIDEO_SCCB_SCL (77) with bus 0x4ff1640c
+10:45:49.234 -> [   687][V][esp32-hal-periman.c:267] perimanSetBusDeinit(): Deinit function for type VIDEO_SCCB_SCL (77) successfully set to 0x40013954
+10:45:49.234 -> [   699][V][esp32-hal-periman.c:192] perimanSetPinBus(): Pin 7 successfully set to type VIDEO_SCCB_SDA (78) with bus 0x4ff1640c
+10:45:49.281 -> [   711][V][esp32-hal-periman.c:267] perimanSetBusDeinit(): Deinit function for type VIDEO_SCCB_SDA (78) successfully set to 0x40013954
+10:45:49.281 -> E (647) sccb_i2c: s_sccb_i2c_transmit_receive_reg_a16v8(140): faled to transmit receive
+10:45:49.281 -> E (647) ov5647: ov5647_get_sensor_id(336): read pid_h failed
+10:45:49.281 -> E (649) ov5647: Get sensor ID failed
+10:45:49.281 -> E (653) esp_video_init: Failed to detect camera sensor with address=36
+10:45:49.281 -> OV5647 detected, CSI video device ready
+10:45:49.281 -> [   741][I][cameracontroller.cpp:214] begin(): [CameraController] OV5647 detected, CSI video device ready
+10:45:49.327 -> [   759][E][ESP_Video.cpp:636] open(): failed to open /dev/video0
+10:45:49.327 -> failed to open capture device
+10:45:49.327 -> [   765][E][cameracontroller.cpp:218] begin(): [CameraController] failed to open capture device
+10:45:49.327 -> Camera not started
+10:45:49.327 -> [   776][V][esp32-hal-periman.c:267] perimanSetBusDeinit(): Deinit function for type GPIO (1) successfully set to 0x4001769a
+10:45:49.327 -> [   789][V][esp32-hal-periman.c:192] perimanSetPinBus(): Pin 27 successfully set to type GPIO (1) with bus 0x1c
+10:45:49.468 -> [   933][I][Arduino_ESP32DSIPanel.cpp:37] begin(): [Arduino_ESP32DSIPanel] MIPI DSI PHY Powered on
+10:45:49.516 -> [   943][I][Arduino_ESP32DSIPanel.cpp:49] begin(): [Arduino_ESP32DSIPanel] Install MIPI DSI LCD control panel
+10:45:49.705 -> [  1138][D][Arduino_ESP32DSIPanel.cpp:93] begin(): [Arduino_ESP32DSIPanel] send init commands success
+10:45:49.705 -> [  1147][V][esp32-hal-periman.c:267] perimanSetBusDeinit(): Deinit function for type GPIO (1) successfully set to 0x4001769a
+10:45:49.705 -> [  1159][V][esp32-hal-periman.c:192] perimanSetPinBus(): Pin 23 successfully set to type GPIO (1) with bus 0x18
+10:45:49.705 -> [  1168][D][touch.cpp:55] TouchScreen(): [TouchScreen] TouchScreen constructor
+10:45:49.705 -> [  1175][D][touch.cpp:207] setTouchCorners(): [TouchScreen] X0: 0 X1: 1024 Y0: 0 Y1: 600
+10:45:49.752 -> [  1183][D][touch.cpp:372] setDimension(): [TouchScreen] Touch screen dimension: 1024 x 600
+10:45:49.752 -> [  1191][D][touch.cpp:279] touch_init(): [TouchScreen] touch_init
+10:45:49.752 -> E (1121) i2c.master: this port has not been initialized, please initialize it first
+10:45:49.752 -> [  1198][E][share_i2c.cpp:107] tryReuseBusOnPins(): [TouchI2C] I2C port 0 marked on pins but has no bus handle
+10:45:49.752 -> [  1215][E][share_i2c.cpp:195] acquireBus(): [TouchI2C] Touch I2C pins are busy; cannot share or create bus
+10:45:49.752 -> [  1224][D][touch.cpp:124] startAsGT911(): Starting gt911 touch panel driver
+10:45:49.798 -> [  1231][D][whslider.cpp:174] start(): [HSlider] HSlider initialized at (125, 360)
+10:45:49.798 -> [  1238][D][whslider.cpp:311] setup(): [HSlider] HSlider setup completed at (125, 360)
+10:45:49.798 -> [  1246][D][wcameramipi.cpp:30] setup(): [CameraMipi] CameraMipi setup completed
+10:45:49.798 -> [  1253][D][displayfk.cpp:2536] createTask(): [DisplayFK] Creating task
+10:45:49.798 -> [  1260][D][displayfk.cpp:1834] setup(): [DisplayFK] Initializing queues
+10:45:49.798 -> [  1266][D][displayfk.cpp:1845] setup(): [DisplayFK] Callback queue created
+10:45:49.798 -> [  1273][D][displayfk.cpp:1854] setup(): [DisplayFK] Log queue created
+10:45:49.844 -> [  1279][D][widgetbase.cpp:187] WidgetBase(): [WidgetBase] WidgetBase created at (0, 0) on screen 0
+10:45:49.844 -> [  1288][D][wkeyboard.cpp:418] setup(): [[WKeyboard]] Keys: 90, 88
+10:45:49.844 -> [  1294][D][widgetbase.cpp:187] WidgetBase(): [WidgetBase] WidgetBase created at (0, 0) on screen 0
+10:45:49.844 -> [  [1 3 0133]0[3D]][[Dd]i[sdpilsapylfaky.fckp.pc:p4p0:0275]9 4T]a sckrEeventaotTeoTuacshk(())::  [[DDiissppllaayyFFKK]]  TUaIs ktEavesnk tpioTnnouecd h toc rceoaret e0d 
+w
+10:45:49.892 -> ith priority 1, stack 12288 bytes
+10:45:49.892 -> [  1321][D][displayfk.cpp:4075] TaskCamera(): [DisplayFK] Camera task created
+10:45:49.892 -> [  1328][D][displayfk.cpp:2619] createTask(): [DisplayFK] Camera task pinned to core 1 with priority 2, stack 12288 bytes
+10:45:49.892 -> [  1351][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:49.892 -> [  1358][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:49.892 -> [  1365][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.940 -> [  1372][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.940 -> [  1378][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:49.940 -> [  1386][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.940 -> [  1392][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.940 -> [  1398][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:49.940 -> [  1406][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.940 -> [  1412][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.987 -> [  1418][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:49.987 -> [  1426][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.987 -> [  1432][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.987 -> [  1438][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:49.987 -> [  1446][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.987 -> [  1452][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:49.987 -> [  1459][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.035 -> [  1466][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:50.035 -> [  1472][E][WMath.cpp:75] map(): map(): Invalid input range, min == max
+10:45:50.035 -> [  1479][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.035 -> [  1486][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.035 -> [  1493][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.035 -> [  1501][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.035 -> [  1508][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.081 -> [  1515][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.081 -> [  1523][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.081 -> [  1530][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.081 -> [  1537][E][share_i2c.cpp:379] requestFrom(): [TouchI2C] I2C read failed: ESP_FAIL
+10:45:50.081 -> [  1545][D][touch.cpp:434] touch_touched(): [TouchScreen] Touch raw: 65535, 65535
+10:45:50.081 -> [  1552][D][touch.cpp:1429] getTouch(): [TouchScreen] getTouch: xTouch: 65471, yTouch: 65425, zPressure: 65535
+10:45:50.127 -> Touch pressed at [65471, 65425]

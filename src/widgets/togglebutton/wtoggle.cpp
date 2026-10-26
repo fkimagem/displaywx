@@ -216,12 +216,13 @@ bool ToggleButton::getStatus() { return m_status; }
 /**
  * @brief Define o estado atual do botão toggle.
  * @param status True para ligado, False para desligado.
+ * @param triggerCallback True para disparar callback, False para não disapar callback.
  * @details Atualiza o estado do botão, marca para redesenho e dispara callback se fornecido:
  *          - Valida se widget está carregado
  *          - Define novo status e marca para redesenho
  *          - Dispara callback se não for nullptr
  */
-void ToggleButton::setStatus(bool status)
+void ToggleButton::setStatus(bool status, bool triggerCallback)
 {
   if (!m_loaded)
   {
@@ -231,7 +232,7 @@ void ToggleButton::setStatus(bool status)
   ESP_LOGD(TAG, "Setting status to %d", status);
   m_status = status;
   m_shouldRedraw = true;
-  if (m_callback != nullptr)
+  if (m_callback != nullptr && triggerCallback)
   {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }

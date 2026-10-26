@@ -1,9 +1,12 @@
 #include "displayfk.h"
+#include "freertos_stats.h"
 #include <memory>
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 #include <esp_cache.h>
 #include <esp_heap_caps.h>
 #include <driver/ppa.h>
+#include "hal/ppa_ll.h"
+#include <stdio.h>
 #endif
 
 #define MIN_LOOPTASK_TIME_LOG 20
@@ -53,6 +56,40 @@ int DisplayFK::offsetSwipe = 50;
 #ifdef DFK_SD
 
 #endif
+
+void DisplayFK::logHeapPorTipo(const char *nome, uint32_t capacidades)
+{
+    multi_heap_info_t info = {};
+    heap_caps_get_info(&info, capacidades);
+
+    const size_t total = heap_caps_get_total_size(capacidades);
+
+    Serial.printf(
+        "[MEM] %s | total=%zu B | livre=%zu B | maior bloco=%zu B\n",
+        nome,
+        total,
+        info.total_free_bytes,
+        info.largest_free_block
+    );
+}
+
+void DisplayFK::logMemoriaSistema()
+{
+    logHeapPorTipo(
+        "RAM interna",
+        MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT
+    );
+
+    logHeapPorTipo(
+        "PSRAM",
+        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
+    );
+
+    logHeapPorTipo(
+        "PSRAM + DMA",
+        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT | MALLOC_CAP_DMA
+    );
+}
 
 /**
  * @brief Enables or disables the watchdog timer
@@ -1177,6 +1214,28 @@ bool DisplayFK::isCameraReady() const
 {
     return m_camera.isReady();
 }
+
+void DisplayFK::setCameraPreviewFps(uint8_t fps)
+{
+    if (fps < 5 || fps > 24)
+    {
+        ESP_LOGW(TAG, "camera preview fps %u clamped to 5..24", (unsigned)fps);
+    }
+    if (fps < 5)
+    {
+        fps = 5;
+    }
+    if (fps > 24)
+    {
+        fps = 24;
+    }
+    m_cameraPreviewFps = fps;
+}
+
+uint8_t DisplayFK::cameraPreviewFps() const
+{
+    return m_cameraPreviewFps;
+}
 #endif
 
 /**
@@ -1809,6 +1868,7 @@ DisplayFK::~DisplayFK()
         m_cameraPreviewFb = nullptr;
         m_cameraPreviewFbBytes = 0;
     }
+    releaseCameraFrameCopy();
 #endif
 
     // Clean up resources in proper order
@@ -3621,6 +3681,12 @@ void DisplayFK::serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
         return;
     }
 #endif
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (m_cameraRoiActive)
+    {
+        return;
+    }
+#endif
     if (m_ignoreOpeningTouch)
     {
         if (!hasTouch)
@@ -3715,6 +3781,12 @@ void DisplayFK::serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
     {
         return;
     }
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (m_cameraRoiActive)
+    {
+        return;
+    }
+#endif
     if (m_ignoreOpeningTouch)
     {
         if (!hasTouch)
@@ -3889,9 +3961,17 @@ void DisplayFK::cameraTask()
         return;
     }
 
-    if (m_transactionSemaphore != nullptr && xSemaphoreTake(m_transactionSemaphore, 0) == pdTRUE)
+    if (buffer->data() != nullptr)
     {
-        updateCameraMipi(buffer);
+        publishCameraFrameCopy((const uint16_t *)buffer->data(), buffer->getWidth(), buffer->getHeight());
+    }
+    const bool configOpen = WidgetBase::usingKeyboard;
+    if (!configOpen && m_transactionSemaphore != nullptr && xSemaphoreTake(m_transactionSemaphore, 0) == pdTRUE)
+    {
+        if (!WidgetBase::usingKeyboard)
+        {
+            updateCameraMipi(buffer);
+        }
         xSemaphoreGive(m_transactionSemaphore);
     }
     m_camera.releaseFrame();
@@ -3955,6 +4035,9 @@ void DisplayFK::displayfkTask()
     processTouchStatus(hasTouch, xTouch, yTouch);
     serviceKeyboard(hasTouch, xTouch, yTouch);
     serviceNumpad(hasTouch, xTouch, yTouch);
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    serviceCameraRoi(hasTouch, xTouch, yTouch);
+#endif
 
     if (hasTouch)
     {
@@ -4059,9 +4142,16 @@ void DisplayFK::TaskEventoTouch(void *pvParameters)
                 warnedLowStack = true;
                 ESP_LOGW(TAG, "UI task stack margin is %u bytes", static_cast<unsigned>(freeBytes));
             }
+             // Memoria disponivel para novas alocacoes.
+            logMemoriaSistema();
+
+            // Estatisticas de execucao e de pilha das tarefas.
+            printRunningTasks(Serial);
         }
     }
 }
+
+
 
 /**
  * @brief Returns the touch event task handle
@@ -4095,7 +4185,7 @@ void DisplayFK::TaskCamera(void *pvParameters)
             continue;
         }
 
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kCameraFramePeriodMs));
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(DisplayFK::instance->cameraPreviewWaitMs()));
 
         if (DisplayFK::instance->m_stopTask.load())
         {
@@ -4435,50 +4525,153 @@ static void applyCameraMirrors(ppa_srm_oper_config_t *op, bool mirrorX, bool mir
     op->mirror_y = mirrorY;
 }
 
-static uint32_t ppaScaledPixels(uint32_t in_pixels, uint32_t scale_num)
+struct CameraRoiMeasure {
+    bool valid;
+    bool centerMoved;
+    int16_t centerX;
+    int16_t centerY;
+    uint32_t cropX;
+    uint32_t cropY;
+    uint32_t cropW;
+    uint32_t cropH;
+    uint32_t scaleNum;
+    uint8_t zoomUsed;
+};
+
+struct CameraFit {
+    bool valid;
+    uint32_t scaleNum;
+    uint32_t outW;
+    uint32_t outH;
+    int destX;
+    int destY;
+};
+
+static uint32_t ppaScaleDenom()
 {
-    return (in_pixels * scale_num) / 16u;
+    return PPA_LL_SRM_SCALING_FRAG_MAX;
 }
 
-// O PPA trunca a escala para n/16. crop * n / 16 precisa ser exatamente o destino.
-static bool cameraPpaExactCrop(uint32_t cam_w, uint32_t cam_h, uint32_t dest_w, uint32_t dest_h, uint32_t zoom, uint32_t *crop_w, uint32_t *crop_h, uint32_t *scale_num)
+static uint32_t ppaScaleNumMax()
 {
-    uint32_t limit_w = cam_w / zoom;
-    uint32_t limit_h = cam_h / zoom;
-    if (limit_w < 2 || limit_h < 2 || dest_w < 2 || dest_h < 2)
+    const uint32_t frag = ppaScaleDenom();
+    const uint32_t integerMax = PPA_LL_SRM_SCALING_INT_MAX - 1u;
+    return integerMax * frag + (frag - 1u);
+}
+
+static uint32_t ppaScaledPixels(uint32_t in_pixels, uint32_t scale_num)
+{
+    return (in_pixels * scale_num) / ppaScaleDenom();
+}
+
+static uint32_t evenDown(uint32_t value)
+{
+    return value & ~1u;
+}
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+static bool cameraBlitUsesNativeFb(Arduino_DSI_Display *dsi)
+{
+    return dsi != nullptr && dsi->getFramebuffer() != nullptr;
+}
+#else
+static bool cameraBlitUsesNativeFb(void *dsi)
+{
+    (void)dsi;
+    return false;
+}
+#endif
+
+static void zoomedAspectLimit(uint32_t frameW, uint32_t frameH, uint32_t destW, uint32_t destH, uint8_t zoom, uint32_t *limitW, uint32_t *limitH)
+{
+    uint32_t maxW = evenDown(frameW);
+    uint32_t maxH = evenDown(frameH);
+    if (destW < 2 || destH < 2)
+    {
+        *limitW = maxW < 2 ? 2 : maxW;
+        *limitH = maxH < 2 ? 2 : maxH;
+        return;
+    }
+    if ((uint64_t)maxW * destH > (uint64_t)maxH * destW)
+    {
+        maxW = evenDown((uint32_t)(((uint64_t)maxH * destW) / destH));
+    }
+    else
+    {
+        maxH = evenDown((uint32_t)(((uint64_t)maxW * destH) / destW));
+    }
+    if (maxW < 2)
+    {
+        maxW = 2;
+    }
+    if (maxH < 2)
+    {
+        maxH = 2;
+    }
+    if (zoom < 1)
+    {
+        zoom = 1;
+    }
+    uint32_t cropW = evenDown(maxW / zoom);
+    uint32_t cropH = evenDown(maxH / zoom);
+    if (cropW < 2)
+    {
+        cropW = 2;
+    }
+    if (cropH < 2)
+    {
+        cropH = 2;
+    }
+    if (cropW > maxW)
+    {
+        cropW = maxW;
+    }
+    if (cropH > maxH)
+    {
+        cropH = maxH;
+    }
+    *limitW = cropW;
+    *limitH = cropH;
+}
+
+static bool exactScaledCrop(uint32_t limitW, uint32_t limitH, uint32_t destW, uint32_t destH, uint32_t scaleMax, uint32_t *cropW, uint32_t *cropH, uint32_t *scaleNum)
+{
+    const uint32_t frag = ppaScaleDenom();
+    if (limitW < 2 || limitH < 2 || destW < 2 || destH < 2 || frag == 0)
     {
         return false;
     }
-
-    uint32_t product_w = dest_w * 16u;
-    uint32_t product_h = dest_h * 16u;
-    uint32_t n_min_w = (product_w + limit_w - 1u) / limit_w;
-    uint32_t n_min_h = (product_h + limit_h - 1u) / limit_h;
-    uint32_t n = (n_min_w > n_min_h) ? n_min_w : n_min_h;
+    const uint32_t productW = destW * frag;
+    const uint32_t productH = destH * frag;
+    uint32_t nMinW = (productW + limitW - 1u) / limitW;
+    uint32_t nMinH = (productH + limitH - 1u) / limitH;
+    uint32_t n = (nMinW > nMinH) ? nMinW : nMinH;
     if (n == 0)
     {
         n = 1;
     }
-
-    uint32_t n_max = product_w / 2u;
-    uint32_t n_max_h = product_h / 2u;
-    if (n_max_h < n_max)
+    uint32_t nMax = scaleMax;
+    const uint32_t nMaxW = productW / 2u;
+    const uint32_t nMaxH = productH / 2u;
+    if (nMaxW < nMax)
     {
-        n_max = n_max_h;
+        nMax = nMaxW;
     }
-
-    while (n <= n_max)
+    if (nMaxH < nMax)
     {
-        bool divides = (product_w % n) == 0 && (product_h % n) == 0;
-        uint32_t cw = divides ? (product_w / n) : 0;
-        uint32_t ch = divides ? (product_h / n) : 0;
-        bool fits = divides && (cw % 2u) == 0 && (ch % 2u) == 0 && cw <= limit_w && ch <= limit_h;
-        bool exact = fits && ppaScaledPixels(cw, n) == dest_w && ppaScaledPixels(ch, n) == dest_h;
+        nMax = nMaxH;
+    }
+    while (n <= nMax)
+    {
+        const bool divides = (productW % n) == 0 && (productH % n) == 0;
+        const uint32_t cw = divides ? (productW / n) : 0;
+        const uint32_t ch = divides ? (productH / n) : 0;
+        const bool exact = divides && (cw % 2u) == 0 && (ch % 2u) == 0 && cw <= limitW && ch <= limitH && cw >= 2 && ch >= 2 && ppaScaledPixels(cw, n) == destW && ppaScaledPixels(ch, n) == destH;
         if (exact)
         {
-            *crop_w = cw;
-            *crop_h = ch;
-            *scale_num = n;
+            *cropW = cw;
+            *cropH = ch;
+            *scaleNum = n;
             return true;
         }
         n++;
@@ -4486,68 +4679,196 @@ static bool cameraPpaExactCrop(uint32_t cam_w, uint32_t cam_h, uint32_t dest_w, 
     return false;
 }
 
-static void cameraZoomCrop(uint32_t cam_w, uint32_t cam_h, uint32_t dest_w, uint32_t dest_h, uint8_t zoom, uint32_t *crop_w, uint32_t *crop_h, uint32_t *crop_x, uint32_t *crop_y, float *scale_x, float *scale_y)
+static CameraRoiMeasure measureCameraRoi(uint32_t frameW, uint32_t frameH, uint32_t destW, uint32_t destH, int16_t centerX, int16_t centerY, uint8_t zoom, uint8_t rotation, bool nativeOriented)
 {
-    uint8_t z = zoom;
-    if (z != 2 && z != 4)
+    CameraRoiMeasure result = {};
+    result.centerX = centerX;
+    result.centerY = centerY;
+    destW = evenDown(destW);
+    destH = evenDown(destH);
+    if (frameW < 2 || frameH < 2 || destW < 2 || destH < 2)
     {
-        z = 1;
+        return result;
     }
-
-    uint32_t cw = 0;
-    uint32_t ch = 0;
-    uint32_t scale_num = 0;
-    if (cameraPpaExactCrop(cam_w, cam_h, dest_w, dest_h, z, &cw, &ch, &scale_num))
+    uint32_t targetW = destW;
+    uint32_t targetH = destH;
+    // SPI preview: buffer is logical, so odd rotation needs swapped target before PPA rotate.
+    // DSI native FB: PPA rotates into panel orientation; target stays logical dest size.
+    if ((rotation % 2u) != 0u && !nativeOriented)
     {
-        *crop_w = cw;
-        *crop_h = ch;
-        *crop_x = ((cam_w - cw) / 2) & ~1u;
-        *crop_y = ((cam_h - ch) / 2) & ~1u;
-        *scale_x = (float)scale_num / 16.0f;
-        *scale_y = (float)scale_num / 16.0f;
+        targetW = destH;
+        targetH = destW;
+    }
+    if (zoom < 1)
+    {
+        zoom = 1;
+    }
+    const uint32_t scaleMax = ppaScaleNumMax();
+    uint8_t used = zoom;
+    while (true)
+    {
+        uint32_t limitW = 0;
+        uint32_t limitH = 0;
+        uint32_t cropW = 0;
+        uint32_t cropH = 0;
+        uint32_t scaleNum = 0;
+        zoomedAspectLimit(frameW, frameH, targetW, targetH, used, &limitW, &limitH);
+        if (exactScaledCrop(limitW, limitH, targetW, targetH, scaleMax, &cropW, &cropH, &scaleNum))
+        {
+            const bool unresolved = centerX < 0 || centerY < 0;
+            int32_t cx = unresolved && centerX < 0 ? (int32_t)(frameW / 2u) : centerX;
+            int32_t cy = unresolved && centerY < 0 ? (int32_t)(frameH / 2u) : centerY;
+            if (centerX < 0)
+            {
+                cx = (int32_t)(frameW / 2u);
+            }
+            if (centerY < 0)
+            {
+                cy = (int32_t)(frameH / 2u);
+            }
+            int32_t x = cx - (int32_t)cropW / 2;
+            int32_t y = cy - (int32_t)cropH / 2;
+            bool clamped = x < 0 || y < 0 || x + (int32_t)cropW > (int32_t)frameW || y + (int32_t)cropH > (int32_t)frameH;
+            if (x < 0)
+            {
+                x = 0;
+            }
+            if (y < 0)
+            {
+                y = 0;
+            }
+            if (x + (int32_t)cropW > (int32_t)frameW)
+            {
+                x = (int32_t)frameW - (int32_t)cropW;
+            }
+            if (y + (int32_t)cropH > (int32_t)frameH)
+            {
+                y = (int32_t)frameH - (int32_t)cropH;
+            }
+            if (x < 0)
+            {
+                x = 0;
+            }
+            if (y < 0)
+            {
+                y = 0;
+            }
+            x = (int32_t)evenDown((uint32_t)x);
+            y = (int32_t)evenDown((uint32_t)y);
+            if (x + (int32_t)cropW > (int32_t)frameW && x >= 2)
+            {
+                x -= 2;
+                clamped = true;
+            }
+            if (y + (int32_t)cropH > (int32_t)frameH && y >= 2)
+            {
+                y -= 2;
+                clamped = true;
+            }
+            result.valid = true;
+            result.cropX = (uint32_t)x;
+            result.cropY = (uint32_t)y;
+            result.cropW = cropW;
+            result.cropH = cropH;
+            result.scaleNum = scaleNum;
+            result.zoomUsed = used;
+            result.centerMoved = unresolved || clamped;
+            if (result.centerMoved)
+            {
+                result.centerX = (int16_t)(x + (int32_t)cropW / 2);
+                result.centerY = (int16_t)(y + (int32_t)cropH / 2);
+            }
+            return result;
+        }
+        if (used == 1)
+        {
+            return result;
+        }
+        used--;
+    }
+}
+
+static CameraFit fitCameraView(uint32_t srcW, uint32_t srcH, uint8_t rotation, int areaX, int areaY, uint32_t areaW, uint32_t areaH, bool nativeOriented)
+{
+    CameraFit fit = {};
+    uint32_t viewW = srcW;
+    uint32_t viewH = srcH;
+    if ((rotation % 2u) != 0u && !nativeOriented)
+    {
+        viewW = srcH;
+        viewH = srcW;
+    }
+    if (viewW < 2 || viewH < 2 || areaW < 2 || areaH < 2)
+    {
+        return fit;
+    }
+    const uint32_t frag = ppaScaleDenom();
+    const uint32_t scaleMax = ppaScaleNumMax();
+    uint32_t nW = (areaW * frag) / viewW;
+    uint32_t nH = (areaH * frag) / viewH;
+    uint32_t n = nW < nH ? nW : nH;
+    if (n > scaleMax)
+    {
+        n = scaleMax;
+    }
+    if (n == 0)
+    {
+        n = 1;
+    }
+    while (n > 0)
+    {
+        const uint32_t outW = (viewW * n) / frag;
+        const uint32_t outH = (viewH * n) / frag;
+        const bool fits = (outW % 2u) == 0 && (outH % 2u) == 0 && outW >= 2 && outH >= 2 && outW <= areaW && outH <= areaH && n <= scaleMax;
+        if (fits)
+        {
+            fit.valid = true;
+            fit.scaleNum = n;
+            fit.outW = outW;
+            fit.outH = outH;
+            fit.destX = areaX + (int)((areaW - outW) / 2u);
+            fit.destY = areaY + (int)((areaH - outH) / 2u);
+            return fit;
+        }
+        if (n == 1)
+        {
+            return fit;
+        }
+        n--;
+    }
+    return fit;
+}
+
+static void mapCapturePoint(int32_t x, int32_t y, uint32_t frameW, uint32_t frameH, uint8_t rotation, bool mirrorX, bool mirrorY, int32_t *outX, int32_t *outY)
+{
+    if (mirrorX)
+    {
+        x = (int32_t)frameW - 1 - x;
+    }
+    if (mirrorY)
+    {
+        y = (int32_t)frameH - 1 - y;
+    }
+    if (rotation == 1)
+    {
+        *outX = y;
+        *outY = (int32_t)frameW - 1 - x;
         return;
     }
-
-    uint32_t kx = (dest_w > 0) ? (cam_w / dest_w) : 1;
-    uint32_t ky = (dest_h > 0) ? (cam_h / dest_h) : 1;
-    uint32_t k = (kx < ky) ? kx : ky;
-    if (k == 0)
+    if (rotation == 2)
     {
-        k = 1;
+        *outX = (int32_t)frameW - 1 - x;
+        *outY = (int32_t)frameH - 1 - y;
+        return;
     }
-    k /= z;
-    if (k == 0)
+    if (rotation == 3)
     {
-        k = 1;
+        *outX = (int32_t)frameH - 1 - y;
+        *outY = x;
+        return;
     }
-
-    cw = dest_w * k;
-    ch = dest_h * k;
-    if (cw > cam_w)
-    {
-        cw = cam_w;
-    }
-    if (ch > cam_h)
-    {
-        ch = cam_h;
-    }
-    cw &= ~1u;
-    ch &= ~1u;
-    if (cw == 0)
-    {
-        cw = 2;
-    }
-    if (ch == 0)
-    {
-        ch = 2;
-    }
-
-    *crop_w = cw;
-    *crop_h = ch;
-    *crop_x = ((cam_w - cw) / 2) & ~1u;
-    *crop_y = ((cam_h - ch) / 2) & ~1u;
-    *scale_x = (float)dest_w / (float)cw;
-    *scale_y = (float)dest_h / (float)ch;
+    *outX = x;
+    *outY = y;
 }
 
 static void cameraNativeOffset(uint8_t rotation, int native_w, int native_h, int x, int y, uint32_t w, uint32_t h, uint32_t *native_x, uint32_t *native_y)
@@ -4689,20 +5010,40 @@ bool DisplayFK::ensureCameraPreview(uint32_t w, uint32_t h)
     return true;
 }
 
-void DisplayFK::drawCameraZoomLabel(CameraMipi *widget)
+void DisplayFK::drawCameraOverlay(CameraMipi *widget, bool fullScreen, bool showFps)
 {
-    if (!widget || !widget->showZoomLevel() || !WidgetBase::objTFT)
+    if (!widget || !WidgetBase::objTFT)
     {
         return;
     }
+    if (!showFps && !widget->showZoomLevel())
+    {
+        return;
+    }
+    const int16_t x = fullScreen ? 8 : (int16_t)(widget->getXPos() + 8);
+    const int16_t y = fullScreen ? 8 : (int16_t)(widget->getYPos() + 8);
     WidgetBase::setFontNull();
     WidgetBase::objTFT->setTextSize(1);
-    WidgetBase::objTFT->setCursor(widget->getXPos() + 8, widget->getYPos() + 8);
     WidgetBase::objTFT->setTextColor(CFK_WHITE);
+    int16_t textY = y;
+    if (showFps)
+    {
+        char line[12];
+        const unsigned fps = widget->fps();
+        snprintf(line, sizeof(line), "%u fps", fps);
+        WidgetBase::objTFT->setCursor(x, y);
+        WidgetBase::objTFT->print(line);
+        textY = (int16_t)(y + 12);
+    }
+    if (!widget->showZoomLevel())
+    {
+        return;
+    }
+    WidgetBase::objTFT->setCursor(x, textY);
     WidgetBase::objTFT->print(widget->zoomLabel());
 }
 
-bool DisplayFK::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint8_t zoomLevel)
+bool DisplayFK::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint32_t crop_x, uint32_t crop_y, uint32_t crop_w, uint32_t crop_h, uint32_t scale_num)
 {
     ppa_client_handle_t ppa_srm = m_camera.ppaClient();
     if (!WidgetBase::objTFT || !ppa_srm || !src || cam_w == 0 || cam_h == 0)
@@ -4754,13 +5095,13 @@ bool DisplayFK::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
         return false;
     }
 
-    uint32_t crop_w = dest_w;
-    uint32_t crop_h = dest_h;
-    uint32_t crop_x = 0;
-    uint32_t crop_y = 0;
-    float scale_x = 1.0f;
-    float scale_y = 1.0f;
-    cameraZoomCrop(cam_w, cam_h, dest_w, dest_h, zoomLevel, &crop_w, &crop_h, &crop_x, &crop_y, &scale_x, &scale_y);
+    if (scale_num == 0 || crop_w < 2 || crop_h < 2 || crop_x + crop_w > cam_w || crop_y + crop_h > cam_h)
+    {
+        return false;
+    }
+    const float scale = (float)scale_num / (float)ppaScaleDenom();
+    float scale_x = scale;
+    float scale_y = scale;
 
     uint16_t *fb = nullptr;
     uint32_t out_pic_w = native_w;
@@ -4843,17 +5184,49 @@ bool DisplayFK::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
     return true;
 }
 
+static void resolveCameraCenter(CameraMipi *widget, const CameraRoiMeasure &measured)
+{
+    if (widget != nullptr && measured.centerMoved)
+    {
+        widget->setCenterPoint(measured.centerX, measured.centerY);
+    }
+}
+
+static void noteCameraZoom(CameraMipi *widget, const CameraRoiMeasure &measured)
+{
+    if (widget != nullptr && measured.valid)
+    {
+        widget->noteZoomClamped(measured.zoomUsed);
+    }
+}
+
 void DisplayFK::updateCameraMipi(ESPVideoBufferClass *buffer)
 {
-    if (!m_camera.isReady() || !m_cameraMipiConfigured || !buffer || !buffer->data())
+    if (!m_camera.isReady() || !m_cameraMipiConfigured || !buffer || !buffer->data() || WidgetBase::objTFT == nullptr)
     {
         return;
     }
 
     const uint16_t *src = (const uint16_t *)buffer->data();
-    uint32_t cam_w = buffer->getWidth();
-    uint32_t cam_h = buffer->getHeight();
-    bool onlyFullScreen = CameraMipi::hasFullScreen();
+    const uint32_t cam_w = buffer->getWidth();
+    const uint32_t cam_h = buffer->getHeight();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    const bool nativeFb = cameraBlitUsesNativeFb(m_cameraDsiDisplay);
+#else
+    const bool nativeFb = false;
+#endif
+    const bool onlyFullScreen = CameraMipi::hasFullScreen();
+    if (onlyFullScreen && !m_seenCameraFullScreen)
+    {
+        m_fullScreenBarsPending = true;
+        m_fullScreenFpsWindowMs = 0;
+        m_fullScreenFpsCount = 0;
+        m_fullScreenFpsShown = 0;
+    }
+    if (!onlyFullScreen)
+    {
+        m_seenCameraFullScreen = false;
+    }
 
     for (uint32_t indice = 0; indice < qtdCameraMipi; indice++)
     {
@@ -4868,14 +5241,436 @@ void DisplayFK::updateCameraMipi(ESPVideoBufferClass *buffer)
             {
                 continue;
             }
-            // blitCameraDmaFullScreen(src, cam_w, cam_h);
-            blitCameraDmaCropped(src, cam_w, cam_h, 0, 0, WidgetBase::objTFT->width(), WidgetBase::objTFT->height(), widget->getZoomLevel());
-            drawCameraZoomLabel(widget);
+            m_seenCameraFullScreen = true;
+            const uint32_t displayW = evenDown((uint32_t)WidgetBase::objTFT->width());
+            const uint32_t displayH = evenDown((uint32_t)WidgetBase::objTFT->height());
+            if (!widget->keepZoomOnMaximized())
+            {
+                m_fullScreenBarsPending = false;
+                const CameraRoiMeasure cover = measureCameraRoi(cam_w, cam_h, displayW, displayH, widget->centerPointX(), widget->centerPointY(), widget->getZoomLevel(), m_cameraRotation, nativeFb);
+                resolveCameraCenter(widget, cover);
+                noteCameraZoom(widget, cover);
+                if (!cover.valid)
+                {
+                    return;
+                }
+                if (!blitCameraDmaCropped(src, cam_w, cam_h, 0, 0, displayW, displayH, cover.cropX, cover.cropY, cover.cropW, cover.cropH, cover.scaleNum))
+                {
+                    return;
+                }
+                drawCameraOverlay(widget, true, false);
+                return;
+            }
+            if (m_fullScreenBarsPending)
+            {
+                WidgetBase::objTFT->fillScreen(CFK_BLACK);
+                m_fullScreenBarsPending = false;
+            }
+            const CameraRoiMeasure roi = measureCameraRoi(cam_w, cam_h, widget->getWidthPlot(), widget->getHeightPlot(), widget->centerPointX(), widget->centerPointY(), widget->getZoomLevel(), m_cameraRotation, nativeFb);
+            resolveCameraCenter(widget, roi);
+            noteCameraZoom(widget, roi);
+            if (!roi.valid)
+            {
+                return;
+            }
+            const CameraFit fit = fitCameraView(roi.cropW, roi.cropH, m_cameraRotation, 0, 0, displayW, displayH, nativeFb);
+            if (!fit.valid)
+            {
+                return;
+            }
+            if (!blitCameraDmaCropped(src, cam_w, cam_h, fit.destX, fit.destY, fit.outW, fit.outH, roi.cropX, roi.cropY, roi.cropW, roi.cropH, fit.scaleNum))
+            {
+                return;
+            }
+            const uint32_t now = millis();
+            if (m_fullScreenFpsWindowMs == 0)
+            {
+                m_fullScreenFpsWindowMs = now;
+            }
+            m_fullScreenFpsCount++;
+            const uint32_t elapsed = now - m_fullScreenFpsWindowMs;
+            if (elapsed >= 1000)
+            {
+                m_fullScreenFpsShown = (uint8_t)((m_fullScreenFpsCount * 1000UL) / elapsed);
+                m_fullScreenFpsCount = 0;
+                m_fullScreenFpsWindowMs = now;
+            }
+            drawCameraOverlay(widget, true, false);
             return;
         }
-        blitCameraDmaCropped(src, cam_w, cam_h, widget->getXPlot(), widget->getYPlot(), widget->getWidthPlot(), widget->getHeightPlot(), widget->getZoomLevel());
-        drawCameraZoomLabel(widget);
+        const uint32_t nowMs = millis();
+        if (!widget->isRedrawDue(nowMs))
+        {
+            continue;
+        }
+        const CameraRoiMeasure roi = measureCameraRoi(cam_w, cam_h, widget->getWidthPlot(), widget->getHeightPlot(), widget->centerPointX(), widget->centerPointY(), widget->getZoomLevel(), m_cameraRotation, nativeFb);
+        resolveCameraCenter(widget, roi);
+        noteCameraZoom(widget, roi);
+        if (!roi.valid)
+        {
+            continue;
+        }
+        const uint32_t destW = evenDown(widget->getWidthPlot());
+        const uint32_t destH = evenDown(widget->getHeightPlot());
+        if (!blitCameraDmaCropped(src, cam_w, cam_h, widget->getXPlot(), widget->getYPlot(), destW, destH, roi.cropX, roi.cropY, roi.cropW, roi.cropH, roi.scaleNum))
+        {
+            continue;
+        }
+        widget->noteRedraw(nowMs);
+        drawCameraOverlay(widget, false, widget->showFps());
     }
+}
+
+uint32_t DisplayFK::cameraPreviewWaitMs() const
+{
+    if (CameraMipi::hasFullScreen())
+    {
+        return 1;
+    }
+    uint32_t fastestMs = 0;
+    if (arrayCameraMipi != nullptr)
+    {
+        for (uint32_t indice = 0; indice < qtdCameraMipi; indice++)
+        {
+            CameraMipi *widget = arrayCameraMipi[indice];
+            if (widget == nullptr || !widget->showingMyScreen())
+            {
+                continue;
+            }
+            const uint32_t periodMs = 1000u / widget->fps();
+            if (fastestMs == 0 || periodMs < fastestMs)
+            {
+                fastestMs = periodMs;
+            }
+        }
+    }
+    if (fastestMs == 0)
+    {
+        fastestMs = 200;
+    }
+    return fastestMs;
+}
+
+void DisplayFK::releaseCameraFrameCopy()
+{
+    if (m_frameCopy != nullptr)
+    {
+        heap_caps_free(m_frameCopy);
+        m_frameCopy = nullptr;
+    }
+    m_frameCopyBytes = 0;
+    m_frameCopyW = 0;
+    m_frameCopyH = 0;
+    m_cameraCopyPhase.store(0);
+}
+
+bool DisplayFK::requestCameraFrameCopy()
+{
+    if (m_cameraCopyPhase.load() == 3 && m_frameCopy != nullptr)
+    {
+        return true;
+    }
+    releaseCameraFrameCopy();
+    m_frameCopyWaiter = xTaskGetCurrentTaskHandle();
+    m_cameraCopyPhase.store(1);
+    const uint32_t start = millis();
+    while ((millis() - start) < 500)
+    {
+        const uint32_t elapsed = millis() - start;
+        const uint32_t left = elapsed >= 500 ? 1 : (500 - elapsed);
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(left));
+        const uint8_t phase = m_cameraCopyPhase.load();
+        if (phase == 3)
+        {
+            return true;
+        }
+        if (phase == 4)
+        {
+            releaseCameraFrameCopy();
+            return false;
+        }
+    }
+    uint8_t expected = 1;
+    if (!m_cameraCopyPhase.compare_exchange_strong(expected, (uint8_t)0) && expected == 2)
+    {
+        const uint32_t extra = millis();
+        while ((millis() - extra) < 100 && m_cameraCopyPhase.load() == 2)
+        {
+            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
+        }
+    }
+    if (m_cameraCopyPhase.load() == 3)
+    {
+        releaseCameraFrameCopy();
+    }
+    ESP_LOGW(TAG, "camera frame copy timed out");
+    m_cameraCopyPhase.store(0);
+    return false;
+}
+
+void DisplayFK::publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint32_t height)
+{
+    uint8_t expected = 1;
+    if (!m_cameraCopyPhase.compare_exchange_strong(expected, (uint8_t)2))
+    {
+        return;
+    }
+    if (src == nullptr || width < 2 || height < 2)
+    {
+        ESP_LOGE(TAG, "camera frame copy has no image");
+        m_cameraCopyPhase.store(4);
+        if (m_frameCopyWaiter != nullptr)
+        {
+            xTaskNotifyGive(m_frameCopyWaiter);
+        }
+        return;
+    }
+    const size_t bytes = (size_t)width * height * sizeof(uint16_t);
+    uint16_t *copied = (uint16_t *)heap_caps_aligned_alloc(128, bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (copied == nullptr)
+    {
+        ESP_LOGE(TAG, "camera frame copy alloc failed");
+        m_cameraCopyPhase.store(4);
+        if (m_frameCopyWaiter != nullptr)
+        {
+            xTaskNotifyGive(m_frameCopyWaiter);
+        }
+        return;
+    }
+    esp_cache_msync((void *)src, bytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+    memcpy(copied, src, bytes);
+    m_frameCopy = copied;
+    m_frameCopyBytes = bytes;
+    m_frameCopyW = width;
+    m_frameCopyH = height;
+    m_cameraCopyPhase.store(3);
+    if (m_frameCopyWaiter != nullptr)
+    {
+        xTaskNotifyGive(m_frameCopyWaiter);
+    }
+}
+
+bool DisplayFK::clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t plotW, uint32_t plotH, int16_t *centerX, int16_t *centerY, uint8_t zoom, uint32_t *cropW, uint32_t *cropH) const
+{
+    if (centerX == nullptr || centerY == nullptr || cropW == nullptr || cropH == nullptr)
+    {
+        return false;
+    }
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    const bool nativeFb = cameraBlitUsesNativeFb(m_cameraDsiDisplay);
+#else
+    const bool nativeFb = false;
+#endif
+    const CameraRoiMeasure measured = measureCameraRoi(frameW, frameH, plotW, plotH, *centerX, *centerY, zoom, m_cameraRotation, nativeFb);
+    if (!measured.valid)
+    {
+        return false;
+    }
+    *centerX = measured.centerX;
+    *centerY = measured.centerY;
+    *cropW = measured.cropW;
+    *cropH = measured.cropH;
+    return true;
+}
+
+bool DisplayFK::drawFrozenCamera(CameraMipi *widget, int16_t centerX, int16_t centerY, uint8_t zoom, int areaX, int areaY, int areaW, int areaH, CameraConfigView *view)
+{
+    if (view == nullptr || m_frameCopy == nullptr || WidgetBase::objTFT == nullptr || areaW < 2 || areaH < 2)
+    {
+        return false;
+    }
+    view->roiX = 0;
+    view->roiY = 0;
+    view->roiW = 0;
+    view->roiH = 0;
+    WidgetBase::objTFT->fillRect(areaX, areaY, areaW, areaH, CFK_BLACK);
+    const uint32_t frameW = m_frameCopyW;
+    const uint32_t frameH = m_frameCopyH;
+    const uint32_t frameCropW = evenDown(frameW);
+    const uint32_t frameCropH = evenDown(frameH);
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    const bool nativeFb = cameraBlitUsesNativeFb(m_cameraDsiDisplay);
+#else
+    const bool nativeFb = false;
+#endif
+    const CameraFit fit = fitCameraView(frameCropW, frameCropH, m_cameraRotation, areaX, areaY, (uint32_t)areaW, (uint32_t)areaH, nativeFb);
+    if (!fit.valid)
+    {
+        return false;
+    }
+    if (!blitCameraDmaCropped(m_frameCopy, frameW, frameH, fit.destX, fit.destY, fit.outW, fit.outH, 0, 0, frameCropW, frameCropH, fit.scaleNum))
+    {
+        return false;
+    }
+    uint32_t plotW = widget != nullptr ? widget->getWidthPlot() : 2;
+    uint32_t plotH = widget != nullptr ? widget->getHeightPlot() : 2;
+    if (plotW < 2 && widget != nullptr)
+    {
+        plotW = widget->getWidth();
+    }
+    if (plotH < 2 && widget != nullptr)
+    {
+        plotH = widget->getHeight();
+    }
+    const CameraRoiMeasure roi = measureCameraRoi(frameW, frameH, plotW, plotH, centerX, centerY, zoom, m_cameraRotation, nativeFb);
+    if (!roi.valid || fit.outW == 0 || fit.outH == 0)
+    {
+        return true;
+    }
+    int32_t x0 = 0;
+    int32_t y0 = 0;
+    int32_t x1 = 0;
+    int32_t y1 = 0;
+    mapCapturePoint((int32_t)roi.cropX, (int32_t)roi.cropY, frameW, frameH, m_cameraRotation, m_cameraMirrorX, m_cameraMirrorY, &x0, &y0);
+    mapCapturePoint((int32_t)(roi.cropX + roi.cropW - 1u), (int32_t)(roi.cropY + roi.cropH - 1u), frameW, frameH, m_cameraRotation, m_cameraMirrorX, m_cameraMirrorY, &x1, &y1);
+    const int32_t left = x0 < x1 ? x0 : x1;
+    const int32_t top = y0 < y1 ? y0 : y1;
+    const int32_t right = x0 > x1 ? x0 : x1;
+    const int32_t bottom = y0 > y1 ? y0 : y1;
+    const uint32_t viewW = (m_cameraRotation % 2u) != 0u ? frameH : frameW;
+    const uint32_t viewH = (m_cameraRotation % 2u) != 0u ? frameW : frameH;
+    if (viewW == 0 || viewH == 0)
+    {
+        return true;
+    }
+    int32_t screenW = ((right - left + 1) * (int32_t)fit.outW) / (int32_t)viewW;
+    int32_t screenH = ((bottom - top + 1) * (int32_t)fit.outH) / (int32_t)viewH;
+    if (screenW < 2)
+    {
+        screenW = 2;
+    }
+    if (screenH < 2)
+    {
+        screenH = 2;
+    }
+    view->roiX = (int16_t)(fit.destX + (left * (int32_t)fit.outW) / (int32_t)viewW);
+    view->roiY = (int16_t)(fit.destY + (top * (int32_t)fit.outH) / (int32_t)viewH);
+    view->roiW = (uint16_t)screenW;
+    view->roiH = (uint16_t)screenH;
+    return true;
+}
+
+bool DisplayFK::beginCameraConfig(CameraMipi *widget)
+{
+    if (widget == nullptr)
+    {
+        return false;
+    }
+    if (WidgetBase::usingKeyboard)
+    {
+        ESP_LOGW(TAG, "camera config blocked while another keyboard is open");
+        return false;
+    }
+    if (CameraMipi::hasFullScreen())
+    {
+        exitCameraFullScreen();
+    }
+    if (m_hndTaskCamera == nullptr)
+    {
+        ESP_LOGW(TAG, "camera task is not running");
+        return false;
+    }
+    if (!requestCameraFrameCopy())
+    {
+        return false;
+    }
+    if (widget->centerPointX() < 0 || widget->centerPointY() < 0)
+    {
+        int16_t centerX = widget->centerPointX();
+        int16_t centerY = widget->centerPointY();
+        if (centerX < 0)
+        {
+            centerX = (int16_t)(m_frameCopyW / 2u);
+        }
+        if (centerY < 0)
+        {
+            centerY = (int16_t)(m_frameCopyH / 2u);
+        }
+        widget->setCenterPoint(centerX, centerY);
+    }
+    if (!m_cameraRoi)
+    {
+        m_cameraRoi = std::unique_ptr<CameraRoi>(new CameraRoi());
+    }
+    if (!m_cameraRoi)
+    {
+        releaseCameraFrameCopy();
+        return false;
+    }
+    const bool locked = m_transactionSemaphore != nullptr && xSemaphoreTake(m_transactionSemaphore, pdMS_TO_TICKS(200)) == pdTRUE;
+    WidgetBase::usingKeyboard = true;
+    m_cameraRoiActive = true;
+    m_ignoreOpeningTouch = true;
+    m_cameraRoiTouchWasDown = false;
+    m_cameraRoi->open(widget, m_frameCopyW, m_frameCopyH);
+    if (locked)
+    {
+        xSemaphoreGive(m_transactionSemaphore);
+    }
+    return true;
+}
+
+void DisplayFK::finishCameraConfig(bool apply)
+{
+    CameraMipi *widget = m_cameraRoi ? m_cameraRoi->widget() : nullptr;
+    if (apply && widget != nullptr && m_cameraRoi)
+    {
+        widget->setCenterPoint(m_cameraRoi->centerX(), m_cameraRoi->centerY());
+        widget->setZoomLevel(m_cameraRoi->zoom());
+        widget->setKeepZoomOnMaximized(m_cameraRoi->keepZoom());
+    }
+    if (m_cameraRoi)
+    {
+        m_cameraRoi->close();
+    }
+    WidgetBase::usingKeyboard = false;
+    m_cameraRoiActive = false;
+    m_ignoreOpeningTouch = false;
+    m_cameraRoiTouchWasDown = false;
+    releaseCameraFrameCopy();
+    refreshScreen();
+}
+
+void DisplayFK::serviceCameraRoi(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
+{
+    if (m_stopTask.load() || !WidgetBase::usingKeyboard || !m_cameraRoiActive || !m_cameraRoi)
+    {
+        return;
+    }
+    if (m_ignoreOpeningTouch)
+    {
+        if (!hasTouch)
+        {
+            m_ignoreOpeningTouch = false;
+            m_cameraRoiTouchWasDown = false;
+        }
+        return;
+    }
+    const bool wasDown = m_cameraRoiTouchWasDown;
+    m_cameraRoiTouchWasDown = hasTouch;
+    if (!hasTouch || wasDown)
+    {
+        return;
+    }
+    const CameraRoiAction action = m_cameraRoi->handlePress(xTouch, yTouch);
+    if (action == CameraRoiAction::Confirm)
+    {
+        finishCameraConfig(true);
+    }
+    else if (action == CameraRoiAction::Cancel)
+    {
+        finishCameraConfig(false);
+    }
+}
+
+bool CameraMipi::openConfig()
+{
+    if (DisplayFK::instance == nullptr)
+    {
+        ESP_LOGW(CameraMipi::TAG, "DisplayFK instance missing");
+        return false;
+    }
+    return DisplayFK::instance->beginCameraConfig(this);
 }
 #else
 void DisplayFK::updateCameraMipi(){

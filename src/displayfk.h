@@ -421,6 +421,9 @@ public:
     void setRotationCamera(uint8_t rotation, bool mirrorX = false, bool mirrorY = false);
     bool startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1, uint16_t sensorWidth = 0, uint16_t sensorHeight = 0);
     bool isCameraReady() const;
+    void setCameraPreviewFps(uint8_t fps);
+    uint8_t cameraPreviewFps() const;
+    bool beginCameraConfig(CameraMipi *widget);
 #endif
     void setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y);
     void startAutoClick();
@@ -632,6 +635,21 @@ private:
 #endif
     uint16_t *m_cameraPreviewFb;
     size_t m_cameraPreviewFbBytes;
+    uint8_t m_cameraPreviewFps = 5;
+    uint16_t *m_frameCopy = nullptr;
+    size_t m_frameCopyBytes = 0;
+    uint32_t m_frameCopyW = 0;
+    uint32_t m_frameCopyH = 0;
+    std::atomic<uint8_t> m_cameraCopyPhase{0};
+    TaskHandle_t m_frameCopyWaiter = nullptr;
+    std::unique_ptr<CameraRoi> m_cameraRoi;
+    bool m_cameraRoiActive = false;
+    bool m_cameraRoiTouchWasDown = false;
+    bool m_seenCameraFullScreen = false;
+    bool m_fullScreenBarsPending = false;
+    uint32_t m_fullScreenFpsWindowMs = 0;
+    uint16_t m_fullScreenFpsCount = 0;
+    uint8_t m_fullScreenFpsShown = 0;
     TaskHandle_t m_hndTaskCamera = nullptr;
     std::atomic<bool> m_cameraTaskStopped{true};
 #endif
@@ -662,6 +680,8 @@ private:
     TouchSwipeDirection m_lastTouchSwipeDirection = TouchSwipeDirection::NONE;
     CoordPoint_t pressPoint = {x: 0, y: 0};
     CoordPoint_t releasePoint = {x: 0, y: 0};
+    static void logHeapPorTipo(const char *nome, uint32_t capacidades);
+    static void logMemoriaSistema();
 
 #ifdef ENABLE_ON_RELEASE
     // Touch tracking for onRelease functionality
@@ -878,11 +898,20 @@ private:
     void updateNumberBox();
     void updateThermometer();
     #if defined(DFK_CAMERA_MIPI) && defined(HAS_CAMERA_MIPI)
+    friend class CameraRoi;
     void updateCameraMipi(ESPVideoBufferClass *buffer);
     bool blitCameraDmaFullScreen(const uint16_t *src, uint32_t cam_w, uint32_t cam_h);
-    bool blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint8_t zoomLevel = 1);
+    bool blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32_t cam_h, int x, int y, uint32_t w, uint32_t h, uint32_t crop_x, uint32_t crop_y, uint32_t crop_w, uint32_t crop_h, uint32_t scale_num);
     bool ensureCameraPreview(uint32_t w, uint32_t h);
-    void drawCameraZoomLabel(CameraMipi *widget);
+    void drawCameraOverlay(CameraMipi *widget, bool fullScreen, bool showFps);
+    uint32_t cameraPreviewWaitMs() const;
+    void serviceCameraRoi(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
+    void finishCameraConfig(bool apply);
+    bool requestCameraFrameCopy();
+    void releaseCameraFrameCopy();
+    void publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint32_t height);
+    bool clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t plotW, uint32_t plotH, int16_t *centerX, int16_t *centerY, uint8_t zoom, uint32_t *cropW, uint32_t *cropH) const;
+    bool drawFrozenCamera(CameraMipi *widget, int16_t centerX, int16_t centerY, uint8_t zoom, int areaX, int areaY, int areaW, int areaH, CameraConfigView *view);
     #else
     void updateCameraMipi();
     #endif
