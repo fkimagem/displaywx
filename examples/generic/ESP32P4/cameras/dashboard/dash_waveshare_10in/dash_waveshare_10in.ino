@@ -351,10 +351,8 @@ void loop(){
 // [EdgeWX] Desenho estatico da tela 0. Os widgets entram so em drawWidgetsOnScreen.
 void screen0(){
 
-    // [EdgeWX] Fundo CFK_GREY4, RGB565 0x4228.
-    tft->fillScreen(CFK_GREY4);
-    // [EdgeWX] Cor de apagamento dos widgets igual ao fundo da pagina.
-    WidgetBase::backgroundColor = CFK_GREY4;
+    // [EdgeWX] Pinta o fundo e guarda a cor para apagar texto.
+    myDisplay.setBackgroundColor(CFK_GREY4);
     // [EdgeWX] Cartao da camera: x 30, y 85, 380x292, raio 10, preenchimento CFK_GREY3.
     tft->fillRoundRect(30, 85, 380, 292, 10, CFK_GREY3);
     // [EdgeWX] Borda preta desse cartao.

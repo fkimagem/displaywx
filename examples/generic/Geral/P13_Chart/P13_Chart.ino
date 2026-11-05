@@ -96,8 +96,7 @@ void loop(){
 }
 
 void screen0(){
-    tft->fillScreen(CFK_GREY3);
-    WidgetBase::backgroundColor = CFK_GREY3;
+    myDisplay.setBackgroundColor(CFK_GREY3);
     //This screen has a/an grafico
     //This screen has a/an rectButton
     //This screen has a/an led

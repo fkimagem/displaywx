@@ -648,8 +648,7 @@ void drawStripe(int x, int y,  uint16_t cor1, uint16_t cor2, uint8_t levels){
     }
 }
 void screen0(){
-    tft->fillScreen(CFK_GREY3);
-    WidgetBase::backgroundColor = CFK_GREY3;
+    myDisplay.setBackgroundColor(CFK_GREY3);
     tft->fillRoundRect(565, 135, 128, 99, 10, CFK_GREY4);
     tft->drawRoundRect(565, 135, 128, 99, 10, CFK_BLACK);
     tft->fillRoundRect(40, 145, 370, 66, 10, CFK_GREY4);

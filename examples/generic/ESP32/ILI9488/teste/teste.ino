@@ -78,8 +78,7 @@ void setup(){
 }
 
 void screen0(){
-    tft->fillScreen(CFK_GREY3);
-    WidgetBase::backgroundColor = CFK_GREY3;
+    myDisplay.setBackgroundColor(CFK_GREY3);
     
     tft->fillRect(63, 73, 221, 175, CFK_COLOR04);
     tft->drawRect(63, 73, 221, 175, CFK_BLACK);

@@ -170,8 +170,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("SSID", 120, 92, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an caixaTexto
     //This screen has a/an caixaTexto

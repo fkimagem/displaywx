@@ -90,8 +90,7 @@ void loop()
 void screen0()
 {
 
-    tft->fillScreen(CFK_BLACK); // Preenche toda a tela com a cor cinza escuro (CFK_GREY3) como fundo
-    WidgetBase::backgroundColor = CFK_BLACK; // Define a cor de fundo padrão para os widgets desenhados nesta tela
+    myDisplay.setBackgroundColor(CFK_BLACK); // Pinta o fundo e guarda a cor para apagar texto.
 
     uint16_t c_red = 0xf800;
     uint16_t c_green = 0x07e0;

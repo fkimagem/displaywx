@@ -30,6 +30,7 @@ public:
   void show() override;
   void hide() override;
   void setup(const CircleButtonConfig& config);
+  void onClick();
   bool getStatus() const;
   void setStatus(bool _status);
 

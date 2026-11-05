@@ -96,6 +96,28 @@ void RectButton::setEnabled(bool newState) { m_enabled = newState; }
 void RectButton::changeState() { m_status = !m_status; }
 
 /**
+ * @brief Simula um clique no RectButton.
+ * @details Inverte o estado, marca o redesenho e enfileira o callback.
+ *          O efeito é o mesmo de um toque na área do botão.
+ */
+void RectButton::onClick()
+{
+  if (!m_loaded)
+  {
+    ESP_LOGE(TAG, "RectButton widget not loaded");
+    return;
+  }
+
+  changeState();
+  m_shouldRedraw = true;
+  ESP_LOGD(TAG, "RectButton clicked");
+  if (m_callback != nullptr)
+  {
+    WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
+  }
+}
+
+/**
  * @brief Força o botão a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */

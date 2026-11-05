@@ -174,8 +174,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("Frequence pulse", 145, 27, TL_DATUM, CFK_COLOR04, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an radiobutton
     //This screen has a/an radiobutton

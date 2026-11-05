@@ -314,13 +314,13 @@ void setup(){
     // [EdgeWX] Sobe o GT911 na I2C compartilhada. So compila com TOUCH_GT911 no user_setup.h.
     myDisplay.startTouchGT911(DISPLAY_W, DISPLAY_H, rotationScreen, TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_RST);
     // [EdgeWX] Liga o log de toque. Em varios exports a mesma linha sai comentada; neste projeto ela ficou ativa.
-    myDisplay.enableTouchLog();
+    // myDisplay.enableTouchLog();
     // [EdgeWX] Configura cada widget. O comentario em ingles, com o typo, e texto fixo do gerador.
     loadWidgets(); // This function is used to setup with widget individualy
     // [EdgeWX] Registra screen0 como tela carregada pela tarefa de UI.
     myDisplay.loadScreen(screen0); // Use this line to change between screens
     // [EdgeWX] Cria a tarefa de toque e desenho. false = watchdog desligado; 3 = timeout em segundos, guardado mas sem WDT.
-    myDisplay.createTask(false, 3); // Initialize the task to read touch and draw
+    myDisplay.createTask(true, 3); // Initialize the task to read touch and draw
 }
 
 // [EdgeWX] Assinatura do loop do Arduino. O corpo original do gerador e so um delay; o miolo abaixo e da simulacao.
@@ -343,10 +343,8 @@ void loop(){
 // [EdgeWX] Desenho estatico da tela 0. A tarefa chama isto ao carregar a tela; widgets entram so no final.
 void screen0(){
 
-    // [EdgeWX] Fundo #003F7F (CFK_COLOR046 em widgetsetup.h).
-    tft->fillScreen(CFK_COLOR046);
-    // [EdgeWX] Cor de apagamento dos widgets igual ao fundo, para o redraw nao deixar retangulo estranho.
-    WidgetBase::backgroundColor = CFK_COLOR046;
+    // [EdgeWX] Pinta o fundo e guarda a cor para apagar texto.
+    myDisplay.setBackgroundColor(CFK_COLOR046);
     // [EdgeWX] Miolo do painel da camera: x 280, y 65, 481x295, raio 20, mesma cor do fundo.
     tft->fillRoundRect(280, 65, 481, 295, 20, CFK_COLOR046);
     // [EdgeWX] Borda #55FFFF (CFK_COLOR044) desse painel.

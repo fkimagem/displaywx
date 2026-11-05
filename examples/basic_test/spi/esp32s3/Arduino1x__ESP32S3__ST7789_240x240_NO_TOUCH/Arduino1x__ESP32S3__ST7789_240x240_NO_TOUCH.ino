@@ -67,8 +67,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("Custom text", 90, 42, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     tft->fillCircle(54, 49, 15, CFK_COLOR01);
     tft->drawCircle(54, 49, 15, CFK_BLACK);

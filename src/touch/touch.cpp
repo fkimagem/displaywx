@@ -1,4 +1,6 @@
-#include "touch.h"
+#include "../displaywx.h"
+#include <math.h>
+#include <stdio.h>
 
 #if defined(TOUCH_FT6236U)
 // TouchScreen *TouchScreen::m_instance = nullptr;
@@ -296,12 +298,6 @@ void TouchScreen::touch_init()
 
   m_ts->begin(m_spitoque, m_touchFrequency, m_displayFrequency);
 
-  if (m_displayPinCS > 0)
-  {
-    delayMicroseconds(5);
-    digitalWrite(m_displayPinCS, LOW);
-  }
-
 #elif defined(TOUCH_FT6236U)
   if (!m_ts->begin(40, m_pinSDA, m_pinSCL)) // 40 in this case represents the sensitivity. Try higer or lower for better response.
   {
@@ -513,7 +509,11 @@ bool TouchScreen::touch_touched()
     {
       ESP_LOGD(TAG, "Raw xyz[%i\t%i\t%i]\n", xTouch, yTouch, zTouch);
     }
+#if CALIBRATE_POINTS == 9
+    ScreenPoint_t toque = touchToScreenNinePoints(xTouch, yTouch);
+#else
     ScreenPoint_t toque = touchToTelaPonto0e2(xTouch, yTouch);
+#endif
 
     m_touch_last_x = toque.x;
     m_touch_last_y = toque.y;
@@ -781,6 +781,390 @@ uint8_t TouchScreen::getRotation()
   return m_rotation;
 }
 
+#if defined(HAS_TOUCH) && defined(TOUCH_XPT2046) && (CALIBRATE_POINTS == 9)
+
+namespace
+{
+
+constexpr uint8_t kNinePointCount = 9;
+constexpr uint8_t kNinePointAttempts = 3;
+constexpr int32_t kMinimumTurn = 50;
+
+// Cada celula: superior esquerdo, superior direito, inferior direito, inferior esquerdo.
+constexpr uint8_t kNineCells[4][4] = {
+    {0, 1, 4, 3},
+    {1, 2, 5, 4},
+    {3, 4, 7, 6},
+    {4, 5, 8, 7},
+};
+
+struct FloatPoint
+{
+  float x;
+  float y;
+};
+
+struct BilinearUv
+{
+  float u;
+  float v;
+};
+
+float crossProduct(FloatPoint left, FloatPoint right)
+{
+  return left.x * right.y - left.y * right.x;
+}
+
+float unitSquareMiss(float u, float v)
+{
+  float horizontal = 0.f;
+  float vertical = 0.f;
+  if (u < 0.f)
+  {
+    horizontal = -u;
+  }
+  if (u > 1.f)
+  {
+    horizontal = u - 1.f;
+  }
+  if (v < 0.f)
+  {
+    vertical = -v;
+  }
+  if (v > 1.f)
+  {
+    vertical = v - 1.f;
+  }
+  return horizontal * horizontal + vertical * vertical;
+}
+
+float limitParameter(float value)
+{
+  if (value < -0.25f)
+  {
+    return -0.25f;
+  }
+  if (value > 1.25f)
+  {
+    return 1.25f;
+  }
+  return value;
+}
+
+float blendAxis(float u, float v, float topLeft, float topRight, float bottomRight, float bottomLeft)
+{
+  float top = topLeft + (topRight - topLeft) * u;
+  float bottom = bottomLeft + (bottomRight - bottomLeft) * u;
+  return top + (bottom - top) * v;
+}
+
+BilinearUv parameterFromRoot(float u, FloatPoint query, FloatPoint alongU, FloatPoint alongV, FloatPoint curvature)
+{
+  FloatPoint span = {alongV.x + u * curvature.x, alongV.y + u * curvature.y};
+  FloatPoint remainder = {query.x - u * alongU.x, query.y - u * alongU.y};
+  float denominator = span.x * span.x + span.y * span.y;
+  BilinearUv result = {u, 0.f};
+  if (denominator <= 0.0001f)
+  {
+    return result;
+  }
+  result.v = (remainder.x * span.x + remainder.y * span.y) / denominator;
+  return result;
+}
+
+BilinearUv chooseCloserRoot(BilinearUv first, BilinearUv second)
+{
+  if (unitSquareMiss(second.u, second.v) < unitSquareMiss(first.u, first.v))
+  {
+    return second;
+  }
+  return first;
+}
+
+BilinearUv inverseBilinear(int16_t xTouch, int16_t yTouch, const CalibrationPoint_t &topLeft, const CalibrationPoint_t &topRight, const CalibrationPoint_t &bottomRight, const CalibrationPoint_t &bottomLeft)
+{
+  FloatPoint origin = {(float)topLeft.xTouch, (float)topLeft.yTouch};
+  FloatPoint alongU = {(float)topRight.xTouch - origin.x, (float)topRight.yTouch - origin.y};
+  FloatPoint alongV = {(float)bottomLeft.xTouch - origin.x, (float)bottomLeft.yTouch - origin.y};
+  FloatPoint curvature = {
+      origin.x - (float)topRight.xTouch + (float)bottomRight.xTouch - (float)bottomLeft.xTouch,
+      origin.y - (float)topRight.yTouch + (float)bottomRight.yTouch - (float)bottomLeft.yTouch};
+  FloatPoint query = {(float)xTouch - origin.x, (float)yTouch - origin.y};
+
+  float square = crossProduct(alongU, curvature);
+  float linear = crossProduct(alongU, alongV) - crossProduct(query, curvature);
+  float constant = -crossProduct(query, alongV);
+  BilinearUv unset = {0.f, 0.f};
+  if (fabsf(square) < 0.001f)
+  {
+    if (fabsf(linear) < 0.001f)
+    {
+      return unset;
+    }
+    return parameterFromRoot(-constant / linear, query, alongU, alongV, curvature);
+  }
+
+  float discriminant = linear * linear - 4.f * square * constant;
+  if (discriminant < 0.f)
+  {
+    discriminant = 0.f;
+  }
+  float root = sqrtf(discriminant);
+  float divisor = 2.f * square;
+  BilinearUv first = parameterFromRoot((-linear + root) / divisor, query, alongU, alongV, curvature);
+  BilinearUv second = parameterFromRoot((-linear - root) / divisor, query, alongU, alongV, curvature);
+  return chooseCloserRoot(first, second);
+}
+
+int32_t cornerTurn(const CalibrationPoint_t &first, const CalibrationPoint_t &second, const CalibrationPoint_t &third)
+{
+  int32_t forwardX = (int32_t)second.xTouch - first.xTouch;
+  int32_t forwardY = (int32_t)second.yTouch - first.yTouch;
+  int32_t nextX = (int32_t)third.xTouch - second.xTouch;
+  int32_t nextY = (int32_t)third.yTouch - second.yTouch;
+  return forwardX * nextY - forwardY * nextX;
+}
+
+bool cellIsConvex(const CalibrationPoint_t &topLeft, const CalibrationPoint_t &topRight, const CalibrationPoint_t &bottomRight, const CalibrationPoint_t &bottomLeft)
+{
+  int32_t turns[4] = {
+      cornerTurn(topLeft, topRight, bottomRight),
+      cornerTurn(topRight, bottomRight, bottomLeft),
+      cornerTurn(bottomRight, bottomLeft, topLeft),
+      cornerTurn(bottomLeft, topLeft, topRight)};
+  bool positive = true;
+  bool negative = true;
+  for (uint8_t index = 0; index < 4; index++)
+  {
+    int32_t turn = turns[index];
+    if (turn > -kMinimumTurn && turn < kMinimumTurn)
+    {
+      return false;
+    }
+    if (turn <= 0)
+    {
+      positive = false;
+    }
+    if (turn >= 0)
+    {
+      negative = false;
+    }
+  }
+  return positive || negative;
+}
+
+bool ninePointGridIsUsable(const CalibrationPoint_t *points)
+{
+  for (uint8_t cell = 0; cell < 4; cell++)
+  {
+    if (!cellIsConvex(points[kNineCells[cell][0]], points[kNineCells[cell][1]], points[kNineCells[cell][2]], points[kNineCells[cell][3]]))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+uint16_t markerCoordinate(uint16_t length, uint8_t index)
+{
+  uint16_t margin = 16;
+  if (length < 80)
+  {
+    margin = length / 6;
+  }
+  if ((uint16_t)(margin * 2) >= length)
+  {
+    margin = length / 4;
+  }
+  if (index == 0)
+  {
+    return margin;
+  }
+  if (index == 2)
+  {
+    return (uint16_t)(length - 1 - margin);
+  }
+  return length / 2;
+}
+
+void assignNineTargets(CalibrationPoint_t *points, uint16_t width, uint16_t height)
+{
+  for (uint8_t index = 0; index < kNinePointCount; index++)
+  {
+    points[index].xScreen = markerCoordinate(width, index % 3);
+    points[index].yScreen = markerCoordinate(height, index / 3);
+    points[index].xTouch = 0;
+    points[index].yTouch = 0;
+  }
+}
+
+void averageTouchSample(XPT2046 *touch, int16_t *xTouch, int16_t *yTouch)
+{
+  const uint8_t sampleCount = 8;
+  int32_t sumX = 0;
+  int32_t sumY = 0;
+  for (uint8_t sample = 0; sample < sampleCount; sample++)
+  {
+    while (!touch->getInput())
+    {
+      delay(10);
+    }
+    sumX += touch->x;
+    sumY += touch->y;
+    delay(5);
+  }
+  *xTouch = (int16_t)(sumX / sampleCount);
+  *yTouch = (int16_t)(sumY / sampleCount);
+}
+
+void waitUntilReleased(XPT2046 *touch)
+{
+  while (touch->getInput())
+  {
+    delay(10);
+  }
+}
+
+uint16_t clampToScreen(float value, uint16_t length)
+{
+  if (length == 0)
+  {
+    return 0;
+  }
+  if (value < 0.f)
+  {
+    return 0;
+  }
+  float last = (float)(length - 1);
+  if (value > last)
+  {
+    return (uint16_t)(length - 1);
+  }
+  return (uint16_t)(value + 0.5f);
+}
+
+template <typename Display>
+void showNinePointTarget(Display *display, uint16_t targetX, uint16_t targetY, uint16_t width, uint16_t height, uint8_t index, uint32_t colorMarker, uint32_t colorBackground)
+{
+  const char *message = "Touch the red dot";
+  TextBound_t bounds;
+  display->fillScreen(colorBackground);
+  display->fillCircle((int16_t)targetX, (int16_t)targetY, 8, colorMarker);
+  int16_t x = (int16_t)targetX;
+  int16_t y = (int16_t)targetY;
+  display->drawLine(x - 10, y, x + 10, y, 0x0000);
+  display->drawLine(x, y - 10, x, y + 10, 0x0000);
+  display->setTextColor(0x0000);
+  display->getTextBounds(message, 0, 0, &bounds.x, &bounds.y, &bounds.width, &bounds.height);
+  int16_t textX = (int16_t)(width / 2) - (int16_t)(bounds.width / 2);
+  int16_t textY = (targetY < height / 2) ? (int16_t)((height * 3) / 4) : (int16_t)(height / 4);
+  if (textX < 0)
+  {
+    textX = 0;
+  }
+  char progress[6];
+  snprintf(progress, sizeof(progress), "%u/9", (unsigned)(index + 1));
+  display->setCursor(textX, textY);
+  display->print(message);
+  display->setCursor(textX, textY + (int16_t)bounds.height + 4);
+  display->print(progress);
+}
+
+template <typename Display>
+void showRepeatCalibration(Display *display, uint16_t height, uint32_t colorBackground)
+{
+  display->fillScreen(colorBackground);
+  display->setTextColor(0x0000);
+  display->setCursor(8, height / 2);
+  display->print("Repeat calibration");
+  delay(1200);
+}
+
+} // namespace
+
+bool TouchScreen::calibrateTouchNine(CalibrationPoint_t *points, uint16_t width, uint16_t height, uint32_t colorMarker, uint32_t colorBackground)
+{
+  if (!m_objTFT || !m_ts || !points || width < 3 || height < 3)
+  {
+    return false;
+  }
+
+  for (uint8_t attempt = 0; attempt < kNinePointAttempts; attempt++)
+  {
+    if (attempt > 0)
+    {
+      showRepeatCalibration(m_objTFT, height, colorBackground);
+    }
+    assignNineTargets(points, width, height);
+    for (uint8_t index = 0; index < kNinePointCount; index++)
+    {
+      showNinePointTarget(m_objTFT, points[index].xScreen, points[index].yScreen, width, height, index, colorMarker, colorBackground);
+      averageTouchSample(m_ts, &points[index].xTouch, &points[index].yTouch);
+      m_objTFT->fillCircle(points[index].xScreen, points[index].yScreen, 8, 0x07E0);
+      delay(200);
+      waitUntilReleased(m_ts);
+      if (m_logMessages)
+      {
+        ESP_LOGD(TAG, "Nine %u screen %u,%u touch %d,%d", index, points[index].xScreen, points[index].yScreen, points[index].xTouch, points[index].yTouch);
+      }
+    }
+    if (ninePointGridIsUsable(points))
+    {
+      return true;
+    }
+    ESP_LOGW(TAG, "9-point grid rejected, attempt %u", (unsigned)(attempt + 1));
+  }
+  return false;
+}
+
+ScreenPoint_t TouchScreen::touchToScreenNinePoints(int16_t xTouch, int16_t yTouch)
+{
+  ScreenPoint_t screen = {0, 0};
+  if (!m_calibMatrix || m_widthScreen == 0 || m_heightScreen == 0)
+  {
+    return screen;
+  }
+
+  BilinearUv best = {0.f, 0.f};
+  uint8_t bestCell = 0;
+  float bestMiss = 1.0e9f;
+  for (uint8_t cell = 0; cell < 4; cell++)
+  {
+    BilinearUv uv = inverseBilinear(
+        xTouch,
+        yTouch,
+        m_calibMatrix[kNineCells[cell][0]],
+        m_calibMatrix[kNineCells[cell][1]],
+        m_calibMatrix[kNineCells[cell][2]],
+        m_calibMatrix[kNineCells[cell][3]]);
+    float miss = unitSquareMiss(uv.u, uv.v);
+    if (miss < bestMiss)
+    {
+      bestMiss = miss;
+      best = uv;
+      bestCell = cell;
+    }
+  }
+
+  float u = limitParameter(best.u);
+  float v = limitParameter(best.v);
+  const CalibrationPoint_t &topLeft = m_calibMatrix[kNineCells[bestCell][0]];
+  const CalibrationPoint_t &topRight = m_calibMatrix[kNineCells[bestCell][1]];
+  const CalibrationPoint_t &bottomRight = m_calibMatrix[kNineCells[bestCell][2]];
+  const CalibrationPoint_t &bottomLeft = m_calibMatrix[kNineCells[bestCell][3]];
+  float x = blendAxis(u, v, topLeft.xScreen, topRight.xScreen, bottomRight.xScreen, bottomLeft.xScreen);
+  float y = blendAxis(u, v, topLeft.yScreen, topRight.yScreen, bottomRight.yScreen, bottomLeft.yScreen);
+  screen.x = clampToScreen(x, m_widthScreen);
+  screen.y = clampToScreen(y, m_heightScreen);
+  if (m_logMessages)
+  {
+    ESP_LOGD(TAG, "Nine map raw %d,%d -> %u,%u", xTouch, yTouch, screen.x, screen.y);
+  }
+  return screen;
+}
+
+#endif
+
 /**
  * @brief Sets the calibration of the touch screen.
  * @param array Array of calibration points.
@@ -788,6 +1172,20 @@ uint8_t TouchScreen::getRotation()
 #if defined(HAS_TOUCH) && defined(TOUCH_XPT2046)
 void TouchScreen::setCalibration(CalibrationPoint_t *array)
 {
+#if CALIBRATE_POINTS == 9
+  delete[] m_calibMatrix;
+  m_calibMatrix = nullptr;
+  if (!array)
+  {
+    return;
+  }
+  m_calibMatrix = new CalibrationPoint_t[9];
+  if (!m_calibMatrix)
+  {
+    return;
+  }
+  memcpy(m_calibMatrix, array, 9 * sizeof(CalibrationPoint_t));
+#else
   delete[] m_calibMatrix;
   if (m_calibMatrix)
   {
@@ -801,6 +1199,7 @@ void TouchScreen::setCalibration(CalibrationPoint_t *array)
   {
     // calibMatrix[i] = array[i];
   }
+#endif
 }
 #endif
 

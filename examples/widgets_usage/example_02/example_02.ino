@@ -145,8 +145,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     //This screen has a/an toggleButton
     //This screen has a/an toggleButton
     myDisplay.printText("Led 1", 160, 107, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);

@@ -135,8 +135,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("ADC Alarm", 185, 32, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an spinbox
     myDisplay.printText("ADC mac value before alarm", 100, 92, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);

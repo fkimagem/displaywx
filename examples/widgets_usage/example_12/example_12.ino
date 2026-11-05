@@ -173,8 +173,7 @@ void loop() {
 
 void screen0() {
 
-  tft->fillScreen(CFK_WHITE);
-  WidgetBase::backgroundColor = CFK_WHITE;
+  myDisplay.setBackgroundColor(CFK_WHITE);
   // This screen has a/an ponteiroAnalog
   // This screen has a/an label
   myDisplay.printText("WiFi force", 195, 17, TL_DATUM, CFK_BLACK, CFK_WHITE,

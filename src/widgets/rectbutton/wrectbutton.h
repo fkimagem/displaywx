@@ -32,6 +32,7 @@ public:
   void forceUpdate() override;
   
   void setup(const RectButtonConfig& config);
+  void onClick();
   void changeState();
   bool getStatus();
   void setStatus(bool _status);

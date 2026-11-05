@@ -1,6 +1,11 @@
 #include "displaywx.h"
 #include "freertos_stats.h"
 #include <memory>
+#if defined(DFK_SD)
+#include <FS.h>
+#include <SD.h>
+#include <SPI.h>
+#endif
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 #include <esp_cache.h>
 #include <esp_heap_caps.h>
@@ -32,16 +37,6 @@ static constexpr uint32_t kCameraFramePeriodMs = 33;
 alignas(16) static StackType_t s_cameraTaskStack[DFK_UI_STACK_CAMERA_BYTES];
 static StaticTask_t s_cameraTaskTcb;
 #endif
-
-#define RESET_WDT                                                                                              \
-    {                                                                                                          \
-        if (DisplayWX::instance && DisplayWX::instance->m_enableWTD &&                                        \
-            DisplayWX::instance->m_watchdogInitialized &&                                                      \
-            xTaskGetCurrentTaskHandle() == DisplayWX::instance->m_hndTaskEventoTouch)                          \
-        {                                                                                                      \
-            esp_task_wdt_reset();                                                                              \
-        }                                                                                                      \
-    };
 
 DisplayWX *DisplayWX::instance = nullptr;
 bool DisplayWX::sdcardOK = false;
@@ -91,94 +86,92 @@ void DisplayWX::logMemoriaSistema()
     );
 }
 
+namespace
+{
+
+uint32_t mascaraDeTodosOsNucleos()
+{
+    uint32_t mascara = 0;
+    for (int nucleo = 0; nucleo < portNUM_PROCESSORS; ++nucleo)
+    {
+        mascara |= (1u << nucleo);
+    }
+    return mascara;
+}
+
+} // namespace
+
 /**
- * @brief Enables or disables the watchdog timer
+ * @brief Liga ou desliga o watchdog das tarefas ociosas de todos os núcleos.
+ *        true observa cada núcleo; false tira todos da máscara do TWDT.
  */
 void DisplayWX::changeWTD()
 {
-    if (!m_enableWTD)
+#if defined(CONFIG_ESP_TASK_WDT_TIMEOUT_S)
+    uint32_t timeoutMs = static_cast<uint32_t>(CONFIG_ESP_TASK_WDT_TIMEOUT_S) * 1000u;
+#else
+    uint32_t timeoutMs = 5000u;
+#endif
+    if (m_enableWTD && m_timeoutWTD > 0)
     {
-        if (!m_watchdogInitialized || m_hndTaskEventoTouch == nullptr)
-        {
-            return;
-        }
+        timeoutMs = static_cast<uint32_t>(m_timeoutWTD) * 1000u;
+    }
+    const uint32_t mascara = m_enableWTD ? mascaraDeTodosOsNucleos() : 0u;
 
-        esp_err_t removeu = esp_task_wdt_delete(m_hndTaskEventoTouch);
-        if (removeu == ESP_OK)
-        {
-            m_watchdogInitialized = false;
-            ESP_LOGI(TAG, "UI task removed from watchdog");
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Error to disable watchdog");
-        }
+    esp_task_wdt_config_t config = {};
+    config.timeout_ms = timeoutMs;
+    config.idle_core_mask = mascara;
+    config.trigger_panic = true;
+
+    esp_err_t resultado = esp_task_wdt_reconfigure(&config);
+    if (resultado == ESP_ERR_INVALID_STATE)
+    {
+        resultado = esp_task_wdt_init(&config);
+    }
+    if (resultado != ESP_OK)
+    {
+        m_watchdogInitialized = false;
+        ESP_LOGE(TAG, "Failed to update watchdog on all cores: %s", esp_err_to_name(resultado));
         return;
     }
 
-    if (m_watchdogInitialized || m_hndTaskEventoTouch == nullptr)
+    m_watchdogInitialized = m_enableWTD;
+    if (m_enableWTD)
     {
+        ESP_LOGI(TAG, "Watchdog enabled on %d cores, timeout %u ms", portNUM_PROCESSORS, static_cast<unsigned>(timeoutMs));
         return;
     }
-
-    esp_err_t adicionou = esp_task_wdt_add(m_hndTaskEventoTouch);
-    if (adicionou == ESP_OK)
-    {
-        m_watchdogInitialized = true;
-        ESP_LOGI(TAG, "UI task added to watchdog");
-    }
-    else
-    {
-        ESP_LOGE(TAG, "Error to add UI task on watchdog");
-    }
+    ESP_LOGI(TAG, "Watchdog disabled on all cores");
 }
 
 #ifdef DFK_SD
 
 /**
- * @brief Generates a unique filename for logs using string pool
- * @return Pointer to the generated filename (managed by string pool)
+ * @brief Generates a unique log filename in storage owned by this DisplayWX.
+ * @return Pointer valid until the next name is generated or cleanup runs.
  */
 const char *DisplayWX::generateNameFile() const
 {
-    // Try to use string pool first with exception safety
-    char *filename = const_cast<DisplayWX *>(this)->allocateStringSafe("generateNameFile");
-    if (!filename)
-    {
-        ESP_LOGE(TAG, "String pool exhausted, falling back to dynamic allocation");
-        // Fallback to dynamic allocation if pool is exhausted
-        const size_t totalLength = 50; // "/" + number + "-" + 32 chars + ".txt\0"
-        filename = new (std::nothrow) char[totalLength];
-        if (!filename)
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for filename");
-            return nullptr;
-        }
-    }
-
-    // Generate the random string first
-    char randomString[33]; // 32 chars + null terminator
+    char randomString[33];
     for (int i = 0; i < 32; ++i)
     {
-        uint8_t letter = random(65, 90);
-        randomString[i] = (char)letter;
+        randomString[i] = static_cast<char>(random(65, 90));
     }
     randomString[32] = '\0';
 
-    // Format the filename using snprintf for safety
-    int written = snprintf(filename, STRING_POOL_SIZE, "/%u-%s.txt", logFileCount, randomString);
-    if (written < 0 || written >= STRING_POOL_SIZE)
+    const int written = snprintf(m_logNameStorage, sizeof(m_logNameStorage), "/%u-%s.txt", logFileCount, randomString);
+    if (written < 0 || static_cast<size_t>(written) >= sizeof(m_logNameStorage))
     {
         ESP_LOGE(TAG, "Failed to format filename");
-        // If using pool, deallocate it
-        stringPool.deallocate(filename);
+        m_logNameStorage[0] = '\0';
+        m_nameLogFile = nullptr;
         return nullptr;
     }
 
-    ESP_LOGD(TAG, "Generated filename: %s", filename);
-    logFileCount++;
-
-    return filename;
+    ++logFileCount;
+    m_nameLogFile = m_logNameStorage;
+    ESP_LOGD(TAG, "Generated filename: %s", m_nameLogFile);
+    return m_nameLogFile;
 }
 
 /**
@@ -449,6 +442,19 @@ void DisplayWX::setNumberbox(NumberBox *array[], uint8_t amount)
 }
 
 /**
+ * @brief Pede a abertura do teclado numérico na tarefa de UI.
+ * @param field Caixa que recebe o número digitado.
+ */
+void DisplayWX::openNumberBox(NumberBox *field)
+{
+    if (field == nullptr)
+    {
+        return;
+    }
+    m_pendingNumberBox.store(field, std::memory_order_release);
+}
+
+/**
  * @brief Sets up the numeric keypad
  */
 void DisplayWX::setupNumpad()
@@ -603,6 +609,19 @@ void DisplayWX::setTextbox(TextBox *array[], uint8_t amount)
     qtdTextBox = amount;
 
     setupKeyboard();
+}
+
+/**
+ * @brief Pede a abertura do teclado de letras na tarefa de UI.
+ * @param field Caixa que recebe o texto digitado.
+ */
+void DisplayWX::openTextBox(TextBox *field)
+{
+    if (field == nullptr)
+    {
+        return;
+    }
+    m_pendingTextBox.store(field, std::memory_order_release);
 }
 
 /**
@@ -812,270 +831,320 @@ void DisplayWX::setCameraMipi(CameraMipi *array[], uint8_t amount)
 
 #ifdef DFK_SD
 
-/**
- * @brief Initializes the SD card with default settings
- * @param pinCS CS pin of the SD card
- * @param spiShared Pointer to the shared SPI interface
- * @return true if initialization was successful, false otherwise
- */
+namespace {
+
+bool managedCard(fs::FS *filesystem)
+{
+    return filesystem == &SD;
+}
+
+bool lockMountedCard(displaywx::storage::SdGuard &guard)
+{
+    if (!guard.ownsLock())
+    {
+        ESP_LOGE("DisplayWX", "SD lock timeout");
+        return false;
+    }
+    if (!displaywx::storage::SdSession::shared().isMounted())
+    {
+        ESP_LOGE("DisplayWX", "SD not configured");
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
+void DisplayWX::syncSdFlag()
+{
+    displaywx::storage::SdSession &session = displaywx::storage::SdSession::shared();
+    if (session.owner() == this)
+    {
+        sdcardOK = session.isMounted();
+        return;
+    }
+    if (!session.isMounted())
+    {
+        sdcardOK = false;
+    }
+}
+
+bool DisplayWX::startSD(const SDConfig &config)
+{
+    displaywx::storage::SdGuard guard;
+    if (!guard.ownsLock())
+    {
+        ESP_LOGE(TAG, "startSD lock timeout");
+        return false;
+    }
+    const bool mounted = displaywx::storage::SdSession::shared().mount(config, this);
+    syncSdFlag();
+    return mounted;
+}
+
 bool DisplayWX::startSD(uint8_t pinCS, SPIClass *spiShared)
 {
     return startSD(pinCS, spiShared, 0);
 }
 
-/**
- * @brief Initializes the SD card with custom settings
- * @param pinCS CS pin of the SD card
- * @param spiShared Pointer to the shared SPI interface
- * @param hz SPI interface frequency in Hz
- * @return true if initialization was successful, false otherwise
- */
 bool DisplayWX::startSD(uint8_t pinCS, SPIClass *spiShared, int hz)
 {
-    // Use exception-safe method
     return startSDSafe(pinCS, spiShared, hz);
 }
 
-/**
- * @brief Lists files in a directory
- * @param fs Pointer to the file system
- * @param dirname Directory name
- * @param levels Listing depth level
- */
+bool DisplayWX::startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz)
+{
+    if (hz < 0)
+    {
+        ESP_LOGE(TAG, "SD frequency rejected: %d Hz", hz);
+        return false;
+    }
+    if (pinCS > 63 || !digitalPinCanOutput(pinCS))
+    {
+        ESP_LOGE(TAG, "Invalid CS pin: %u", pinCS);
+        return false;
+    }
+
+    SDConfig config;
+    config.cs = static_cast<int8_t>(pinCS);
+    config.sck = -1;
+    config.miso = -1;
+    config.mosi = -1;
+    config.spi = spiShared;
+    config.initializeSPI = false;
+    config.frequencyHz = (hz == 0) ? displaywx::storage::kSdDefaultFrequencyHz : static_cast<uint32_t>(hz);
+    return startSD(config);
+}
+
+bool DisplayWX::isSDReady() const
+{
+    displaywx::storage::SdGuard guard;
+    if (!guard.ownsLock())
+    {
+        return false;
+    }
+    return displaywx::storage::SdSession::shared().isMounted();
+}
+
+bool DisplayWX::endSdWaiting(uint32_t timeoutMs)
+{
+    displaywx::storage::SdGuard guard(timeoutMs);
+    if (!guard.ownsLock())
+    {
+        ESP_LOGE(TAG, "endSD lock timeout; session unchanged");
+        return false;
+    }
+    displaywx::storage::SdSession &session = displaywx::storage::SdSession::shared();
+    if (session.isMounted() && session.owner() != this)
+    {
+        ESP_LOGE(TAG, "This DisplayWX does not own the SD session");
+        return false;
+    }
+    const bool ended = session.unmount(this);
+    if (ended)
+    {
+        sdcardOK = false;
+    }
+    return ended;
+}
+
+bool DisplayWX::endSD()
+{
+    return endSdWaiting(displaywx::storage::kSdLockTimeoutMs);
+}
+
+fs::FS *DisplayWX::getSD()
+{
+    displaywx::storage::SdGuard guard;
+    if (!guard.ownsLock())
+    {
+        return nullptr;
+    }
+    return displaywx::storage::SdSession::shared().filesystem();
+}
+
+bool DisplayWX::readSDFile(const char *path, String &out, size_t maxBytes)
+{
+    out = "";
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard))
+    {
+        return false;
+    }
+    return displaywx::storage::readText(*displaywx::storage::SdSession::shared().filesystem(), path, out, maxBytes);
+}
+
+bool DisplayWX::readSDFile(const char *path, uint8_t *buffer, size_t capacity, size_t &bytesRead, size_t offset)
+{
+    bytesRead = 0;
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard))
+    {
+        return false;
+    }
+    return displaywx::storage::readBinary(*displaywx::storage::SdSession::shared().filesystem(), path, buffer, capacity, bytesRead, offset);
+}
+
+bool DisplayWX::writeSDFile(const char *path, const char *text)
+{
+    if (text == nullptr)
+    {
+        ESP_LOGE(TAG, "writeSDFile null text");
+        return false;
+    }
+    return writeSDFile(path, reinterpret_cast<const uint8_t *>(text), strlen(text));
+}
+
+bool DisplayWX::writeSDFile(const char *path, const uint8_t *data, size_t length)
+{
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard))
+    {
+        return false;
+    }
+    return displaywx::storage::writeBytes(*displaywx::storage::SdSession::shared().filesystem(), path, data, length, false);
+}
+
+bool DisplayWX::appendSDFile(const char *path, const char *text)
+{
+    if (text == nullptr)
+    {
+        ESP_LOGE(TAG, "appendSDFile null text");
+        return false;
+    }
+    return appendSDFile(path, reinterpret_cast<const uint8_t *>(text), strlen(text));
+}
+
+bool DisplayWX::appendSDFile(const char *path, const uint8_t *data, size_t length)
+{
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard))
+    {
+        return false;
+    }
+    return displaywx::storage::writeBytes(*displaywx::storage::SdSession::shared().filesystem(), path, data, length, true);
+}
+
+bool DisplayWX::existsSDFile(const char *path)
+{
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard))
+    {
+        return false;
+    }
+    return displaywx::storage::existsRegularFile(*displaywx::storage::SdSession::shared().filesystem(), path);
+}
+
+bool DisplayWX::createSDDir(const char *path)
+{
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard))
+    {
+        return false;
+    }
+    return displaywx::storage::createOneDirectory(*displaywx::storage::SdSession::shared().filesystem(), path);
+}
+
 void DisplayWX::listFiles(fs::FS *fs, const char *dirname, uint8_t levels)
 {
-    if (!DisplayWX::sdcardOK)
+    if (managedCard(fs))
     {
-        ESP_LOGE(TAG, "SD not configured");
-        return;
-    }
-    if (dirname[0] != '/')
-    {
-        ESP_LOGE(TAG, "Path must start with /");
-    }
-    ESP_LOGD(TAG, "Listing directory: %s", dirname);
-
-    File root = fs->open(dirname);
-    if (!root)
-    {
-        ESP_LOGE(TAG, "Failed to open directory");
-        return;
-    }
-    if (!root.isDirectory())
-    {
-        ESP_LOGE(TAG, "Not a directory");
-        return;
-    }
-
-    File file = root.openNextFile();
-    uint16_t indiceFile = 1;
-    while (file)
-    {
-        RESET_WDT
-        if (file.isDirectory())
+        displaywx::storage::SdGuard guard;
+        if (!lockMountedCard(guard))
         {
-            ESP_LOGD(TAG, "\tDIR: %s", file.name());
-            // Serial.println(file.name());
-            if (levels)
-            {
-                const char *dirbase = "/";
-                size_t len1 = strlen(dirbase);
-                size_t len2 = strlen(file.name());
-
-                char *resultado = new (std::nothrow) char[len1 + len2 + 1];
-                if (!resultado)
-                    continue; // falha na alocação
-
-                strcpy(resultado, dirbase);     // copia str1
-                strcat(resultado, file.name()); // concatena str2
-
-                // String path = "/" + String(file.name());
-                listFiles(fs, resultado, levels - 1);
-                delete[] resultado;
-            }
+            return;
         }
-        else
-        {
-            ESP_LOGD(TAG, "\t%i\tFILE: %s\tSIZE: %d", indiceFile, file.name(), file.size());
-            indiceFile++;
-            // Serial.print(file.name());
-            // Serial.print("  SIZE: ");
-            // Serial.println(file.size());
-        }
-        file = root.openNextFile();
     }
+    displaywx::storage::legacyList(fs, dirname, levels);
 }
 
-/**
- * @brief Appends content to the end of a file
- * @param fs Pointer to the file system
- * @param path File path
- * @param message Message to be appended
- */
-void DisplayWX::appendFile(fs::FS *fs, const char *path, const char *message)
-{
-    if (!DisplayWX::sdcardOK)
-    {
-        ESP_LOGE(TAG, "SD not configured");
-        return;
-    }
-
-    auto len = strlen(message);
-
-    ESP_LOGD(TAG, "Appending %d bytes to file: %s", len, path);
-
-    File file = fs->open(path, FILE_APPEND);
-    if (!file)
-    {
-        ESP_LOGE(TAG, "Failed to open file for appending");
-        if (SD.totalBytes() == 0)
-        {
-            ESP_LOGE(TAG, "SD card empty");
-            DisplayWX::sdcardOK = false;
-        }
-        return;
-    }
-
-    if (file.size() > LOG_MAX_SIZE)
-    {
-        ESP_LOGE(TAG, "Log too large");
-        file.close();
-        return;
-    }
-
-    if (len <= 1)
-    {
-        ESP_LOGW(TAG, "Empty message isnt appended");
-        file.close();
-        return;
-    }
-
-    if (file.println(message))
-    {
-        ESP_LOGD(TAG, "Message appended");
-    }
-    else
-    {
-        ESP_LOGE(TAG, "Append failed");
-    }
-    file.close();
-}
-
-/**
- * @brief Reads the content of a file
- * @param fs Pointer to the file system
- * @param path File path
- */
-void DisplayWX::readFile(fs::FS *fs, const char *path)
-{
-    if (!DisplayWX::sdcardOK)
-    {
-        ESP_LOGE(TAG, "SD not configured");
-        return;
-    }
-    ESP_LOGD(TAG, "Reading file: %s", path);
-
-    File file = fs->open(path);
-    if (!file)
-    {
-        ESP_LOGE(TAG, "Failed to open file for reading");
-        return;
-    }
-
-    ESP_LOGD(TAG, "Read from file: ");
-    while (file.available())
-    {
-        Serial.write(file.read());
-    }
-    file.close();
-}
-
-/**
- * @brief Creates a directory
- * @param fs Pointer to the file system
- * @param path Directory path
- */
 void DisplayWX::createDir(fs::FS *fs, const char *path)
 {
-    if (!DisplayWX::sdcardOK)
+    if (managedCard(fs))
     {
-        ESP_LOGE(TAG, "SD not configured");
-        return;
+        displaywx::storage::SdGuard guard;
+        if (!lockMountedCard(guard))
+        {
+            return;
+        }
     }
-    ESP_LOGD(TAG, "Creating Dir: %s", path);
-    if (fs->mkdir(path))
-    {
-        ESP_LOGD(TAG, "Dir created");
-    }
-    else
-    {
-        ESP_LOGE(TAG, "mkdir failed");
-    }
+    displaywx::storage::legacyCreateDir(fs, path);
 }
 
-/**
- * @brief Writes content to a file
- * @param fs Pointer to the file system
- * @param path File path
- * @param message Message to be written
- */
+void DisplayWX::readFile(fs::FS *fs, const char *path)
+{
+    if (managedCard(fs))
+    {
+        displaywx::storage::SdGuard guard;
+        if (!lockMountedCard(guard))
+        {
+            return;
+        }
+    }
+    displaywx::storage::legacyReadToSerial(fs, path);
+}
+
+void DisplayWX::appendFile(fs::FS *fs, const char *path, const char *message)
+{
+    if (managedCard(fs))
+    {
+        displaywx::storage::SdGuard guard;
+        if (!lockMountedCard(guard))
+        {
+            return;
+        }
+    }
+    displaywx::storage::legacyAppendLine(fs, path, message);
+}
+
 void DisplayWX::writeFile(fs::FS *fs, const char *path, const char *message)
 {
-    if (!DisplayWX::sdcardOK)
+    if (managedCard(fs))
     {
-        ESP_LOGE(TAG, "SD not configured");
-        return;
+        displaywx::storage::SdGuard guard;
+        if (!lockMountedCard(guard))
+        {
+            return;
+        }
     }
-
-    ESP_LOGD(TAG, "Writing file: %s", path);
-
-    File file = fs->open(path, FILE_WRITE);
-    if (!file)
-    {
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return;
-    }
-    if (file.print(message))
-    {
-        ESP_LOGD(TAG, "File written");
-    }
-    else
-    {
-        ESP_LOGE(TAG, "Write failed");
-    }
-    file.close();
+    displaywx::storage::legacyWriteText(fs, path, message);
 }
 
-/**
- * @brief Appends logs to the log file
- * @param fs Pointer to the file system
- * @param path Log file path
- * @param lines Array of log messages
- * @param amount Number of messages
- * @param createNewFile true to create new file if needed
- */
 void DisplayWX::appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
 {
-    if (!DisplayWX::sdcardOK)
+    if (managedCard(fs))
     {
-        ESP_LOGE(TAG, "SD not configured");
+        displaywx::storage::SdGuard guard;
+        if (!lockMountedCard(guard))
+        {
+            return;
+        }
+    }
+    appendLogUnlocked(fs, path, lines, amount, createNewFile);
+}
+
+void DisplayWX::appendLogUnlocked(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
+{
+    if (fs == nullptr || path == nullptr || lines == nullptr)
+    {
+        ESP_LOGE(TAG, "appendLog invalid arguments");
         return;
     }
     if (amount == 0)
     {
-        ESP_LOGD(TAG, "No lines to append");
         return;
     }
 
-    File file = fs->open(path, FILE_APPEND);
+    fs::File file = fs->open(path, FILE_APPEND);
     if (!file)
     {
-        ESP_LOGE(TAG, "Failed to open file for appending");
-        if (SD.totalBytes() == 0)
-        {
-            ESP_LOGE(TAG, "SD card empty");
-            DisplayWX::sdcardOK = false;
-        }
+        ESP_LOGE(TAG, "appendLog failed to open %s", path);
+        return;
+    }
+    if (file.isDirectory())
+    {
+        ESP_LOGE(TAG, "appendLog path is a directory: %s", path);
+        file.close();
         return;
     }
 
@@ -1083,42 +1152,45 @@ void DisplayWX::appendLog(fs::FS *fs, const char *path, const logMessage_t *line
     {
         ESP_LOGE(TAG, "Log too large");
         file.close();
-
-        if (createNewFile)
+        if (!createNewFile)
         {
-            ESP_LOGD(TAG, "Creating new one");
-            m_nameLogFile = generateNameFile();
-            writeFile(WidgetBase::mySD, m_nameLogFile, "Start Log");
-            file = fs->open(getLogFileName(), FILE_APPEND);
-            if (!file)
-            {
-                ESP_LOGE(TAG, "Failed to open new file created for appending");
-                return;
-            }
+            return;
         }
-        else
+        if (generateNameFile() == nullptr)
         {
+            ESP_LOGE(TAG, "Failed to rotate log file name");
+            return;
+        }
+        const char header[] = "Start Log";
+        if (!displaywx::storage::writeBytes(*fs, m_nameLogFile, reinterpret_cast<const uint8_t *>(header), strlen(header), false))
+        {
+            return;
+        }
+        file = fs->open(m_nameLogFile, FILE_APPEND);
+        if (!file)
+        {
+            ESP_LOGE(TAG, "appendLog failed to open rotated file");
             return;
         }
     }
 
     uint8_t success = 0;
-    ESP_LOGD(TAG, "Starting write log with %d lines", amount);
-    for (int i = 0; i < amount; i++)
+    for (uint8_t i = 0; i < amount; ++i)
     {
         if (file.println(lines[i].line))
         {
-            ESP_LOGD(TAG, "Message appended");
-            success++;
+            ++success;
         }
         else
         {
-            ESP_LOGE(TAG, "Append failed");
+            ESP_LOGE(TAG, "appendLog failed");
         }
     }
+    file.flush();
     file.close();
-    ESP_LOGD(TAG, "%d/%d lines appended", success, amount);
+    ESP_LOGD(TAG, "%u/%u lines appended", success, amount);
 }
+
 #endif
 
 /**
@@ -1534,12 +1606,6 @@ void DisplayWX::stopUiTaskAndDelete()
     m_numpadTouchWasDown = false;
 #endif
 
-    if (m_watchdogInitialized)
-    {
-        esp_task_wdt_delete(nullptr);
-        m_watchdogInitialized = false;
-    }
-
     TaskHandle_t waiter = m_stopWaiter;
     m_hndTaskEventoTouch = nullptr;
     m_taskStopped.store(true);
@@ -1583,21 +1649,6 @@ void DisplayWX::cleanupFreeRTOSResources()
         ESP_LOGD(TAG, "Transaction semaphore deleted");
     }
 
-    // Remove task from watchdog if initialized
-    if (m_watchdogInitialized && m_hndTaskEventoTouch != nullptr)
-    {
-        esp_err_t result = esp_task_wdt_delete(m_hndTaskEventoTouch);
-        if (result == ESP_OK)
-        {
-            ESP_LOGD(TAG, "Task removed from watchdog");
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to remove task from watchdog: %s", esp_err_to_name(result));
-        }
-        m_watchdogInitialized = false;
-    }
-
     // Delete log queue
     if (xFilaLog != nullptr)
     {
@@ -1624,13 +1675,8 @@ void DisplayWX::cleanupDynamicMemory()
     ESP_LOGD(TAG, "Cleaning up dynamic memory");
 
 #ifdef DFK_SD
-    // Clean up log filename (owned by this class)
-    if (m_nameLogFile != nullptr)
-    {
-        delete[] m_nameLogFile;
-        m_nameLogFile = nullptr;
-        ESP_LOGD(TAG, "Log filename memory freed");
-    }
+    m_logNameStorage[0] = '\0';
+    m_nameLogFile = nullptr;
 #endif
 
 #ifdef DFK_EXTERNALINPUT
@@ -1780,8 +1826,11 @@ void DisplayWX::cleanup()
     cleanupWidgets();
     cleanupStringPool();
 
-    // Reset static variables
+#ifdef DFK_SD
+    endSD();
+#else
     sdcardOK = false;
+#endif
     logIndex = 0;
     logFileCount = 1;
 
@@ -1877,8 +1926,11 @@ DisplayWX::~DisplayWX()
     cleanupWidgets();
     cleanupStringPool();
 
-    // Reset static variables
+#ifdef DFK_SD
+    endSdWaiting(displaywx::storage::SdGuard::kWaitForever);
+#else
     sdcardOK = false;
+#endif
     logIndex = 0;
     logFileCount = 1;
 
@@ -2588,7 +2640,10 @@ void DisplayWX::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
 }
 
 /**
- * @brief Creates the event processing task
+ * @brief Creates the event processing task.
+ *        enableWatchdog true liga o watchdog ocioso de todos os núcleos;
+ *        false desliga o watchdog ocioso de todos os núcleos.
+ *        timeout_s é o tempo, em segundos, usado quando o watchdog é ligado.
  */
 void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
 {
@@ -2651,6 +2706,7 @@ void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
     if (m_hndTaskEventoTouch == nullptr)
     {
         ESP_LOGE(TAG, "Cant create task to read touch or draw widgets");
+        changeWTD();
         return;
     }
 
@@ -2788,15 +2844,24 @@ void DisplayWX::processLogQueue()
  */
 void DisplayWX::processLogBuffer()
 {
+#ifndef DFK_SD
+    logIndex = 0;
+    return;
+#else
     Serial.printf("Write log file %i lines\n", logIndex);
 
-    if (!sdcardOK)
+    if (!isSDReady())
     {
         ESP_LOGE(TAG, "SD card not available for log writing");
         return;
     }
+    if (m_nameLogFile == nullptr && generateNameFile() == nullptr)
+    {
+        ESP_LOGE(TAG, "Log file name unavailable");
+        return;
+    }
 
-    appendLog(WidgetBase::mySD, getLogFileName(), static_cast<const logMessage_t *>(bufferLog), logIndex, true);
+    appendLog(WidgetBase::mySD, m_nameLogFile, static_cast<const logMessage_t *>(bufferLog), logIndex, true);
 
     for (size_t i = 0; i < logIndex; i++)
     {
@@ -2804,6 +2869,7 @@ void DisplayWX::processLogBuffer()
     }
 
     logIndex = 0;
+#endif
 }
 
 /**
@@ -3931,6 +3997,16 @@ void DisplayWX::setDrawObject(U8G2 *objTFT)
 }
 #endif
 
+void DisplayWX::setBackgroundColor(uint16_t color)
+{
+    WidgetBase::backgroundColor = color;
+    if (!WidgetBase::objTFT)
+    {
+        return;
+    }
+    WidgetBase::objTFT->fillScreen(color);
+}
+
 void DisplayWX::cameraTask()
 {
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -3975,6 +4051,47 @@ void DisplayWX::cameraTask()
         xSemaphoreGive(m_transactionSemaphore);
     }
     m_camera.releaseFrame();
+#endif
+}
+
+/**
+ * @brief Abre teclado pedido por onClick na tarefa de UI.
+ */
+void DisplayWX::serviceRequestedInputs()
+{
+    if (WidgetBase::usingKeyboard)
+    {
+#if defined(DFK_NUMBERBOX)
+        m_pendingNumberBox.store(nullptr, std::memory_order_release);
+#endif
+#if defined(DFK_TEXTBOX)
+        m_pendingTextBox.store(nullptr, std::memory_order_release);
+#endif
+        return;
+    }
+
+#if defined(DFK_NUMBERBOX)
+    NumberBox *numberField = m_pendingNumberBox.exchange(nullptr, std::memory_order_acq_rel);
+    if (numberField != nullptr && numpad)
+    {
+        numpad->open(numberField);
+        m_ignoreOpeningTouch = true;
+        m_numpadActive = true;
+        m_numpadTouchWasDown = false;
+        return;
+    }
+#endif
+
+#if defined(DFK_TEXTBOX)
+    TextBox *textField = m_pendingTextBox.exchange(nullptr, std::memory_order_acq_rel);
+    if (textField != nullptr && keyboard)
+    {
+        keyboard->open(textField);
+        m_ignoreOpeningTouch = true;
+#if defined(DFK_NUMBERBOX)
+        m_numpadActive = false;
+#endif
+    }
 #endif
 }
 
@@ -4032,6 +4149,7 @@ void DisplayWX::displaywxTask()
         Serial.printf("Simulating click at (%i, %i)\n", xTouch, yTouch);
     }
 
+    serviceRequestedInputs();
     processTouchStatus(hasTouch, xTouch, yTouch);
     serviceKeyboard(hasTouch, xTouch, yTouch);
     serviceNumpad(hasTouch, xTouch, yTouch);
@@ -4085,9 +4203,6 @@ void DisplayWX::displaywxTask()
         ESP_LOGD(TAG, "displaywxTask finished: %lu ms\n", startTime);
     }
 
-    // esp_task_wdt_reset();
-    RESET_WDT
-
     // vTaskDelay(pdMS_TO_TICKS(1));
 }
 
@@ -4127,7 +4242,6 @@ void DisplayWX::TaskEventoTouch(void *pvParameters)
         {
             DisplayWX::instance->displaywxTask();
         }
-        RESET_WDT
 
         static uint32_t lastStackCheckMs = 0;
         static bool warnedLowStack = false;
@@ -4233,6 +4347,9 @@ void DisplayWX::disableTouchLog()
  */
 void DisplayWX::checkCalibration()
 {
+#if CALIBRATE_POINTS == 9
+    checkCalibrationNinePoints();
+#else
 #if defined(HAS_TOUCH)
     if (!WidgetBase::objTFT)
     {
@@ -4350,7 +4467,91 @@ void DisplayWX::checkCalibration()
 #else
     ESP_LOGW(TAG, "TOUCH_CS wasnt defined on TFT_eSPI library.");
 #endif
+#endif
 }
+
+#if CALIBRATE_POINTS == 9
+void DisplayWX::checkCalibrationNinePoints()
+{
+    if (!WidgetBase::objTFT)
+    {
+        Serial.println("Define WidgetBase::objTFT before use this function");
+        return;
+    }
+    if (!touchExterno)
+    {
+        Serial.println("Touch externo not defined");
+        return;
+    }
+    if (m_widthScreen <= 0 || m_heightScreen <= 0)
+    {
+        Serial.println("Screen size not defined");
+        return;
+    }
+
+    CalibrationPoint_t dados[9];
+    memset(dados, 0, sizeof(dados));
+
+    m_configs.begin("iniciais", false);
+    bool alreadyCalibrated = m_configs.getBool("jaCalibrado9", false);
+    if (m_configs.isKey("CALIB9"))
+    {
+        m_configs.getBytes("CALIB9", dados, sizeof(dados));
+    }
+
+    WidgetBase::objTFT->fillScreen(CFK_WHITE);
+    WidgetBase::objTFT->setTextColor(CFK_RED, CFK_WHITE);
+    if (!alreadyCalibrated)
+    {
+        WidgetBase::objTFT->setRotation(m_rotationScreen);
+        uint16_t widthScreen = (uint16_t)m_widthScreen;
+        uint16_t heightScreen = (uint16_t)m_heightScreen;
+        Serial.printf("Dimensao da tela: %u x %u\n", widthScreen, heightScreen);
+        Serial.println("recalibrando 9 pontos");
+        bool calibrated = touchExterno->calibrateTouchNine(dados, widthScreen, heightScreen, CFK_RED, CFK_WHITE);
+        if (!calibrated)
+        {
+            m_configs.end();
+            WidgetBase::objTFT->fillScreen(CFK_WHITE);
+            WidgetBase::objTFT->setTextColor(CFK_RED, CFK_WHITE);
+            WidgetBase::objTFT->setCursor(0, m_heightScreen / 2);
+            WidgetBase::objTFT->print("Calibration failed");
+            vTaskDelay(pdMS_TO_TICKS(1500));
+            WidgetBase::objTFT->fillScreen(CFK_BLACK);
+            WidgetBase::objTFT->setRotation(touchExterno->getRotation());
+            return;
+        }
+        m_configs.putBytes("CALIB9", dados, sizeof(dados));
+        m_configs.putUChar("rotation9", touchExterno->getRotation());
+        m_configs.putBool("jaCalibrado9", true);
+        for (uint8_t index = 0; index < 9; index++)
+        {
+            Serial.printf("Calibrado9 Tela: %u x %u = Touch: %d x %d\n", dados[index].xScreen, dados[index].yScreen, dados[index].xTouch, dados[index].yTouch);
+        }
+    }
+    else
+    {
+        Serial.println("ja calibrado (9)");
+        for (uint8_t index = 0; index < 9; index++)
+        {
+            Serial.printf("Calibrado9 Tela: %u x %u = Touch: %d x %d\n", dados[index].xScreen, dados[index].yScreen, dados[index].xTouch, dados[index].yTouch);
+        }
+    }
+    m_configs.end();
+    touchExterno->setCalibration(dados);
+    Serial.println("Calibration OK");
+    WidgetBase::objTFT->fillScreen(0xffff);
+    const char *doneMessage = "Calibration done";
+    TextBound_t bounds;
+    WidgetBase::objTFT->getTextBounds(doneMessage, 0, 0, &bounds.x, &bounds.y, &bounds.width, &bounds.height);
+    WidgetBase::objTFT->setCursor(m_widthScreen / 2 - bounds.width / 2, m_heightScreen / 2 - bounds.height / 2);
+    WidgetBase::objTFT->setTextColor(CFK_RED, CFK_WHITE);
+    WidgetBase::objTFT->print(doneMessage);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    WidgetBase::objTFT->fillScreen(CFK_BLACK);
+    WidgetBase::objTFT->setRotation(touchExterno->getRotation());
+}
+#endif
 
 /**
  * @brief Forces a new touch calibration
@@ -4358,8 +4559,12 @@ void DisplayWX::checkCalibration()
 void DisplayWX::recalibrate()
 {
     m_configs.begin("iniciais", false);
+#if CALIBRATE_POINTS == 9
+    m_configs.putBool("jaCalibrado9", false);
+#else
     // bool jaCalibrado = configs.getBool("jaCalibrado", false);
     m_configs.putBool("jaCalibrado", false);
+#endif
     m_configs.end();
     // ESP.restart();
 }
@@ -6324,56 +6529,6 @@ void DisplayWX::deallocateStringSafe(char *str)
     // Safe deallocation
     stringPool.deallocate(str);
     ESP_LOGD(TAG, "String deallocated safely");
-}
-
-/**
- * @brief Safe SD card initialization without exceptions
- * @param pinCS CS pin number
- * @param spiShared SPI instance
- * @param hz SPI frequency
- * @return true if successful, false otherwise
- */
-bool DisplayWX::startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz)
-{
-    // Validate input parameters
-    if (!validatePinNumber(pinCS))
-    {
-        ESP_LOGE(TAG, "Invalid CS pin: %d", pinCS);
-        return false;
-    }
-
-    if (!validateFrequency(hz))
-    {
-        ESP_LOGW(TAG, "Invalid frequency: %d, using default", hz);
-        hz = 4000000;
-    }
-
-    if (!spiShared)
-    {
-        ESP_LOGE(TAG, "SPI for SD not configured");
-        return false;
-    }
-
-    // Store original state for rollback
-    bool originalSdcardOK = sdcardOK;
-
-    // Configure SPI with validation
-    spiShared->beginTransaction(SPISettings(hz, MSBFIRST, SPI_MODE0));
-    sdcardOK = SD.begin(pinCS, *spiShared);
-    spiShared->endTransaction();
-
-    if (sdcardOK)
-    {
-        ESP_LOGI(TAG, "SD card initialized safely");
-        return true;
-    }
-    else
-    {
-        ESP_LOGE(TAG, "SD card initialization failed");
-        // Rollback on failure
-        sdcardOK = originalSdcardOK;
-        return false;
-    }
 }
 
 /**

@@ -90,16 +90,14 @@ uint8_t XPT2046::getInput()
 
 void XPT2046::beginTouchCommunication()
 {
-    digitalWrite(_cs, LOW);
     touchspi->beginTransaction(SPISettings(XPT2046::XPT2046_SPISPEED, MSBFIRST, SPI_MODE0));
-    
+    digitalWrite(_cs, LOW);
 }
 
 void XPT2046::endTouchCommunication()
 {
-    touchspi->endTransaction();
     digitalWrite(_cs, HIGH);
-    touchspi->setFrequency(XPT2046::DEFAULT_SPISPEED);
+    touchspi->endTransaction();
 }
 
 void XPT2046::begin(SPIClass* sharedSPI, int spispeed, int defaultspispeed)

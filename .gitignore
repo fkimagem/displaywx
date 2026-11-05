@@ -6,7 +6,13 @@ agents/
 .agents/
 src/widgets/compiled/
 *.bat
+!/criar_guia.bat
 src/widgets/*.md
 src/widgets/**/*.md
 setup_boards/
 *.zip
+tmp/
+.cursor/
+doc/
+animacao_camera/
+.dma-slides-build/

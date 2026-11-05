@@ -184,6 +184,28 @@ void CircleButton::setup(const CircleButtonConfig &config) {
 bool CircleButton::getStatus() const { return m_status; }
 
 /**
+ * @brief Simula um clique no CircleButton.
+ * @details Inverte o estado, marca o redesenho e enfileira o callback.
+ *          O efeito é o mesmo de um toque na área do botão.
+ */
+void CircleButton::onClick()
+{
+  if (!m_loaded)
+  {
+    ESP_LOGE(TAG, "CircleButton widget not loaded");
+    return;
+  }
+
+  changeState();
+  m_shouldRedraw = true;
+  ESP_LOGD(TAG, "CircleButton clicked");
+  if (m_config.callback != nullptr)
+  {
+    WidgetBase::addCallback(m_config.callback, WidgetBase::CallbackOrigin::SELF);
+  }
+}
+
+/**
  * @brief Define o estado atual do CircleButton.
  * @param _status True para pressionar o botão, False para liberar.
  * @details Este método permite mudar programaticamente o estado do botão:

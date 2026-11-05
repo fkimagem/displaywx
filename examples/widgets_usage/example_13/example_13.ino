@@ -155,8 +155,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("R", 55, 42, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     myDisplay.printText("G", 55, 102, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     myDisplay.printText("B", 55, 162, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);

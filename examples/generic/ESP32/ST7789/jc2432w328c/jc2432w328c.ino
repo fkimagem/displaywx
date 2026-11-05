@@ -66,8 +66,7 @@ void loop(){
     delay(2000);
 }
 void screen0(){
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->fillCircle(60, 37, 10, CFK_COLOR01);
     tft->drawCircle(60, 37, 10, CFK_COLOR01);
     tft->fillCircle(50, 55, 10, CFK_COLOR11);

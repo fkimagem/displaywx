@@ -59,8 +59,7 @@ void loop(){
 }
 
 void screen0(){
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->fillRect(10, 10, 50, 50, RED);
     tft->fillRect(20, 20, 50, 50, GREEN);
     tft->fillRect(30, 30, 50, 50, BLUE);
@@ -70,8 +69,7 @@ void screen0(){
     myDisplay.drawWidgetsOnScreen(0);
 }
 void screen1(){
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     uint8_t largura = 20;
     uint8_t offset = largura/2;
     uint16_t cor = CFK_GREY13;

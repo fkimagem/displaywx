@@ -114,7 +114,8 @@ static const char *TAG; ///< Tag estática para identificação em logs do ESP32
   void drawStar(int16_t xPos, int16_t yPos, uint8_t size, uint16_t color);
   SPIClass *m_spitoque = nullptr;
   uint8_t m_pinCS = 0;
-  /// @brief Pointer to calibration matrix. [0] = TL, [1] = TR, [2] = BR, [3] = BL
+  /// @brief Samples de calibracao. Com CALIBRATE_POINTS 4: cantos TL, TR, BR, BL.
+  ///        Com CALIBRATE_POINTS 9: grade 3x3, linha a linha.
   CalibrationPoint_t *m_calibMatrix = nullptr;
   #elif defined(TOUCH_FT6236U)
 
@@ -207,6 +208,10 @@ public:
 
 
   void setCalibration(CalibrationPoint_t *array);
+#if CALIBRATE_POINTS == 9
+  bool calibrateTouchNine(CalibrationPoint_t *points, uint16_t width, uint16_t height, uint32_t colorMarker, uint32_t colorBackground);
+  ScreenPoint_t touchToScreenNinePoints(int16_t xTouch, int16_t yTouch);
+#endif
 
   #elif defined(TOUCH_FT6236U)
 

@@ -389,8 +389,7 @@ void icoLeft1_cb()
 // Função para a tela inicial
 void screen0()
 {
-  tft->fillScreen(CFK_GREY4);                                                                       // Preenche a tela com a cor CFK_GREY4
-  WidgetBase::backgroundColor = CFK_GREY4;                                                          // Define a cor de fundo da tela
+  myDisplay.setBackgroundColor(CFK_GREY4); // Pinta o fundo e guarda a cor para apagar texto.
   myDisplay.printText("Sensor temp", 170, 12, TL_DATUM, CFK_LIME, CFK_GREY4, &RobotoRegular10pt7b); // Imprime o texto "Sensor temp" na tela
   myDisplay.printText("LEDs", 15, 212, TL_DATUM, CFK_LIME, CFK_GREY4, &RobotoRegular10pt7b);        // Imprime o texto "LEDs" na tela
   myDisplay.printText("Reles", 15, 262, TL_DATUM, CFK_LIME, CFK_GREY4, &RobotoRegular10pt7b);       // Imprime o texto "Reles" na tela
@@ -402,8 +401,7 @@ void screen0()
 // Função para a tela de configuração
 void screen1()
 {
-  tft->fillScreen(CFK_GREY4);                                                                      // Preenche a tela com a cor CFK_GREY4
-  WidgetBase::backgroundColor = CFK_GREY4;                                                         // Define a cor de fundo da tela
+  myDisplay.setBackgroundColor(CFK_GREY4); // Pinta o fundo e guarda a cor para apagar texto.
   myDisplay.printText("Config", 195, 17, TL_DATUM, CFK_LIME, CFK_GREY4, &RobotoRegular10pt7b);     // Imprime o texto "Config" na tela
   myDisplay.printText("Max temp", 35, 92, TL_DATUM, CFK_SKYBLUE, CFK_GREY4, &RobotoRegular10pt7b); // Imprime o texto "Max temp" na tela
   myDisplay.drawWidgetsOnScreen(1);                                                                // Desenha os widgets na tela

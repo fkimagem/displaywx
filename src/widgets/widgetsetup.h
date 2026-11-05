@@ -72,8 +72,12 @@ constexpr uint16_t process_color(uint16_t val) {
 #define DFK_GAUGE 1
 #define DFK_LINECHART 1
 #define DFK_LABEL 1
+#if !defined(DFK_DISABLE_IMAGE)
 #define DFK_IMAGE 1
+#endif
+#if !defined(DFK_DISABLE_SD)
 #define DFK_SD 1
+#endif
 #define DFK_SPINBOX 1
 #define DFK_TEXTBUTTON 1
 #define DFK_CIRCULARBAR 1

@@ -43,6 +43,7 @@ public:
   void forceUpdate() override;
   
   void setup(const NumberBoxConfig& config);
+  void onClick();
   void setValue(double str);
   double getValue();
   const char* getValueChar();

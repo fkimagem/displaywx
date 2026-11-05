@@ -58,7 +58,7 @@ void loop(){
 void screen0(){
     tft->clearBuffer();
     u8g2_prepare();
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->drawStr(30, 51, "Custom text");
     tft->drawDisc(11, 40, 10);
     tft->drawCircle(11, 40, 10);

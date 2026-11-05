@@ -42,6 +42,7 @@ public:
   void forceUpdate() override;
   
   void setup(const TextBoxConfig& config);
+  void onClick();
   void setValue(const char* str);
   const char* getValue();
   

@@ -147,8 +147,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("Button 01", 160, 107, TL_DATUM, CFK_COLOR20, CFK_WHITE, &RobotoRegular10pt7b);
     myDisplay.printText("Button 02", 160, 167, TL_DATUM, CFK_COLOR23, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an rectButton

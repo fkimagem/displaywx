@@ -52,7 +52,7 @@ void loadWidgets()
 void screen0()
 {
   display->clearDisplay();
-  WidgetBase::backgroundColor = CFK_GREY6;
+  myDisplay.setBackgroundColor(CFK_GREY6);
   // display->fillRect(0, 0, 20, 20, CFK_BLACK);
   // display->drawRect(10, 10, 20, 20, CFK_BLACK);
   int posX = 20, posY = 20;

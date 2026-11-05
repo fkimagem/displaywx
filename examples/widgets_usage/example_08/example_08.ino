@@ -135,16 +135,14 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("Screen 0", 175, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an imagem
     myDisplay.drawWidgetsOnScreen(0);
 }
 void screen1(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("Screen 1", 175, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an imagem
     myDisplay.drawWidgetsOnScreen(1);

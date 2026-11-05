@@ -1,5 +1,6 @@
 #include "wnumberbox.h"
 #include "../../check_touch.h"
+#include "../../displaywx.h"
 
 const char* NumberBox::TAG = "NumberBox";
 
@@ -257,6 +258,28 @@ void NumberBox::setup(const NumberBoxConfig &config) {
   m_loaded = true;
   ESP_LOGD(TAG, "NumberBox configured: %dx%d, value: %f", 
            m_config.width, m_config.height, config.startValue);
+}
+
+/**
+ * @brief Simula um clique no NumberBox.
+ * @details Abre o teclado numérico. O callback configurado só roda quando a entrada é confirmada.
+ */
+void NumberBox::onClick()
+{
+  if (!m_loaded)
+  {
+    ESP_LOGE(TAG, "NumberBox widget not loaded");
+    return;
+  }
+#if defined(DFK_NUMBERBOX)
+  if (DisplayWX::instance == nullptr)
+  {
+    ESP_LOGE(TAG, "DisplayWX instance missing");
+    return;
+  }
+  ESP_LOGD(TAG, "NumberBox clicked");
+  DisplayWX::instance->openNumberBox(this);
+#endif
 }
 
 /**

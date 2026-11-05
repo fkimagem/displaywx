@@ -152,8 +152,7 @@ void loop(){
 }
 
 void screen0(){
-    tft->fillScreen(CFK_GREY3);
-    WidgetBase::backgroundColor = CFK_GREY3;
+    myDisplay.setBackgroundColor(CFK_GREY3);
     tft->fillRoundRect(250, 260, 261, 122, 10, CFK_GREY5);
     tft->drawRoundRect(250, 260, 261, 122, 10, CFK_COLOR01);
     tft->fillRoundRect(250, 125, 261, 122, 10, CFK_GREY5);

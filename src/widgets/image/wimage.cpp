@@ -1,5 +1,10 @@
 #include "wimage.h"
+#include "../../storage/imagebinary.h"
+#if defined(DFK_SD)
+#include "../../storage/sdcard.h"
+#endif
 #include <esp_log.h>
+#include <new>
 
 const char* Image::TAG = "Image";
 
@@ -13,12 +18,14 @@ const char* Image::TAG = "Image";
  */
 Image::Image(uint16_t _x, uint16_t _y, uint8_t _screen)
     : WidgetBase(_x, _y, _screen),
-#if defined(USING_GRAPHIC_LIB)
+      m_ownsMemory(false),
       m_pixels(nullptr),
-#endif
-      m_maskAlpha(nullptr), m_fs(nullptr), m_path(nullptr) {
+      m_maskAlpha(nullptr),
+      m_source(SourceFile::EMBED),
+      m_fs(nullptr),
+      m_path(nullptr),
+      m_drawBackground(false) {
 
-        //initialize m_config with default values
         m_config = {
           .pixels = nullptr,
           .maskAlpha = nullptr,
@@ -28,8 +35,6 @@ Image::Image(uint16_t _x, uint16_t _y, uint8_t _screen)
           .height = 0,
           .backgroundColor = 0
         };
-
-        m_drawBackground = false;
 }
 
 /**
@@ -84,162 +89,157 @@ if(detected) {
  */
 functionCB_t Image::getCallbackFunc() { return m_callback; }
 
+namespace {
+
+constexpr size_t kImageReadChunk = 512;
+
+#if defined(DISP_DEFAULT)
+constexpr uint8_t kFileBytesPerPixel = 2;
+#else
+constexpr uint8_t kFileBytesPerPixel = 1;
+#endif
+
+bool readExact(fs::File &file, uint8_t *buffer, size_t expected)
+{
+    size_t filled = 0;
+    while (filled < expected)
+    {
+        const size_t got = file.read(buffer + filled, expected - filled);
+        if (got == 0)
+        {
+            return false;
+        }
+        filled += got;
+    }
+    return true;
+}
+
+void releaseImageBuffers(pixel_t *&pixels, uint8_t *&mask)
+{
+    delete[] pixels;
+    delete[] mask;
+    pixels = nullptr;
+    mask = nullptr;
+}
+
+} // namespace
+
 /**
- * @brief Lê o arquivo de imagem do disco (SD, SPIFFS ou FATFS).
- * @return True se o arquivo foi lido com sucesso, False caso contrário.
- * @details Este método lê um arquivo de imagem do sistema de arquivos:
- *          - Abre o arquivo e valida suas dimensões
- *          - Lê dados de pixels no formato apropriado (RGB565 ou monocromático)
- *          - Lê a máscara de transparência se disponível
- *          - Aloca memória dinamicamente para os dados
- *          - Registra métricas de desempenho para otimização
- *          - Suporta leitura otimizada por linhas completas
+ * @brief Lê e valida um arquivo binário DisplayWX v1.
+ * Os pixels e a máscara só são publicados nos membros depois da leitura completa.
  */
-bool Image::readFileFromDisk() {
-  if (m_source == SourceFile::EMBED) {
-    ESP_LOGE(TAG, "Cannot read from embedded source");
+bool Image::readFileFromDisk(fs::FS &filesystem, const char *path) {
+  if (path == nullptr || path[0] == '\0') {
+    ESP_LOGE(TAG, "Image path is empty");
     return false;
   }
 
-  if (!m_fs) {
-    ESP_LOGE(TAG, "No source defined to find image");
-    return false;
-  }
-
-  ESP_LOGD(TAG, "Looking for file: %s", m_path);
-
-  // Start file load performance timing
-  uint32_t fileLoadStartTime = micros();
+  const uint32_t fileLoadStartTime = micros();
   m_metrics.fileLoadCount++;
 
-  fs::File file = m_fs->open(m_path, "r");
+  fs::File file = filesystem.open(path, FILE_READ);
   if (!file) {
-    ESP_LOGE(TAG, "Cant open file");
+    ESP_LOGE(TAG, "Cant open file %s", path);
     return false;
   }
-
   if (file.isDirectory()) {
-    ESP_LOGE(TAG, "Path is a directory");
+    ESP_LOGE(TAG, "Path is a directory: %s", path);
     file.close();
     return false;
   }
 
-  if (!file.available()) {
-    ESP_LOGE(TAG, "File is empty");
+  const size_t fileSize = file.size();
+  if (fileSize < 6 || fileSize > UINT32_MAX) {
+    ESP_LOGE(TAG, "Invalid image file size: %s", path);
     file.close();
     return false;
   }
 
-  size_t size = file.size();
-  if (size < 4) {
-    ESP_LOGE(TAG, "File is too small");
+  uint8_t header[4];
+  if (!readExact(file, header, sizeof(header))) {
+    ESP_LOGE(TAG, "Short image header: %s", path);
     file.close();
     return false;
   }
 
-  // Get width
-  uint16_t arqWidth = ((file.read()) << 8) | file.read();
-  // Get height
-  uint16_t arqHeight = ((file.read()) << 8) | file.read();
-
-  if (arqWidth == 0 || arqHeight == 0) {
-    ESP_LOGE(TAG, "Invalid image size");
+  const uint16_t width = displaywx::imagebin::readBe16(header);
+  const uint16_t height = displaywx::imagebin::readBe16(header + 2);
+  displaywx::imagebin::Layout layout{};
+  if (!displaywx::imagebin::computeLayout(width, height, kFileBytesPerPixel, static_cast<uint32_t>(fileSize), layout)) {
+    ESP_LOGE(TAG, "Image layout rejected: %s", path);
     file.close();
     return false;
   }
 
-  ESP_LOGD(TAG, "Image size: %d x %d", arqWidth, arqHeight);
-
-  // Store dimensions in m_config
-  m_config.width = arqWidth;
-  m_config.height = arqHeight;
-
-  uint32_t bytesOfColor = arqWidth * arqHeight;
-
-  m_pixels = new pixel_t[bytesOfColor];
-
-  if (!m_pixels) {
-    ESP_LOGE(TAG, "Failed to allocate memory for image pixels");
+  const uint32_t pixelCount = static_cast<uint32_t>(width) * static_cast<uint32_t>(height);
+  pixel_t *pixels = new (std::nothrow) pixel_t[pixelCount];
+  uint8_t *mask = new (std::nothrow) uint8_t[layout.maskBytes];
+  if (pixels == nullptr || mask == nullptr) {
+    ESP_LOGE(TAG, "Image allocation failed: %s", path);
+    releaseImageBuffers(pixels, mask);
     file.close();
     return false;
   }
-
-  memset(m_pixels, 0, bytesOfColor * sizeof(uint16_t));
+  memset(pixels, 0, static_cast<size_t>(pixelCount) * sizeof(pixel_t));
+  memset(mask, 0, layout.maskBytes);
 
 #if defined(DISP_DEFAULT)
-  const uint8_t read_pixels = 2;
-#elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
-  const uint8_t read_pixels = 1;
-#endif
-
-  // Optimized reading: read entire lines at once
-  const uint32_t lineSize = arqWidth * read_pixels;
-  uint8_t *lineBuffer = new uint8_t[lineSize];
-  
-  if (!lineBuffer) {
-    ESP_LOGE(TAG, "Failed to allocate line buffer");
-    file.close();
-    clearBuffers();
-    return false;
-  }
-
-  for (int y = 0; y < arqHeight; y++) {
-    // Read entire line at once
-    if (file.read(lineBuffer, lineSize) != lineSize) {
-      ESP_LOGE(TAG, "Error reading line %d", y);
-      delete[] lineBuffer;
+  size_t stored = 0;
+  uint8_t chunk[kImageReadChunk];
+  while (stored < layout.pixelBytes) {
+    const size_t remaining = layout.pixelBytes - stored;
+    const size_t want = remaining > sizeof(chunk) ? sizeof(chunk) : remaining;
+    const size_t aligned = want - (want % 2u);
+    if (aligned == 0 || !readExact(file, chunk, aligned)) {
+      ESP_LOGE(TAG, "Short pixel read: %s", path);
+      releaseImageBuffers(pixels, mask);
       file.close();
-      clearBuffers();
       return false;
     }
-    
-    // Process line pixels
-    for (int x = 0; x < arqWidth; x++) {
-#if defined(DISP_DEFAULT)
-      uint16_t color = (lineBuffer[x * 2] << 8) | lineBuffer[x * 2 + 1];
-      m_pixels[y * arqWidth + x] = color;
-#elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
-      uint8_t color = lineBuffer[x];
-      m_pixels[y * arqWidth + x] = color;
-#endif
+    for (size_t index = 0; index < aligned; index += 2) {
+      pixels[(stored + index) / 2] = displaywx::imagebin::readBe16(chunk + index);
     }
+    stored += aligned;
   }
-  
-  delete[] lineBuffer;
-
-  uint16_t maskLen = ((file.read()) << 8) | file.read();
-
-  if (maskLen == 0) {
-    ESP_LOGE(TAG, "Invalid mask length");
-    file.close();
-    clearBuffers();
-    return false;
-  }
-
-  m_maskAlpha = new uint8_t[maskLen];
-
-  if (!m_maskAlpha) {
-    ESP_LOGE(TAG, "Failed to allocate memory for image mask");
+#else
+  if (!readExact(file, pixels, layout.pixelBytes)) {
+    ESP_LOGE(TAG, "Short pixel read: %s", path);
+    releaseImageBuffers(pixels, mask);
     file.close();
     return false;
   }
+#endif
 
-  memset(m_maskAlpha, 0, maskLen);
-
-  for (int i = 0; i < maskLen; i++) {
-    m_maskAlpha[i] = file.read();
+  uint8_t maskHeader[2];
+  if (!readExact(file, maskHeader, sizeof(maskHeader))) {
+    ESP_LOGE(TAG, "Short mask header: %s", path);
+    releaseImageBuffers(pixels, mask);
+    file.close();
+    return false;
+  }
+  const uint16_t maskLength = displaywx::imagebin::readBe16(maskHeader);
+  if (maskLength != layout.maskBytes || !readExact(file, mask, maskLength)) {
+    ESP_LOGE(TAG, "Invalid image mask: %s", path);
+    releaseImageBuffers(pixels, mask);
+    file.close();
+    return false;
   }
 
   file.close();
-  
-  // End file load performance timing
-  uint32_t fileLoadEndTime = micros();
+  m_pixels = pixels;
+  m_maskAlpha = mask;
+  m_ownsMemory = true;
+  m_config.pixels = pixels;
+  m_config.maskAlpha = mask;
+  m_config.width = width;
+  m_config.height = height;
+
+  const uint32_t fileLoadEndTime = micros();
   m_metrics.lastFileLoadTime = fileLoadEndTime - fileLoadStartTime;
   m_metrics.totalFileLoadTime += m_metrics.lastFileLoadTime;
   if (m_metrics.lastFileLoadTime > m_metrics.maxFileLoadTime) {
     m_metrics.maxFileLoadTime = m_metrics.lastFileLoadTime;
   }
-  
   return true;
 }
 
@@ -359,14 +359,23 @@ void Image::draw() {
   } else {
     // Draw without rotation
 #if defined(DISP_DEFAULT)
-ESP_LOGD(TAG, "Drawing 16bit RGB bitmap with mask");
-    WidgetBase::objTFT->draw16bitRGBBitmapWithMask(
-        m_xPos, m_yPos, m_config.pixels, m_config.maskAlpha, m_config.width, m_config.height);
-#elif defined(DISP_PCD8544) || defined(DISP_SSD1306)
-    WidgetBase::objTFT->drawBitmap(m_xPos, m_yPos, m_config.pixels, m_config.width, m_config.height,
-                                   CFK_BLACK);
-#elif defined(DISP_U8G2)
-    WidgetBase::objTFT->drawXBMP(m_xPos, m_yPos, m_config.width, m_config.height, m_config.pixels);
+    if (m_config.maskAlpha != nullptr) {
+      WidgetBase::objTFT->draw16bitRGBBitmapWithMask(
+          m_xPos, m_yPos, m_config.pixels, m_config.maskAlpha, m_config.width, m_config.height);
+    } else {
+      WidgetBase::objTFT->draw16bitRGBBitmap(
+          m_xPos, m_yPos, m_config.pixels, m_config.width, m_config.height);
+    }
+#elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
+    if (m_ownsMemory) {
+      drawUnpackedMonoPixels();
+    } else {
+#if defined(DISP_U8G2)
+      WidgetBase::objTFT->drawXBMP(m_xPos, m_yPos, m_config.width, m_config.height, m_config.pixels);
+#else
+      WidgetBase::objTFT->drawBitmap(m_xPos, m_yPos, m_config.pixels, m_config.width, m_config.height, CFK_BLACK);
+#endif
+    }
 #endif
   }
   
@@ -412,66 +421,79 @@ void Image::forceUpdate() {
  *          A imagem não será exibida corretamente até que este método seja chamado.
  */
 void Image::setupFromFile(ImageFromFileConfig &config) {
+  setupFromFileSafe(config);
+}
+
+bool Image::setupFromFileSafe(ImageFromFileConfig &config) {
   if (!WidgetBase::objTFT) {
     ESP_LOGW(TAG, "TFT not defined on WidgetBase");
-    return;
+    return false;
   }
-
   if (m_loaded) {
     ESP_LOGW(TAG, "Image widget already configured");
-    return;
+    return false;
   }
-
-  // Validate file configuration
-  if (config.path == nullptr) {
-    ESP_LOGE(TAG, "File path is null");
-    return;
-  }
-
-  if (strlen(config.path) == 0) {
+  if (config.path == nullptr || config.path[0] == '\0') {
     ESP_LOGE(TAG, "File path is empty");
-    return;
+    return false;
   }
 
-  // Clean up any existing memory
   clearBuffers();
-
-  // Set up file system and load file
-  m_source = config.source;
-  m_path = config.path;
-  m_callback = config.cb;
-  //m_backgroundColor = config.backgroundColor;
-  //m_angle = 0.0f; // File rotation not implemented yet
-  m_ownsMemory = true; // We will own the memory for file images
-
-  // Define file system
-  defineFileSystem(config.source);
-
-  // Load file from disk
-  if (readFileFromDisk()) {
-    // Map loaded data to unified configuration
-    m_config.pixels = m_pixels;
-    m_config.maskAlpha = m_maskAlpha;
-    m_config.cb = config.cb;
-    m_config.backgroundColor = config.backgroundColor;
-    m_config.angle = 0.0;
-
-    // Validate loaded configuration
-    if (!validateConfig()) {
-      ESP_LOGE(TAG, "Loaded image configuration is invalid");
-      clearBuffers();
-      return;
+  bool loaded = false;
+  if (config.source == SourceFile::SD) {
+#if defined(DFK_SD)
+    displaywx::storage::SdGuard guard;
+    if (!guard.ownsLock()) {
+      ESP_LOGE(TAG, "SD lock timeout");
+    } else {
+      fs::FS *filesystem = displaywx::storage::SdSession::shared().filesystem();
+      if (filesystem == nullptr) {
+        ESP_LOGE(TAG, "SD not mounted");
+      } else {
+        loaded = readFileFromDisk(*filesystem, config.path);
+      }
     }
-
-    m_loaded = true;
-    m_shouldRedraw = true;
-    m_initialized = true;
-    
-    ESP_LOGD(TAG, "Image setup from file completed at (%d, %d) - %dx%d from %s", 
-             m_xPos, m_yPos, m_config.width, m_config.height, config.path);
+#else
+    ESP_LOGE(TAG, "SD support is disabled");
+#endif
+  } else if (config.source == SourceFile::SPIFFS || config.source == SourceFile::FATFS) {
+    defineFileSystem(config.source);
+    if (m_fs != nullptr) {
+      loaded = readFileFromDisk(*m_fs, config.path);
+    }
   } else {
-    ESP_LOGE(TAG, "Failed to load image from file: %s", config.path);
+    ESP_LOGE(TAG, "Unsupported image source");
   }
+
+  m_fs = nullptr;
+  m_path = nullptr;
+  if (!loaded) {
+    clearBuffers();
+    m_callback = nullptr;
+    m_initialized = false;
+    m_loaded = false;
+    ESP_LOGE(TAG, "Failed to load image from file");
+    return false;
+  }
+
+  m_source = config.source;
+  m_callback = config.cb;
+  m_config.cb = config.cb;
+  m_config.backgroundColor = config.backgroundColor;
+  m_config.angle = 0.0f;
+  if (!validateConfig()) {
+    ESP_LOGE(TAG, "Loaded image configuration is invalid");
+    clearBuffers();
+    m_callback = nullptr;
+    m_initialized = false;
+    return false;
+  }
+
+  m_loaded = true;
+  m_initialized = true;
+  m_shouldRedraw = true;
+  ESP_LOGD(TAG, "Image setup from file completed at (%d, %d) - %dx%d", m_xPos, m_yPos, m_config.width, m_config.height);
+  return true;
 }
 
 
@@ -552,12 +574,8 @@ void Image::defineFileSystem(SourceFile source) {
   switch (source) {
     case SourceFile::SD:
     {
-      if (!WidgetBase::mySD) {
-        ESP_LOGE(TAG, "SD not configured");
-        return;
-      }
-      m_fs = WidgetBase::mySD;
-      ESP_LOGD(TAG, "SD mounted");
+      m_fs = nullptr;
+      ESP_LOGD(TAG, "SD image uses the mounted DisplayWX session");
     }
     break;
 
@@ -717,14 +735,19 @@ void Image::drawRotatedImage() {
           
 #if defined(DISP_DEFAULT)
           uint16_t color = m_config.pixels[pixelIndex];
-          // Apply alpha mask if available
-          if (m_config.maskAlpha && m_config.maskAlpha[pixelIndex] < 255) {
-            // Skip transparent pixels
+          if (m_ownsMemory) {
+            if (m_maskAlpha != nullptr && !displaywx::imagebin::maskBitVisible(m_maskAlpha, m_config.width, static_cast<uint16_t>(origXInt), static_cast<uint16_t>(origYInt))) {
+              continue;
+            }
+          } else if (m_config.maskAlpha && m_config.maskAlpha[pixelIndex] < 255) {
             continue;
           }
           WidgetBase::objTFT->drawPixel(screenX, screenY, color);
 #elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
           uint8_t color = m_config.pixels[pixelIndex];
+          if (m_ownsMemory && m_maskAlpha != nullptr && !displaywx::imagebin::maskBitVisible(m_maskAlpha, m_config.width, static_cast<uint16_t>(origXInt), static_cast<uint16_t>(origYInt))) {
+            continue;
+          }
           if (color != 0) { // Only draw non-transparent pixels
 
             #if defined(DISP_U8G2)
@@ -839,9 +862,25 @@ bool Image::validateConfig() {
   ESP_LOGD(TAG, "Configuration validation passed: %dx%d at (%d,%d) angle=%.1f°", 
            m_config.width, m_config.height, m_xPos, m_yPos, m_config.angle);
   return true;
-  #else
-  return false;
-  #endif
+#else
+  if (m_config.pixels == nullptr) {
+    ESP_LOGE(TAG, "Image pixels are null");
+    return false;
+  }
+  if (m_config.width == 0 || m_config.height == 0 || m_config.width > 4096 || m_config.height > 4096) {
+    ESP_LOGE(TAG, "Invalid image dimensions: %dx%d", m_config.width, m_config.height);
+    return false;
+  }
+  if (!WidgetBase::objTFT) {
+    ESP_LOGE(TAG, "TFT display not initialized");
+    return false;
+  }
+  if (m_xPos + m_config.width > WidgetBase::objTFT->getDisplayWidth() || m_yPos + m_config.height > WidgetBase::objTFT->getDisplayHeight()) {
+    ESP_LOGW(TAG, "Image extends beyond display bounds");
+    return false;
+  }
+  return true;
+#endif
 }
 
 /**
@@ -890,10 +929,39 @@ void Image::clearBuffers() {
   }
   
   
-  // Reset state
   m_ownsMemory = false;
   m_loaded = false;
+  m_initialized = false;
   m_shouldRedraw = false;
+  m_callback = nullptr;
+  m_source = SourceFile::EMBED;
+}
+
+void Image::drawUnpackedMonoPixels() {
+#if defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
+  const uint16_t width = m_config.width;
+  const uint16_t height = m_config.height;
+  for (uint16_t y = 0; y < height; ++y) {
+    for (uint16_t x = 0; x < width; ++x) {
+      const uint32_t index = (static_cast<uint32_t>(y) * width) + x;
+      if (m_pixels[index] == 0) {
+        continue;
+      }
+      if (m_maskAlpha != nullptr && !displaywx::imagebin::maskBitVisible(m_maskAlpha, width, x, y)) {
+        continue;
+      }
+      const int16_t screenX = static_cast<int16_t>(m_xPos + x);
+      const int16_t screenY = static_cast<int16_t>(m_yPos + y);
+#if defined(DISP_U8G2)
+      WidgetBase::objTFT->drawPixel(screenX, screenY);
+#else
+      WidgetBase::objTFT->drawPixel(screenX, screenY, CFK_BLACK);
+#endif
+    }
+  }
+#else
+  return;
+#endif
 }
 
 

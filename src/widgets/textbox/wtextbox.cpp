@@ -1,4 +1,5 @@
 #include "wtextbox.h"
+#include "../../displaywx.h"
 
 const char* TextBox::TAG = "[TextBox]";
 
@@ -144,6 +145,28 @@ void TextBox::setup(const TextBoxConfig &config) {
 #if defined(USING_GRAPHIC_LIB)
   setup(config.width, config.height, config.letterColor, config.backgroundColor,
         config.startValue, config.font, config.funcPtr, config.cb);
+#endif
+}
+
+/**
+ * @brief Simula um clique no TextBox.
+ * @details Abre o teclado de letras. O callback configurado só roda quando a entrada é confirmada.
+ */
+void TextBox::onClick()
+{
+  if (!m_loaded)
+  {
+    ESP_LOGE(TAG, "TextBox widget not loaded");
+    return;
+  }
+#if defined(DFK_TEXTBOX)
+  if (DisplayWX::instance == nullptr)
+  {
+    ESP_LOGE(TAG, "DisplayWX instance missing");
+    return;
+  }
+  ESP_LOGD(TAG, "TextBox clicked");
+  DisplayWX::instance->openTextBox(this);
 #endif
 }
 

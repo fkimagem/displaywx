@@ -47,6 +47,12 @@
 // #define DEBUG_TOUCH
 #define DEBUG_DISPLAY
 
+// 4 = calibracao atual pelos cantos. 9 = grade 3x3.
+#define CALIBRATE_POINTS 9
+#if (CALIBRATE_POINTS != 4) && (CALIBRATE_POINTS != 9)
+#error "CALIBRATE_POINTS must be 4 or 9"
+#endif
+
 #include "widgets/widgetsetup.h"
 #include "../user_setup.h"
 #include "check_touch.h"
@@ -96,6 +102,9 @@
 #include "extras/check_version.h"
 
 #include "widgets/widgetbase.h"
+#if defined(DFK_SD)
+#include "storage/sdcard.h"
+#endif
 
 #include "touch_widgets.h"
 #include "output_widgets.h"
@@ -396,6 +405,9 @@ public:
 #error "Choose a display model on user_setup.h"
 #endif
 
+    /// Pinta a tela e grava a cor em WidgetBase::backgroundColor.
+    void setBackgroundColor(uint16_t color);
+
     /// Holds the draw mutex until finishCustomDraw(). Widget callbacks run outside this mutex, so a callback may call startCustomDraw().
     void startCustomDraw();
     /// Releases the draw mutex taken by startCustomDraw().
@@ -406,6 +418,7 @@ public:
     void setFontBold(const GFXfont *_font);
     void printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font);
 #endif
+    /// enableWatchdog true liga o watchdog ocioso de todos os núcleos; false desliga todos. timeout_s vale quando liga.
     void createTask(bool enableWatchdog, uint16_t timeout_s = 3);
     void drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], const uint8_t _mask[], uint16_t _w, uint16_t _h);
     bool waveshareDsiAuxBegin(int sda, int scl);
@@ -470,7 +483,6 @@ public:
     
     char* allocateStringSafe(const char* caller);
     void deallocateStringSafe(char* str);
-    bool startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz);
 
 #if defined(HAS_TOUCH)
 #if defined(TOUCH_XPT2046)
@@ -541,6 +553,7 @@ public:
 
 #ifdef DFK_NUMBERBOX
     void setNumberbox(NumberBox *array[], uint8_t amount);
+    void openNumberBox(NumberBox *field);
     void setupNumpad();
     void insertCharNumpad(char c);
 #endif
@@ -555,6 +568,7 @@ public:
 
 #ifdef DFK_TEXTBOX
     void setTextbox(TextBox *array[], uint8_t amount);
+    void openTextBox(TextBox *field);
     void setupKeyboard();
     void insertCharTextbox(char c);
 #endif
@@ -596,11 +610,33 @@ public:
 #endif
 
 #ifdef DFK_SD
+    /// Monta o cartão. A instância SPI pertence ao chamador e permanece iniciada após endSD().
+    /// Repetir a mesma configuração válida retorna true sem remontar. Outra configuração retorna false e conserva a sessão.
+    bool startSD(const SDConfig &config);
+    /// SPI já iniciado pelo chamador. hz == 0 seleciona 4 MHz. Frequência negativa ou fora de 100 kHz–20 MHz falha.
     bool startSD(uint8_t pinCS, SPIClass *spiShared);
     bool startSD(uint8_t pinCS, SPIClass *spiShared, int hz);
+    bool startSDSafe(uint8_t pinCS, SPIClass *spiShared, int hz);
+    /// Estado conhecido da montagem, sob o mutex do cartão. Não detecta presença física.
+    bool isSDReady() const;
+    /// Desmonta o filesystem se esta instância for a dona. Não chama SPI.end(). Timeout conserva a sessão.
+    bool endSD();
+    /// Ponteiro do filesystem montado, ou nullptr. Não transfere posse nem segura a sessão após o retorno.
+    fs::FS *getSD();
+    bool readSDFile(const char *path, String &out, size_t maxBytes = 4096);
+    bool readSDFile(const char *path, uint8_t *buffer, size_t capacity, size_t &bytesRead, size_t offset = 0);
+    bool writeSDFile(const char *path, const char *text);
+    bool writeSDFile(const char *path, const uint8_t *data, size_t length);
+    bool appendSDFile(const char *path, const char *text);
+    bool appendSDFile(const char *path, const uint8_t *data, size_t length);
+    bool existsSDFile(const char *path);
+    bool createSDDir(const char *path);
     void listFiles(fs::FS *fs, const char *dirname, uint8_t levels);
     void createDir(fs::FS *fs, const char *path);
+    /// Leitura legada: envia o arquivo à Serial. Para obter o conteúdo, usar readSDFile().
     void readFile(fs::FS *fs, const char *path);
+    /// Append legado de log: acrescenta quebra de linha, recusa textos de até um caractere e respeita LOG_MAX_SIZE.
+    /// Para conteúdo geral, usar appendSDFile().
     void appendFile(fs::FS *fs, const char *path, const char *message);
     void appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile);
     void writeFile(fs::FS *fs, const char *path, const char *message);
@@ -610,6 +646,9 @@ public:
 
 private:
     static const char *TAG;
+#if defined(HAS_TOUCH) && defined(TOUCH_XPT2046) && (CALIBRATE_POINTS == 9)
+    void checkCalibrationNinePoints();
+#endif
     // Variáveis privadas estáticas
     static QueueHandle_t xFilaLog;             ///< Queue handle for log data.
     static logMessage_t bufferLog[LOG_LENGTH]; ///< Array of log messages.
@@ -779,6 +818,7 @@ private:
     TextBox **arrayTextBox = nullptr;    ///< Array of TextBox widgets.
     bool m_textboxConfigured = false;    ///< Flag indicating if TextBox is configured.
     std::unique_ptr<WKeyboard> keyboard; ///< Pointer to the WKeyboard instance for text input.
+    std::atomic<TextBox *> m_pendingTextBox{nullptr};
     // WKeyboard m_pKeyboard;            ///< Internal keyboard instance for TextBox.
 #endif
 
@@ -789,6 +829,7 @@ private:
     bool m_numpadActive = false;
     bool m_numpadTouchWasDown = false;
     std::unique_ptr<Numpad> numpad;       ///< Pointer to the Numpad instance for number input.
+    std::atomic<NumberBox *> m_pendingNumberBox{nullptr};
     // Numpad m_pNumpad;                   ///< Internal numpad instance for NumberBox.
 #endif
 
@@ -805,8 +846,11 @@ private:
 #endif
 
 #ifdef DFK_SD
-    SPIClass m_spiSD;          ///< SPI instance for SD card communication.
-    const char *m_nameLogFile; ///< Name of the log file.
+    mutable char m_logNameStorage[64] = {};
+    mutable const char *m_nameLogFile = nullptr;
+    bool endSdWaiting(uint32_t timeoutMs);
+    void appendLogUnlocked(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile);
+    void syncSdFlag();
 #endif
 
 #ifdef DFK_SPINBOX
@@ -861,6 +905,7 @@ private:
     void processTextButtonTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
     void processTextBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
     void processNumberBoxTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
+    void serviceRequestedInputs();
     void serviceKeyboard(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
     void serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
     void processEmptyAreaTouch(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);

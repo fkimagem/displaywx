@@ -157,8 +157,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     //This screen has a/an led
     //This screen has a/an led
     //This screen has a/an led

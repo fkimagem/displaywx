@@ -1,0 +1,27 @@
+GUIA DISPLAYWX - RECRIACAO
+
+1. Edite docs\GUIA_DISPLAYWX.md e/ou docs\GUIA_DMA.md.
+   Novos arquivos docs\GUIA_*.md tambem devem entrar no manual.
+2. Execute criar_guia.bat na raiz da biblioteca.
+3. Aguarde o Codex concluir. O resultado fica em:
+   output\pdf\Guia_DisplayWX.pdf
+
+O agente persistente esta definido em .cursor\agents\criar-guia-pdf-displaywx.md.
+Os agentes do projeto ficam no diretorio .cursor\agents.
+O gerador e scripts\gerar_guia.py; a identidade visual usa ativos locais.
+O Codex precisa de conexao e login ativo (codex login).
+A execucao utiliza sua conta/configuracao atual e consome uso do Codex.
+As dependencias Python constam em scripts\requirements-guia.txt.
+
+Opcoes:
+  criar_guia.bat --check     Verifica CLI e arquivos, sem chamar o modelo.
+  criar_guia.bat --no-pause  Gera sem esperar uma tecla ao terminar.
+
+O script pode ser iniciado de qualquer pasta: usa sua propria localizacao.
+Falhas retornam codigo diferente de zero. A ultima resposta do agente fica
+em output\pdf\ultima_execucao_codex.txt quando a chamada chega ao Codex.
+O PDF antigo so deve ser substituido depois de uma geracao bem-sucedida.
+Feche o PDF no leitor se ele bloquear a substituicao no Windows.
+
+Referencia do modo nao interativo do Codex:
+https://learn.chatgpt.com/docs/non-interactive-mode

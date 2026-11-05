@@ -1,5 +1,6 @@
 #include "wcameramipi.h"
 #include "../../check_camera.h"
+#include "../../displaywx.h"
 #include <stdio.h>
 
 const char* CameraMipi::TAG = "CameraMipi";
@@ -51,6 +52,42 @@ void CameraMipi::setup(const CameraMipiConfig& config) {
 
 void CameraMipi::changeState() {
   ESP_LOGD(TAG, "CameraMipi changeState completed");
+}
+
+/**
+ * @brief Simula um clique no CameraMipi.
+ * @details Entra na tela inteira. Se este widget já estiver em tela inteira, volta ao retângulo.
+ */
+void CameraMipi::onClick()
+{
+  if (!m_loaded)
+  {
+    ESP_LOGE(TAG, "CameraMipi widget not loaded");
+    return;
+  }
+
+  if (m_fullScreen)
+  {
+    leaveFullScreen();
+    exitFullScreen();
+    if (DisplayWX::instance != nullptr)
+    {
+      DisplayWX::instance->refreshScreen();
+    }
+    ESP_LOGD(TAG, "CameraMipi clicked, left full screen");
+    return;
+  }
+
+  changeState();
+  m_shouldRedraw = true;
+  m_margin = 1;
+  m_fullScreen = true;
+  s_hasFullScreen = true;
+  ESP_LOGD(TAG, "CameraMipi clicked, entered full screen");
+  if (m_callback != nullptr)
+  {
+    WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
+  }
 }
 
 bool CameraMipi::getStatus() {

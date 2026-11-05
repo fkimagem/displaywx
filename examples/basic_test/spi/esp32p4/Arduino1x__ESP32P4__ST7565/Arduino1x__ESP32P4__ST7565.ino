@@ -70,7 +70,7 @@ void screen0(){
 
     tft->clearBuffer();
     u8g2_prepare();
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->drawBox(17, 23, 27, 16);
     tft->drawFrame(17, 23, 27, 16);
     tft->drawStr(20, 37, "p4");

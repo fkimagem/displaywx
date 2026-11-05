@@ -98,8 +98,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     //This screen has a/an caixaNumero
     myDisplay.printText("Valor 1", 130, 77, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     myDisplay.printText("Valor 2", 130, 117, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);

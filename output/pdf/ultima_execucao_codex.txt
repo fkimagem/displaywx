@@ -1,0 +1,9 @@
+PDF atualizado com **48 páginas**, preservando capa, fundo escuro e destaques verdes.
+
+- Fontes: Segoe UI, Segoe UI Bold e Consolas.
+- Dois guias incluídos; 2.271 trechos conferidos, sem ausências.
+- `-Validate` aprovado; 131 links internos resolvidos e 42 marcadores presentes.
+- Todas as páginas renderizadas; capa, índice, tabelas, código longo e última página examinados, sem cortes ou sobreposições.
+- Markdown, gerador e código da biblioteca preservados.
+
+:codex-file-citation{path="C:/arduino_edgewx/portable/sketchbook/libraries/displaywx/output/pdf/Guia_DisplayWX.pdf" purpose="output"}

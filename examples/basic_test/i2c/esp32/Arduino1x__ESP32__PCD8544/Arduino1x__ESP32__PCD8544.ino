@@ -56,7 +56,7 @@ void loop(){
 void screen0(){
 
     tft->clearDisplay();
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->fillRect(30, 5, 19, 15, CFK_COLOR12);
     tft->drawRect(30, 5, 19, 15, CFK_COLOR01);
     myDisplay.printText("ESP32", 5, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular5pt7b);

@@ -2,9 +2,6 @@
 #define WIMAGE
 
 #include "../widgetbase.h"
-#if defined(DFK_SD)
-#include "SD.h"
-#endif
 
 #if defined(USE_SPIFFS)
 #include "SPIFFS.h"
@@ -154,6 +151,7 @@ public:
   void forceUpdate() override;
 
   void setupFromFile(ImageFromFileConfig &config);
+  bool setupFromFileSafe(ImageFromFileConfig &config);
   void setupFromPixels(ImageFromPixelsConfig &config);
 
   void setDrawBackground(bool value);
@@ -175,7 +173,8 @@ private:
   PerformanceMetrics_t m_metrics; ///< Métricas de desempenho para otimização.
   bool m_drawBackground; ///< Flag para controlar desenho do fundo (true = desenha, false = não desenha).
   
-  bool readFileFromDisk();
+  bool readFileFromDisk(fs::FS &filesystem, const char *path);
+  void drawUnpackedMonoPixels();
   void defineFileSystem(SourceFile source);
   void drawRotatedImage();
   bool validateConfig();

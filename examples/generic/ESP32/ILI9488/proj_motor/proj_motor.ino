@@ -270,8 +270,7 @@ void loop()
 void screen0()
 {
 
-    tft->fillScreen(CFK_GREY3); // Preenche toda a tela com a cor cinza escuro (CFK_GREY3) como fundo
-    WidgetBase::backgroundColor = CFK_GREY3; // Define a cor de fundo padrão para os widgets desenhados nesta tela
+    myDisplay.setBackgroundColor(CFK_GREY3); // Pinta o fundo e guarda a cor para apagar texto.
 
     // Escreve o texto "Tela de controle" na posição (165, 7), centralizado à esquerda (TL_DATUM)
     // Usa cor de texto CFK_COLOR07 cor de fundo CFK_GREY3 e fonte Roboto tamanho 10pt
@@ -300,8 +299,7 @@ void screen0()
 }
 void screen1()
 {
-    tft->fillScreen(CFK_GREY3);// Preenche toda a tela com a cor de fundo cinza escuro (CFK_GREY3)
-    WidgetBase::backgroundColor = CFK_GREY3;// Define essa mesma cor como cor de fundo padrão dos widgets que serão desenhados nesta tela
+    myDisplay.setBackgroundColor(CFK_GREY3); // Pinta o fundo e guarda a cor para apagar texto.
 
     // Exibe o título "Config do motor" no topo da tela, centralizado à esquerda da coordenada (165, 17)
     // Usa a cor de texto CFK_COLOR06, fundo cinza, e fonte Roboto 10pt

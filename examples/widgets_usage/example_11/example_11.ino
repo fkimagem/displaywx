@@ -150,8 +150,7 @@ void loop(){
 
 void screen0(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->fillRect(66, 207, 313, 56, CFK_GREY3);
     tft->drawRect(66, 207, 313, 56, CFK_BLACK);
     //This screen has a/an grafico
@@ -161,8 +160,7 @@ void screen0(){
 }
 void screen1(){
 
-    tft->fillScreen(CFK_WHITE);
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     myDisplay.printText("Click on button to back screen", 110, 87, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
     //This screen has a/an textButton
     myDisplay.drawWidgetsOnScreen(1);

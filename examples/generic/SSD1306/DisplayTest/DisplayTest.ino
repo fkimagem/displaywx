@@ -52,7 +52,7 @@ void loop(){
 
 void screen0(){
     tft->clearDisplay();
-    WidgetBase::backgroundColor = CFK_WHITE;
+    myDisplay.setBackgroundColor(CFK_WHITE);
     tft->fillRect(3, 6, 21, 17, CFK_COLOR01);
     tft->drawRect(3, 6, 21, 17, CFK_COLOR01);
     tft->fillRect(62, 24, 36, 20, CFK_COLOR01);
