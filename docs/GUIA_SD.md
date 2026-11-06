@@ -175,6 +175,75 @@ void setup()
 }
 ```
 
+## ILI9488 + XPT2046 no mesmo SPI e SD em outro SPI
+
+`user_setup.h`: `DISP_DEFAULT` e `TOUCH_XPT2046`.
+
+A tela e o toque dividem SCK 18, MISO 19 e MOSI 23. O CS da tela é 5. O CS do toque é 21. DC 2 e reset 4 são da tela. Esses números vêm do exemplo ILI9488 com XPT2046.
+
+O cartão fica noutro controlador SPI. O CS do cartão é 22, o mesmo da seção anterior. SCK 14, MISO 27 e MOSI 13 são um ponto de partida. Os quatro GPIO não repetem os pinos da tela nem o CS do toque. Confira os GPIO da sua placa antes de gravar.
+
+No ESP32 clássico a tela usa HSPI e o cartão usa VSPI. No ESP32-S3 e no ESP32-P4 a tela usa FSPI e o cartão usa HSPI. O bloco abaixo escolhe esse par. O objeto do cartão ainda não passou por `begin()`. A biblioteca mapeia os quatro pinos.
+
+A chamada do toque recebe o objeto SPI da tela.
+
+```cpp
+const int DISP_SCK = 18;
+const int DISP_MISO = 19;
+const int DISP_MOSI = 23;
+const int DISP_CS = 5;
+const int DISP_DC = 2;
+const int DISP_RST = 4;
+const int TOUCH_CS = 21;
+const int SD_CS = 22;
+const int SD_SCK = 14;                // Substitua SCK, MISO e MOSI se a placa usar outros GPIO.
+const int SD_MISO = 27;
+const int SD_MOSI = 13;
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
+SPIClass spi_tela(FSPI);              // Tela e toque neste controlador.
+SPIClass spi_sd(HSPI);                // Cartão no outro controlador.
+#else
+SPIClass spi_tela(HSPI);              // ESP32 clássico. Tela e toque neste controlador.
+SPIClass spi_sd(VSPI);                // ESP32 clássico. Cartão no outro controlador.
+#endif
+
+void deixarCsInativo()
+{
+    pinMode(DISP_CS, OUTPUT);
+    pinMode(TOUCH_CS, OUTPUT);
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(DISP_CS, HIGH);
+    digitalWrite(TOUCH_CS, HIGH);
+    digitalWrite(SD_CS, HIGH);
+}
+
+void setup()
+{
+    deixarCsInativo();
+    spi_tela.begin(DISP_SCK, DISP_MISO, DISP_MOSI);
+    bus = new Arduino_HWSPI(DISP_DC, DISP_CS, DISP_SCK, DISP_MOSI, DISP_MISO, &spi_tela);
+    tft = new Arduino_ILI9488_18bit(bus, DISP_RST, 0, false);
+    tft->begin(27000000);
+    myDisplay.setDrawObject(tft);
+    myDisplay.startTouchXPT2046(320, 480, 0, TOUCH_CS, &spi_tela, tft, 2500000, 27000000, DISP_CS);
+    deixarCsInativo();
+
+    SDConfig config;
+    config.cs = SD_CS;
+    config.sck = SD_SCK;
+    config.miso = SD_MISO;
+    config.mosi = SD_MOSI;
+    config.spi = &spi_sd;             // SPI próprio. Não é o barramento da tela.
+    config.initializeSPI = true;      // A biblioteca inicia este SPI.
+    config.frequencyHz = 4000000;
+    if (myDisplay.startSD(config))
+    {
+        carregarIcone();
+    }
+    myDisplay.createTask(false, 3);
+}
+```
+
 ## Tela I2C + SD em outros pinos
 
 `user_setup.h`: `DISP_SSD1306`. Sem linha de toque.
