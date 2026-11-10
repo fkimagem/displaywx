@@ -536,14 +536,40 @@ bool TouchScreen::touch_touched()
     // ESP_LOGD(TAG, "X: %i, Y: %i\n", p.x, p.y);
     if (m_swapAxis)
     {
-      m_touch_last_x = map(p.y, m_x0, m_x1, 0, m_widthScreen - 1);
-      m_touch_last_y = map(p.x, m_y0, m_y1, 0, m_heightScreen - 1);
+      int x1 = 0;
+      int x2 = m_widthScreen - 1;
+      if(m_invertXAxis){
+        x1 = m_widthScreen - 1;
+        x2 = 0;
+      }
+      int y1 = 0;
+      int y2 = m_heightScreen - 1;
+      if(m_invertYAxis){
+        y1 = m_heightScreen - 1;
+        y2 = 0;
+      }
+      m_touch_last_x = map(p.y, m_x0, m_x1, x1, x2);
+      m_touch_last_y = map(p.x, m_y0, m_y1, y1, y2);
       m_touch_last_z = 0;
     }
     else
     {
-      m_touch_last_x = map(p.x, m_x0, m_x1, 0, m_widthScreen - 1);
-      m_touch_last_y = map(p.y, m_y0, m_y1, 0, m_heightScreen - 1);
+      int x1 = 0;
+      int x2 = m_widthScreen - 1;
+      if(m_invertXAxis){
+        x1 = m_widthScreen - 1;
+        x2 = 0;
+      }
+      int y1 = 0;
+      int y2 = m_heightScreen - 1;
+      if(m_invertYAxis){
+        y1 = m_heightScreen - 1;
+        y2 = 0;
+      }
+
+
+      m_touch_last_x = map(p.x, m_x0, m_x1, x1, x2);
+      m_touch_last_y = map(p.y, m_y0, m_y1, y1, y2);
       m_touch_last_z = 0;
     }
 
