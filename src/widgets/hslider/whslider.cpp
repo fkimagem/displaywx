@@ -321,13 +321,14 @@ int HSlider::getValue() const { return m_value; }
 /**
  * @brief Define o valor do slider.
  * @param newValue Novo valor para o slider.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o valor.
  * @details Atualiza a posição do controle baseada no valor fornecido:
  *          - Restringe o valor dentro da faixa configurada
  *          - Mapeia o valor para a posição correspondente na trilha
  *          - Marca para redesenho
- *          - Executa callback se configurado
+ *          - Executa callback se configurado e triggerCallback for true
  */
-void HSlider::setValue(int newValue) {
+void HSlider::setValue(int newValue, bool triggerCallback) {
   CHECK_LOADED_VOID
   CHECK_INITIALIZED_VOID
   
@@ -338,7 +339,7 @@ void HSlider::setValue(int newValue) {
   
   m_shouldRedraw = true;
   
-  if (m_callback != nullptr) {
+  if (m_callback != nullptr && triggerCallback) {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }
   

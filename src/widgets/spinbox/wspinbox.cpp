@@ -297,14 +297,15 @@ int SpinBox::getValue() { return m_currentValue; }
 /**
  * @brief Define o valor atual do SpinBox.
  * @param _value Novo valor numérico para definir.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o valor.
  * @details Atualiza o valor do SpinBox, garante que está dentro da faixa definida,
- *          e marca o widget para redesenho. Dispara o callback se fornecido:
+ *          e marca o widget para redesenho. Dispara o callback se solicitado:
  *          - Valida se widget está carregado
  *          - Restringe valor usando constrain() dentro da faixa min/max
  *          - Marca para redesenho
- *          - Dispara callback se configurado
+ *          - Dispara callback se configurado e triggerCallback for true
  */
-void SpinBox::setValue(int _value) {
+void SpinBox::setValue(int _value, bool triggerCallback) {
   if (!m_loaded) {
     ESP_LOGE(TAG, "Spinbox widget not loaded");
     return;
@@ -313,7 +314,7 @@ void SpinBox::setValue(int _value) {
   m_currentValue = constrain(_value, m_config.minValue, m_config.maxValue);
   m_shouldRedraw = true;
 
-  if (m_callback != nullptr) {
+  if (m_callback != nullptr && triggerCallback) {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }
 }

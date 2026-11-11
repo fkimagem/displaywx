@@ -185,10 +185,10 @@ bool CircleButton::getStatus() const { return m_status; }
 
 /**
  * @brief Simula um clique no CircleButton.
- * @details Inverte o estado, marca o redesenho e enfileira o callback.
- *          O efeito é o mesmo de um toque na área do botão.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o estado.
+ * @details Inverte o estado, marca o redesenho e enfileira o callback se solicitado.
  */
-void CircleButton::onClick()
+void CircleButton::onClick(bool triggerCallback)
 {
   if (!m_loaded)
   {
@@ -199,7 +199,7 @@ void CircleButton::onClick()
   changeState();
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "CircleButton clicked");
-  if (m_config.callback != nullptr)
+  if (m_config.callback != nullptr && triggerCallback)
   {
     WidgetBase::addCallback(m_config.callback, WidgetBase::CallbackOrigin::SELF);
   }
@@ -208,16 +208,17 @@ void CircleButton::onClick()
 /**
  * @brief Define o estado atual do CircleButton.
  * @param _status True para pressionar o botão, False para liberar.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o estado.
  * @details Este método permite mudar programaticamente o estado do botão:
  *          - Verifica se o widget está carregado antes de fazer alterações
  *          - Evita atualizações desnecessárias se o estado já é o solicitado
  *          - Atualiza o atributo m_status
  *          - Marca o widget para redesenho
- *          - Adiciona o callback na fila de execução se uma função foi definida
+ *          - Adiciona o callback na fila se uma função foi definida e triggerCallback for true
  *          - Registra o evento no log do ESP32
  *          Útil para sincronizar o estado visual com valores de variáveis ou configurações.
  */
-void CircleButton::setStatus(bool _status) {
+void CircleButton::setStatus(bool _status, bool triggerCallback) {
   CHECK_LOADED_VOID
   
   if (m_status == _status) {
@@ -228,7 +229,7 @@ void CircleButton::setStatus(bool _status) {
   m_status = _status;
   m_shouldRedraw = true;
 
-  if (m_config.callback != nullptr) {
+  if (m_config.callback != nullptr && triggerCallback) {
     WidgetBase::addCallback(m_config.callback, WidgetBase::CallbackOrigin::SELF);
   }
   ESP_LOGD(TAG, "CircleButton status changed to %s", _status ? "pressed" : "released");

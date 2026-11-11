@@ -139,14 +139,16 @@ void RadioGroup::redraw() {
 /**
  * @brief Define o botão de rádio selecionado por seu ID.
  * @param clickedId ID do botão de rádio para selecionar.
- * @details Atualiza o botão de rádio atualmente selecionado e dispara o callback se fornecido.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar a seleção.
+ * @details Atualiza o botão de rádio atualmente selecionado e dispara o callback se solicitado.
  *          Sem efeito se o ID especificado já estiver selecionado ou não existir no grupo:
  *          - Valida se widget está carregado
  *          - Verifica se ID já é o selecionado atual
  *          - Itera sobre botões para encontrar ID especificado
- *          - Atualiza ID selecionado, marca para redesenho e dispara callback se configurado
+ *          - Atualiza ID selecionado e marca para redesenho
+ *          - Dispara callback se configurado e triggerCallback for true
  */
-void RadioGroup::setSelected(uint16_t clickedId) {
+void RadioGroup::setSelected(uint16_t clickedId, bool triggerCallback) {
   if (!m_loaded) {
     ESP_LOGE(TAG, "RadioGroup widget not loaded");
     return;
@@ -160,7 +162,7 @@ void RadioGroup::setSelected(uint16_t clickedId) {
     if (r.id == clickedId) {
       m_clickedId = r.id;
       m_shouldRedraw = true;
-      if (m_callback != nullptr) {
+      if (m_callback != nullptr && triggerCallback) {
         WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
       }
     }

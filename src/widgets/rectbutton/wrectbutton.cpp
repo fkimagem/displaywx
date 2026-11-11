@@ -97,10 +97,10 @@ void RectButton::changeState() { m_status = !m_status; }
 
 /**
  * @brief Simula um clique no RectButton.
- * @details Inverte o estado, marca o redesenho e enfileira o callback.
- *          O efeito é o mesmo de um toque na área do botão.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o estado.
+ * @details Inverte o estado, marca o redesenho e enfileira o callback se solicitado.
  */
-void RectButton::onClick()
+void RectButton::onClick(bool triggerCallback)
 {
   if (!m_loaded)
   {
@@ -111,7 +111,7 @@ void RectButton::onClick()
   changeState();
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "RectButton clicked");
-  if (m_callback != nullptr)
+  if (m_callback != nullptr && triggerCallback)
   {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }
@@ -220,13 +220,14 @@ bool RectButton::getStatus() { return m_status; }
 /**
  * @brief Define o status do botão.
  * @param _status Novo status do botão (true para pressionado, false para solto).
- * @details Atualiza o estado do botão, marca para redesenho e dispara o callback se fornecido:
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o estado.
+ * @details Atualiza o estado do botão, marca para redesenho e dispara o callback se solicitado:
  *          - Valida se widget está carregado
  *          - Atualiza m_status
  *          - Marca para redesenho
- *          - Dispara callback se configurado
+ *          - Dispara callback se configurado e triggerCallback for true
  */
-void RectButton::setStatus(bool _status) {
+void RectButton::setStatus(bool _status, bool triggerCallback) {
   if (!m_loaded) {
     ESP_LOGE(TAG, "RectButton widget not loaded");
     return;
@@ -234,7 +235,7 @@ void RectButton::setStatus(bool _status) {
 
   m_status = _status;
   m_shouldRedraw = true;
-  if (m_callback != nullptr) {
+  if (m_callback != nullptr && triggerCallback) {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }
 }

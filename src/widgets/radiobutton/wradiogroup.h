@@ -43,7 +43,7 @@ public:
   void forceUpdate() override;
   
   void setup(const RadioGroupConfig& config);
-  void setSelected(uint16_t clickedId);
+  void setSelected(uint16_t clickedId, bool triggerCallback = true);
   uint16_t getSelected();
   uint16_t getGroupId();
 

@@ -56,9 +56,10 @@ void CameraMipi::changeState() {
 
 /**
  * @brief Simula um clique no CameraMipi.
+ * @param triggerCallback True para disparar a callback ao entrar em tela inteira (padrão), False para não disparar.
  * @details Entra na tela inteira. Se este widget já estiver em tela inteira, volta ao retângulo.
  */
-void CameraMipi::onClick()
+void CameraMipi::onClick(bool triggerCallback)
 {
   if (!m_loaded)
   {
@@ -84,7 +85,7 @@ void CameraMipi::onClick()
   m_fullScreen = true;
   s_hasFullScreen = true;
   ESP_LOGD(TAG, "CameraMipi clicked, entered full screen");
-  if (m_callback != nullptr)
+  if (m_callback != nullptr && triggerCallback)
   {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }

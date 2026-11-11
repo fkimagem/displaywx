@@ -42,7 +42,7 @@ public:
   
   void setup(const HSliderConfig& config);
   int getValue() const;
-  void setValue(int newValue);
+  void setValue(int newValue, bool triggerCallback = true);
   void drawBackground();
 
 private:

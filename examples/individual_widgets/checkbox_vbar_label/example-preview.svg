@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320" role="img" aria-labelledby="title desc">
+  <title id="title">CheckBox, barra e legenda de porcentagem</title>
+  <desc id="desc">Ilustração do sketch com caixa desmarcada e barra preenchida em cinquenta por cento.</desc>
+  <rect width="480" height="320" fill="white"/>
+  <rect x="115" y="90" width="21" height="21" fill="#eeeeee" stroke="#555" stroke-width="2"/>
+  <text x="145" y="108" font-family="Arial,sans-serif" font-size="18" fill="#ff008c">Custom text</text>
+  <rect x="175" y="125" width="21" height="130" fill="#eeeeee"/>
+  <rect x="175" y="190" width="21" height="65" fill="#ff008c"/>
+  <rect x="175" y="125" width="21" height="130" fill="none" stroke="#777"/>
+  <text x="130" y="282" font-family="Arial,sans-serif" font-size="18" fill="#ff008c">50%</text>
+</svg>

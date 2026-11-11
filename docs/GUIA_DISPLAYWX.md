@@ -350,7 +350,11 @@ digitalWrite(2, HIGH);             // HIGH acende nesta placa.
 myDisplay.setDrawObject(tft);      // Entrega a tela.
 ```
 
-ST7262 Waveshare, 800 por 480. O exemplo `Arduino1x__S3EMBED__WAVESHARE_ST7262` usa os nomes `DISP_IO_DE` até `DISP_IO_DATA15`. Esses números de GPIO não estão neste repositório. Não troque esses nomes por um pino adivinhado. Os tempos que o exemplo grava são: horizontal 8, 4 e 8, vertical 8, 4 e 8, 16 MHz, buffer de bounce `800 * 10`. A luz é o GPIO 2 em HIGH. O toque é GT911, SDA 7, SCL 8, INT -1, RST 22.
+ST7262 Waveshare, 800 por 480, ESP32-S3. O exemplo `Arduino1x__S3EMBED__WAVESHARE_ST7262` define DE 5, VSYNC 3, HSYNC 46 e PCLK 7. Os GPIOs de `DISP_IO_DATA0` a `DISP_IO_DATA15`, nessa ordem, são 14, 38, 18, 17, 10, 39, 0, 45, 48, 47, 21, 1, 2, 42, 41 e 40. `DISP_IO_DISP = -1` indica ausência de um GPIO separado para habilitar o display. Os tempos são: horizontal 8, 4 e 8, vertical 8, 4 e 8, 16 MHz, buffer de bounce `800 * 10`.
+
+A placa tem expansor de I/O, e os valores do GT911 foram confirmados: SDA 7, SCL 8, INT -1 e RST 22. O exemplo preserva esses valores e a pinagem RGB informada. O valor anterior da luz (`DISP_LED = 2`) também foi mantido.
+
+A API atual `startTouchGT911()` chama `Wire.begin()` e operações de GPIO nativas; ela não traduz os valores para canais de um expansor. O controle de iluminação no exemplo também usa `pinMode()` e `digitalWrite()` diretamente. Nesse caminho nativo, SDA 7 coincide com PCLK, a luz no GPIO 2 coincide com DATA12 e RST 22 não existe no ESP32-S3. Portanto, a integração específica do expansor ainda precisa ser implementada para validar o funcionamento na placa. A conferência de assinaturas e a compilação não comprovam essa integração.
 
 #### Telas DSI
 
@@ -388,7 +392,7 @@ digitalWrite(23, HIGH);          // HIGH acende nesta placa.
 myDisplay.setDrawObject(tft);    // Entrega a tela.
 ```
 
-JD9365, Waveshare 10 pol., 800 por 1280. O exemplo basic_test usa rotação 1. Reset 27. Luz no GPIO 23 em HIGH.
+JD9365, Waveshare 10 pol., 800 por 1280. O exemplo em `examples/display_models` usa rotação 1. Reset 27. Luz no GPIO 23 em HIGH.
 
 ```cpp
 bus = new Arduino_ESP32DSIPanel(
@@ -704,7 +708,7 @@ if (myDisplay.startCamera(0, 13, 14, 400000, 26, -1, 1920, 1080)) { // Porta 0, 
 | Nokia 5110 | 84x48 | PCD8544 | nenhum | nenhuma | ESP32 |
 | OLED | 128x32 | SSD1306 | nenhum | nenhuma | ESP32 |
 | ST7565 | 128x64 | ST7565 | nenhum | nenhuma | ESP32 |
-| Waveshare 4.3 pol. | 800x480 | ST7262 | GT911 | nenhuma | ESP32-P4 |
+| Waveshare 4.3 pol. | 800x480 | ST7262 | GT911 | nenhuma | ESP32-S3 |
 | Waveshare 10.1 pol. | 800x1280 | JD9365 | GSL3680 | OV02C10 | ESP32-P4 |
 | Lousa 3.5 pol. | 320x480 | ST7796 | FT6336 | nenhuma | ESP32 |
 | Guition 7 pol. | 1024x600 | JD9165 | GT911 | nenhuma no cadastro | ESP32-P4 |

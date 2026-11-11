@@ -39,7 +39,7 @@ public:
   void drawBackground();
   void setup(const SpinBoxConfig& config);
   int getValue();
-  void setValue(int _value);
+  void setValue(int _value, bool triggerCallback = true);
   
   void show() override;
   void hide() override;

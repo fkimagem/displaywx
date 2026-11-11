@@ -1,3 +1,0 @@
-#define DISP_DEFAULT	
-#define TOUCH_GSL3680	
-#define CAM_OV02C10	

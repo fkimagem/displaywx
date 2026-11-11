@@ -37,7 +37,7 @@ public:
   void forceUpdate() override;
   void setup(const CheckBoxConfig& config);
   bool getStatus() const;
-  void setStatus(bool status);
+  void setStatus(bool status, bool triggerCallback = true);
   void show() override;
   void hide() override;
   void setSize(uint16_t newSize);

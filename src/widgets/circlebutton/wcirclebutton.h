@@ -30,9 +30,9 @@ public:
   void show() override;
   void hide() override;
   void setup(const CircleButtonConfig& config);
-  void onClick();
+  void onClick(bool triggerCallback = true);
   bool getStatus() const;
-  void setStatus(bool _status);
+  void setStatus(bool _status, bool triggerCallback = true);
 
 private:
   static const char* TAG; ///< Tag estática para identificação em logs do ESP32.

@@ -29,7 +29,7 @@ public:
   void forceUpdate() override;
   
   void setup(const CameraMipiConfig& config);
-  void onClick();
+  void onClick(bool triggerCallback = true);
   void changeState();
   bool getStatus();
   void setStatus(bool _status);

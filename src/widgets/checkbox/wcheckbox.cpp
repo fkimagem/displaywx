@@ -212,20 +212,21 @@ bool CheckBox::getStatus() const { return m_status; }
 /**
  * @brief Define o estado atual do checkbox.
  * @param status True para marcar o checkbox, False para desmarcar.
+ * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o estado.
  * @details Este método permite mudar programaticamente o estado do checkbox:
  *          - Atualiza o atributo m_status
  *          - Marca o widget para redesenho
- *          - Adiciona o callback na fila de execução se uma função foi definida
+ *          - Adiciona o callback na fila se uma função foi definida e triggerCallback for true
  *          - Registra o evento no log do ESP32
  *          Útil para sincronizar o estado visual com valores de variáveis ou configurações.
  */
-void CheckBox::setStatus(bool status) {
+void CheckBox::setStatus(bool status, bool triggerCallback) {
   CHECK_LOADED_VOID
   
   m_status = status;
   m_shouldRedraw = true;
   
-  if (m_callback != nullptr) {
+  if (m_callback != nullptr && triggerCallback) {
     WidgetBase::addCallback(m_callback, WidgetBase::CallbackOrigin::SELF);
   }
   

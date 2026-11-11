@@ -32,10 +32,10 @@ public:
   void forceUpdate() override;
   
   void setup(const RectButtonConfig& config);
-  void onClick();
+  void onClick(bool triggerCallback = true);
   void changeState();
   bool getStatus();
-  void setStatus(bool _status);
+  void setStatus(bool _status, bool triggerCallback = true);
   bool getEnabled();
   void setEnabled(bool newState);
   
