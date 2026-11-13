@@ -1,8 +1,8 @@
 /*
   AURA - controle de ambiente SIMULADO.
-  Placa: ESP32; display ST7796 320 x 480; touch FT6336U.
+  Placa: ESP32S3; display ST7796 320 x 480; touch FT6336U.
   Em user_setup.h da biblioteca: DISP_DEFAULT e TOUCH_FT6336.
-  Nao ha sensores, Wi-Fi, motor ou rele: os valores sao inventados pelo programa.
+  Nao ha sensores, Wi-Fi, motor ou rele: os valores sao simulados pelo programa.
   Veja README.md para aprender a mudar cores, tamanhos, escalas e perfis.
 */
 #include <SPI.h>
@@ -83,16 +83,16 @@ const int TOUCH_MAP_Y1 = 480;
 const bool TOUCH_SWAP_XY = false;
 const bool TOUCH_INVERT_X = false;
 const bool TOUCH_INVERT_Y = false;
-const int DISP_MOSI = 23;
+const int DISP_MOSI = 11;
 const int DISP_MISO = -1;
-const int DISP_SCLK = 18;
-const int DISP_CS = 5;
-const int DISP_DC = 2;
-const int DISP_RST = 4;
-const int TOUCH_SCL = 22;
-const int TOUCH_SDA = 21;
-const int TOUCH_INT = 19;
-const int TOUCH_RST = 15;
+const int DISP_SCLK = 12;
+const int DISP_CS = 10;
+const int DISP_DC = 8;
+const int DISP_RST = 9;
+const int TOUCH_SCL = 14;
+const int TOUCH_SDA = 13;
+const int TOUCH_INT = 18;
+const int TOUCH_RST = 17;
 const uint8_t rotationScreen = 0;
 const bool isIPS = true;
 
@@ -245,7 +245,7 @@ void simularPasso(EstadoAmbiente& estado, float segundos) {
         if (erro > FAIXA_ESTAVEL) estado.temperatura += (erro < passo ? erro : passo);
         if (erro < -FAIXA_ESTAVEL) estado.temperatura -= (-erro < passo ? -erro : passo);
     } else {
-        // No mundo de faz de conta, ventilar pode baixar ate 6 graus.
+        // Nesta simulacao, a ventilacao pode reduzir a temperatura em ate 6 graus.
         float destino = TEMP_EXTERNA - 6.0f * forca;
         estado.temperatura += (destino - estado.temperatura) * 0.08f * segundos;
     }
@@ -308,7 +308,7 @@ void loop() {
     if (filaComandos == nullptr) { delay(100); return; }
     bool mudou = false;
     Comando comando;
-    // Cada bilhete da fila representa uma acao feita na tela.
+    // Cada comando da fila representa uma acao feita na tela.
     for (int i = 0; i < 16 && xQueueReceive(filaComandos, &comando, 0) == pdTRUE; ++i) {
         aplicarComando(ambiente, comando);
         mudou = true;
@@ -439,7 +439,7 @@ void loadWidgets() {
     myDisplay.setLabel(arrayLabel, 4);
 }
 
-// 11. CALLBACKS: colocam bilhetes na fila; o loop faz o trabalho.
+// 11. CALLBACKS: enviam comandos para a fila; o loop os processa.
 void enviarComando(TipoComando tipo, int valor) {
     if (filaComandos == nullptr) return;
     Comando comando = {tipo, valor};

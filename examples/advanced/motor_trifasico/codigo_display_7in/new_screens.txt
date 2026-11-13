@@ -1,0 +1,1007 @@
+#include "iipg1back.h"
+#include "iipg2back.h"
+// Include for plugins of chip 0
+// Include external libraries and files
+#include <SPI.h>
+#include <Arduino_GFX_Library.h>
+#include <displaywx.h>
+
+
+    /* Project setup:
+    * MCU: ESP32S3_EMBEDDED
+    * Display: ESP32-8048S070
+    * Touch: GT911
+    * Camera: None
+    */
+// Defines for font and files
+#define FORMAT_SPIFFS_IF_FAILED false
+const int DISPLAY_W = 800;
+const int DISPLAY_H = 480;
+const int TOUCH_MAP_X0 = 0;
+const int TOUCH_MAP_X1 = 800;
+const int TOUCH_MAP_Y0 = 0;
+const int TOUCH_MAP_Y1 = 480;
+const bool TOUCH_SWAP_XY = false;
+const bool TOUCH_INVERT_X = false;
+const bool TOUCH_INVERT_Y = false;
+const int TOUCH_SCL = 20;
+const int TOUCH_SDA = 19;
+const int TOUCH_INT = -1;
+const int TOUCH_RST = 38;
+const uint8_t rotationScreen = 0; // This value can be changed depending of orientation of your screen
+const bool isIPS = false; // Come display can use this as bigEndian flag
+
+// Prototypes for each screen
+void screen0();
+void screen1();
+void screen2();
+void loadWidgets();
+
+// Prototypes for callback functions
+void slidergeral_cb();
+void sliderprg1_cb();
+void sliderprg2_cb();
+void pg1starttime_cb();
+void pg1runtime_cb();
+void pg1endtime_cb();
+void pg1freqmax_cb();
+void pg1rpmmax_cb();
+void pg2starttime_cb();
+void pg2runtime_cb();
+void pg2stoptime_cb();
+void pg2freqmax_cb();
+void pg2rpmmax_cb();
+void iipg1back_cb();
+void iipg2back_cb();
+void startbtn_cb();
+void reversebtn_cb();
+void emergcybtn_cb();
+void stopbtn_cb();
+void prog1btn_cb();
+void prog2btn_cb();
+void prog1startbtn_cb();
+void stop1btn_cb();
+void prog2startbtn_cb();
+void stop2btn_cb();
+
+#define DISP_LED 2
+Arduino_ESP32RGBPanel *bus = nullptr;
+Arduino_RGB_Display *tft = nullptr;
+DisplayWX myDisplay;
+// Create global objects. Constructor is: xPos, yPos and indexScreen
+GaugeSuper gaugerpm(215, 120, 0);
+const uint8_t qtdGauge = 1;
+GaugeSuper *arrayGauge[qtdGauge] = {&gaugerpm};
+const uint8_t qtdIntervalG0 = 4;
+int range0[qtdIntervalG0] = {0,450,900,1350};
+uint16_t colors0[qtdIntervalG0] = {CFK_COLOR025,CFK_COLOR019,CFK_COLOR013,CFK_COLOR007};
+HSlider slidergeral(35, 400, 0);
+HSlider sliderprg1(30, 360, 1);
+HSlider sliderprg2(40, 355, 2);
+const uint8_t qtdHSlider = 3;
+HSlider *arrayHslider[qtdHSlider] = {&slidergeral, &sliderprg1, &sliderprg2};
+int hslider0_val = 0; // Global variable that stores the value of the widget slidergeral
+int hslider1_val = 0; // Global variable that stores the value of the widget sliderprg1
+int hslider2_val = 0; // Global variable that stores the value of the widget sliderprg2
+Label valuefact(290, 325, 0);
+Label valuefset(290, 360, 0);
+Label labelhsliderge(205, 445, 0);
+Label labelservstat(610, 20, 0);
+Label setrpmvalue(240, 310, 1);
+Label rpmvalue(190, 415, 1);
+Label text8copycopy(235, 305, 2);
+Label rpmvalue6(205, 420, 2);
+const uint8_t qtdLabel = 8;
+Label *arrayLabel[qtdLabel] = {&valuefact, &valuefset, &labelhsliderge, &labelservstat, &setrpmvalue, &rpmvalue, &text8copycopy, &rpmvalue6};
+Led led1(465, 35, 0);
+const uint8_t qtdLed = 1;
+Led *arrayLed[qtdLed] = {&led1};
+LineChart graphfreq(435, 85, 0);
+LineChart graphprog1(435, 40, 1);
+LineChart graphprog2(435, 40, 2);
+const uint8_t qtdLineChart = 3;
+LineChart *arrayLinechart[qtdLineChart] = {&graphfreq, &graphprog1, &graphprog2};
+const uint8_t qtdLinesChart0 = 2;
+uint16_t colorsChart0[qtdLinesChart0] = {CFK_COLOR031,CFK_COLOR055};
+const uint8_t qtdLinesChart1 = 2;
+uint16_t colorsChart1[qtdLinesChart1] = {CFK_COLOR031,CFK_COLOR055};
+const uint8_t qtdLinesChart2 = 2;
+uint16_t colorsChart2[qtdLinesChart2] = {CFK_COLOR031,CFK_COLOR055};
+NumberBox pg1starttime(240, 82, 1);
+NumberBox pg1runtime(240, 132, 1);
+NumberBox pg1endtime(240, 177, 1);
+NumberBox pg1freqmax(240, 222, 1);
+NumberBox pg1rpmmax(240, 272, 1);
+NumberBox pg2starttime(235, 85, 2);
+NumberBox pg2runtime(235, 130, 2);
+NumberBox pg2stoptime(235, 175, 2);
+NumberBox pg2freqmax(235, 220, 2);
+NumberBox pg2rpmmax(235, 260, 2);
+const uint8_t qtdNumberbox = 10;
+NumberBox *arrayNumberbox[qtdNumberbox] = {&pg1starttime, &pg1runtime, &pg1endtime, &pg1freqmax, &pg1rpmmax, &pg2starttime, &pg2runtime, &pg2stoptime, &pg2freqmax, &pg2rpmmax};
+float nb0_val = 10; // Global variable that stores the value of the widget pg1starttime
+float nb1_val = 20; // Global variable that stores the value of the widget pg1runtime
+float nb2_val = 10; // Global variable that stores the value of the widget pg1endtime
+float nb3_val = 60; // Global variable that stores the value of the widget pg1freqmax
+float nb4_val = 1798; // Global variable that stores the value of the widget pg1rpmmax
+float nb5_val = 10; // Global variable that stores the value of the widget pg2starttime
+float nb6_val = 30; // Global variable that stores the value of the widget pg2runtime
+float nb7_val = 30; // Global variable that stores the value of the widget pg2stoptime
+float nb8_val = 60; // Global variable that stores the value of the widget pg2freqmax
+float nb9_val = 1798; // Global variable that stores the value of the widget pg2rpmmax
+TextButton startbtn(437, 280, 0);
+TextButton reversebtn(612, 280, 0);
+TextButton emergcybtn(437, 345, 0);
+TextButton stopbtn(612, 345, 0);
+TextButton prog1btn(437, 410, 0);
+TextButton prog2btn(612, 410, 0);
+TextButton prog1startbtn(490, 275, 1);
+TextButton stop1btn(490, 365, 1);
+TextButton prog2startbtn(485, 280, 2);
+TextButton stop2btn(485, 370, 2);
+const uint8_t qtdTextButton = 10;
+TextButton *arrayTextButton[qtdTextButton] = {&startbtn, &reversebtn, &emergcybtn, &stopbtn, &prog1btn, &prog2btn, &prog1startbtn, &stop1btn, &prog2startbtn, &stop2btn};
+VAnalog analogvdc(70, 135, 0);
+VAnalog analogtout(190, 135, 0);
+VAnalog analogcur(300, 135, 0);
+const uint8_t qtdVAnalog = 3;
+VAnalog *arrayVanalog[qtdVAnalog] = {&analogvdc, &analogtout, &analogcur};
+Image iipg1back(0, 0, 1);
+Image iipg2back(0, 0, 2);
+const uint8_t qtdImagem = 2;
+Image *arrayImagem[qtdImagem] = {&iipg1back, &iipg2back};
+
+void setup(){
+
+    Serial.begin(115200);
+    bus = new Arduino_ESP32RGBPanel(
+    41 /* DE */, 40 /* VSYNC */, 39 /* HSYNC */, 42 /* PCLK */,
+    14 /* R0 */, 21 /* R1 */, 47 /* R2 */, 48 /* R3 */, 45 /* R4 */,
+    9 /* G0 */, 46 /* G1 */, 3 /* G2 */, 8 /* G3 */, 16 /* G4 */, 1 /* G5 */,
+    15 /* B0 */, 7 /* B1 */, 6 /* B2 */, 5 /* B3 */, 4 /* B4 */,
+    0 /* hsync_polarity */, 180 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
+    0 /* vsync_polarity */, 12 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */,
+    1 /* pclk_active_neg */, 12000000 /* prefer_speed */, isIPS /* useBigEndian */,
+    0 /* de_idle_high */, 0 /* pclk_idle_high */, 0 /* bounce_buffer_size_px */);
+    tft = new Arduino_RGB_Display(
+    800, 480, bus,
+    rotationScreen, true);
+    tft->begin();
+    #if defined(DISP_LED)
+    pinMode(DISP_LED, OUTPUT);
+    digitalWrite(DISP_LED, HIGH);
+    #endif
+    myDisplay.setDrawObject(tft); // Reference to object to draw on screen
+    // Setup touch
+    myDisplay.setTouchCorners(TOUCH_MAP_X0, TOUCH_MAP_X1, TOUCH_MAP_Y0, TOUCH_MAP_Y1);
+    myDisplay.setInvertAxis(TOUCH_INVERT_X, TOUCH_INVERT_Y);
+    myDisplay.setSwapAxis(TOUCH_SWAP_XY);
+    myDisplay.startTouchGT911(DISPLAY_W, DISPLAY_H, rotationScreen, TOUCH_SDA, TOUCH_SCL, TOUCH_INT, TOUCH_RST);
+    //myDisplay.enableTouchLog();
+    loadWidgets(); // This function is used to setup with widget individualy
+    myDisplay.loadScreen(screen0); // Use this line to change between screens
+    myDisplay.createTask(false, 3); // Initialize the task to read touch and draw
+}
+
+void loop(){
+
+    myDisplay.startCustomDraw();
+    gaugerpm.setValue(random(0, 1800)); //Use this command to change widget value.
+    // Use the variable hslider0_val to check value/status of widget slidergeral
+    // Use the variable hslider1_val to check value/status of widget sliderprg1
+    // Use the variable hslider2_val to check value/status of widget sliderprg2
+    valuefact.setText(" Hz"); //Use this command to change widget value.
+    valuefset.setText(" Hz"); //Use this command to change widget value.
+    labelservstat.setText("Server: Custom text"); //Use this command to change widget value.
+    setrpmvalue.setText("900"); //Use this command to change widget value.
+    rpmvalue.setText("%"); //Use this command to change widget value.
+    text8copycopy.setText("900"); //Use this command to change widget value.
+    rpmvalue6.setText("%"); //Use this command to change widget value.
+    led1.setState(true);
+    graphfreq.push(0, random(0, 2000)); //Use this line to add value in serie 0.
+    graphfreq.push(1, random(0, 2000)); //Use this line to add value in serie 1.
+    graphprog1.push(0, random(0, 2000)); //Use this line to add value in serie 0.
+    graphprog1.push(1, random(0, 2000)); //Use this line to add value in serie 1.
+    graphprog2.push(0, random(0, 2000)); //Use this line to add value in serie 0.
+    graphprog2.push(1, random(0, 2000)); //Use this line to add value in serie 1.
+    // Use the variable nb0_val to check value/status of widget pg1starttime
+    // Use the variable nb1_val to check value/status of widget pg1runtime
+    // Use the variable nb2_val to check value/status of widget pg1endtime
+    // Use the variable nb3_val to check value/status of widget pg1freqmax
+    // Use the variable nb4_val to check value/status of widget pg1rpmmax
+    // Use the variable nb5_val to check value/status of widget pg2starttime
+    // Use the variable nb6_val to check value/status of widget pg2runtime
+    // Use the variable nb7_val to check value/status of widget pg2stoptime
+    // Use the variable nb8_val to check value/status of widget pg2freqmax
+    // Use the variable nb9_val to check value/status of widget pg2rpmmax
+    analogvdc.setValue(random(0, 400), true); //Use this command to change widget value.
+    analogtout.setValue(random(0, 270), true); //Use this command to change widget value.
+    analogcur.setValue(random(0, 10), true); //Use this command to change widget value.
+    myDisplay.finishCustomDraw();
+    delay(1000);
+    //esp_task_wdt_reset();
+    delay(100);
+}
+
+void screen0(){
+
+    myDisplay.setBackgroundColor(CFK_GREY6);
+    tft->fillRoundRect(415, 5, 372, 57, 25, CFK_GREY5);
+    tft->drawRoundRect(415, 5, 372, 57, 25, CFK_BLACK);
+    tft->fillRoundRect(10, 6, 391, 297, 25, CFK_GREY5);
+    tft->drawRoundRect(10, 6, 391, 297, 25, CFK_BLACK);
+    tft->fillRoundRect(9, 312, 393, 162, 25, CFK_GREY5);
+    tft->drawRoundRect(9, 312, 393, 162, 25, CFK_BLACK);
+    tft->fillRoundRect(417, 69, 372, 186, 25, CFK_GREY5);
+    tft->drawRoundRect(417, 69, 372, 186, 25, CFK_BLACK);
+    tft->fillRoundRect(415, 265, 376, 210, 25, CFK_GREY5);
+    tft->drawRoundRect(415, 265, 376, 210, 25, CFK_BLACK);
+    //This screen has a/an ponteiroAnalog
+    //This screen has a/an grafico
+    //This screen has a/an verticalAnalog
+    //This screen has a/an verticalAnalog
+    //This screen has a/an verticalAnalog
+    //This screen has a/an slider
+    myDisplay.printText("Frequencia Atual:", 60, 327, TL_DATUM, CFK_BLACK, CFK_GREY5, &RobotoRegular9pt7b);
+    myDisplay.printText("Frequencia Setada:", 60, 362, TL_DATUM, CFK_BLACK, CFK_GREY5, &RobotoRegular9pt7b);
+    myDisplay.printText("Tensao DC", 50, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b);
+    myDisplay.printText("Tensao OUT", 160, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b);
+    myDisplay.printText("Corrente", 285, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b);
+    myDisplay.printText("RPM", 580, 227, TL_DATUM, CFK_COLOR020, CFK_GREY5, &RobotoRegular11pt7b);
+    //This screen has a/an texto
+    //This screen has a/an texto
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an texto
+    //This screen has a/an led
+    //This screen has a/an texto
+    myDisplay.drawWidgetsOnScreen(0);
+}
+void screen1(){
+
+    myDisplay.setBackgroundColor(CFK_GREY6);
+    tft->fillRoundRect(410, 30, 380, 430, 25, CFK_GREY5);
+    tft->drawRoundRect(410, 30, 380, 430, 25, CFK_BLACK);
+    tft->fillRoundRect(10, 30, 380, 430, 25, CFK_GREY5);
+    tft->drawRoundRect(10, 30, 380, 430, 25, CFK_BLACK);
+    //This screen has a/an grafico
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    myDisplay.printText("RPM", 570, 232, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular11pt7b);
+    myDisplay.printText("Tempo de inicio:", 220, 82, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("Tempo ligado:", 225, 132, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("Tempo parado:", 225, 177, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("Freq. maxima:", 225, 222, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("RPM maxima:", 225, 272, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("SET RPM:", 225, 312, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    //This screen has a/an texto
+    //This screen has a/an texto
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an slider
+    //This screen has a/an imagem
+    myDisplay.drawWidgetsOnScreen(1);
+}
+void screen2(){
+
+    myDisplay.setBackgroundColor(CFK_GREY6);
+    tft->fillRoundRect(415, 30, 375, 430, 25, CFK_GREY5);
+    tft->drawRoundRect(415, 30, 375, 430, 25, CFK_BLACK);
+    tft->fillRoundRect(10, 30, 395, 430, 25, CFK_GREY5);
+    tft->drawRoundRect(10, 30, 395, 430, 25, CFK_BLACK);
+    //This screen has a/an grafico
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    //This screen has a/an caixaNumero
+    myDisplay.printText("RPM", 585, 232, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular11pt7b);
+    myDisplay.printText("Tempo de inicio:", 220, 87, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("Tempo ligado:", 220, 127, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("Tempo parado:", 220, 177, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("Freq. maxima:", 220, 222, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("RPM maxima:", 220, 262, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("SET RPM:", 220, 307, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    //This screen has a/an texto
+    //This screen has a/an texto
+    //This screen has a/an textButton
+    //This screen has a/an textButton
+    //This screen has a/an slider
+    //This screen has a/an imagem
+    myDisplay.drawWidgetsOnScreen(2);
+}
+
+// Configure each widgtes to be used
+void loadWidgets(){
+
+    GaugeConfig configGauge0 = {
+            .title = "RPM",
+            .intervals = range0,
+            .colors = colors0,
+            .fontFamily = &RobotoRegular8pt7b,
+            .minValue = 0,
+            .maxValue = 1800,
+            .width = 276,
+            .height = 110,
+            .borderColor = CFK_GREY1,
+            .textColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .titleColor = CFK_WHITE,
+            .needleColor = CFK_RED,
+            .markersColor = CFK_BLACK,
+            .amountIntervals = qtdIntervalG0,
+            .showLabels = true
+        };
+    gaugerpm.setup(configGauge0);
+    myDisplay.setGauge(arrayGauge,qtdGauge);
+
+
+    HSliderConfig configHSlider0 = {
+            .callback = slidergeral_cb,
+            .subtitle = &labelhsliderge,
+            .minValue = 0,
+            .maxValue = 100,
+            .radius = 18,
+            .width = 337,
+            .pressedColor = CFK_COLOR041,
+            .backgroundColor = CFK_WHITE,
+        };
+    slidergeral.setup(configHSlider0);
+    HSliderConfig configHSlider1 = {
+            .callback = sliderprg1_cb,
+            .subtitle = nullptr,
+            .minValue = 0,
+            .maxValue = 100,
+            .radius = 21,
+            .width = 343,
+            .pressedColor = CFK_GREY3,
+            .backgroundColor = CFK_WHITE,
+        };
+    sliderprg1.setup(configHSlider1);
+    HSliderConfig configHSlider2 = {
+            .callback = sliderprg2_cb,
+            .subtitle = nullptr,
+            .minValue = 0,
+            .maxValue = 100,
+            .radius = 21,
+            .width = 343,
+            .pressedColor = CFK_GREY3,
+            .backgroundColor = CFK_WHITE,
+        };
+    sliderprg2.setup(configHSlider2);
+    myDisplay.setHSlider(arrayHslider,qtdHSlider);
+
+
+    LabelConfig configLabel0 = {
+            .text = " Hz",
+            .prefix = "",
+            .suffix = " Hz",
+            .fontFamily = &RobotoRegular12pt7b,
+            .datum = TL_DATUM,
+            .fontColor = CFK_COLOR013,
+            .backgroundColor = CFK_GREY5,
+        };
+    valuefact.setup(configLabel0);
+    LabelConfig configLabel1 = {
+            .text = " Hz",
+            .prefix = "",
+            .suffix = " Hz",
+            .fontFamily = &RobotoRegular12pt7b,
+            .datum = TL_DATUM,
+            .fontColor = CFK_COLOR043,
+            .backgroundColor = CFK_GREY5,
+        };
+    valuefset.setup(configLabel1);
+    LabelConfig configLabel2 = {
+            .text = "%",
+            .prefix = "",
+            .suffix = "%",
+            .fontFamily = &RobotoRegular8pt7b,
+            .datum = TC_DATUM,
+            .fontColor = CFK_COLOR043,
+            .backgroundColor = CFK_GREY5,
+        };
+    labelhsliderge.setup(configLabel2);
+    LabelConfig configLabel3 = {
+            .text = "Server: Custom text",
+            .prefix = "Server: ",
+            .suffix = "",
+            .fontFamily = &RobotoRegular10pt7b,
+            .datum = TC_DATUM,
+            .fontColor = CFK_GREY14,
+            .backgroundColor = CFK_GREY5,
+        };
+    labelservstat.setup(configLabel3);
+    LabelConfig configLabel4 = {
+            .text = "900",
+            .prefix = "",
+            .suffix = "",
+            .fontFamily = &RobotoRegular13pt7b,
+            .datum = TL_DATUM,
+            .fontColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY5,
+        };
+    setrpmvalue.setup(configLabel4);
+    LabelConfig configLabel5 = {
+            .text = "%",
+            .prefix = "",
+            .suffix = "%",
+            .fontFamily = &RobotoRegular13pt7b,
+            .datum = TL_DATUM,
+            .fontColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY5,
+        };
+    rpmvalue.setup(configLabel5);
+    LabelConfig configLabel6 = {
+            .text = "900",
+            .prefix = "",
+            .suffix = "",
+            .fontFamily = &RobotoRegular13pt7b,
+            .datum = TL_DATUM,
+            .fontColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY5,
+        };
+    text8copycopy.setup(configLabel6);
+    LabelConfig configLabel7 = {
+            .text = "%",
+            .prefix = "",
+            .suffix = "%",
+            .fontFamily = &RobotoRegular13pt7b,
+            .datum = TL_DATUM,
+            .fontColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY5,
+        };
+    rpmvalue6.setup(configLabel7);
+    myDisplay.setLabel(arrayLabel,qtdLabel);
+
+
+    LedConfig configLed0 = {
+            .radius = 16,
+            .colorOn = CFK_COLOR032,
+            .colorOff = CFK_GREY3,
+            .initialState = true
+        };
+    led1.setup(configLed0);
+    myDisplay.setLed(arrayLed,qtdLed);
+
+
+    LineChartConfig configLineChart0 = {
+            .colorsSeries = colorsChart0,
+            .subtitles = nullptr,
+            .font = &RobotoRegular5pt7b,
+            .minValue = 0,
+            .maxValue = 2000,
+            .width = 335,
+            .height = 139,
+            .gridColor = CFK_BLACK,
+            .borderColor = CFK_BLACK,
+            .backgroundColor = CFK_GREY3,
+            .textColor = CFK_WHITE,
+            .verticalDivision = 10,
+            .maxPointsAmount = LineChart::SHOW_ALL,
+            .amountSeries = qtdLinesChart0,
+            .workInBackground = false,
+            .showZeroLine = true,
+            .boldLine = false,
+            .showDots = false
+        };
+    graphfreq.setup(configLineChart0);
+    LineChartConfig configLineChart1 = {
+            .colorsSeries = colorsChart1,
+            .subtitles = nullptr,
+            .font = &RobotoRegular5pt7b,
+            .minValue = 0,
+            .maxValue = 2000,
+            .width = 335,
+            .height = 185,
+            .gridColor = CFK_BLACK,
+            .borderColor = CFK_BLACK,
+            .backgroundColor = CFK_GREY3,
+            .textColor = CFK_WHITE,
+            .verticalDivision = 10,
+            .maxPointsAmount = LineChart::SHOW_ALL,
+            .amountSeries = qtdLinesChart1,
+            .workInBackground = false,
+            .showZeroLine = true,
+            .boldLine = true,
+            .showDots = false
+        };
+    graphprog1.setup(configLineChart1);
+    LineChartConfig configLineChart2 = {
+            .colorsSeries = colorsChart2,
+            .subtitles = nullptr,
+            .font = &RobotoRegular5pt7b,
+            .minValue = 0,
+            .maxValue = 2000,
+            .width = 335,
+            .height = 185,
+            .gridColor = CFK_BLACK,
+            .borderColor = CFK_BLACK,
+            .backgroundColor = CFK_GREY3,
+            .textColor = CFK_WHITE,
+            .verticalDivision = 10,
+            .maxPointsAmount = LineChart::SHOW_ALL,
+            .amountSeries = qtdLinesChart2,
+            .workInBackground = false,
+            .showZeroLine = true,
+            .boldLine = true,
+            .showDots = false
+        };
+    graphprog2.setup(configLineChart2);
+    myDisplay.setLineChart(arrayLinechart,qtdLineChart);
+
+
+    Numpad::m_backgroundColor = CFK_GREY3;
+    Numpad::m_letterColor = CFK_BLACK;
+    Numpad::m_keyColor = CFK_GREY13;
+
+
+    NumberBoxConfig configNumberBox0 = {
+            .funcPtr = screen1,
+            .callback = pg1starttime_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb0_val,
+            .width = 125,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg1starttime.setup(configNumberBox0);
+    NumberBoxConfig configNumberBox1 = {
+            .funcPtr = screen1,
+            .callback = pg1runtime_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb1_val,
+            .width = 127,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg1runtime.setup(configNumberBox1);
+    NumberBoxConfig configNumberBox2 = {
+            .funcPtr = screen1,
+            .callback = pg1endtime_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb2_val,
+            .width = 127,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg1endtime.setup(configNumberBox2);
+    NumberBoxConfig configNumberBox3 = {
+            .funcPtr = screen1,
+            .callback = pg1freqmax_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb3_val,
+            .width = 127,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 2
+        };
+    pg1freqmax.setup(configNumberBox3);
+    NumberBoxConfig configNumberBox4 = {
+            .funcPtr = screen1,
+            .callback = pg1rpmmax_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb4_val,
+            .width = 129,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg1rpmmax.setup(configNumberBox4);
+    NumberBoxConfig configNumberBox5 = {
+            .funcPtr = screen2,
+            .callback = pg2starttime_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb5_val,
+            .width = 125,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg2starttime.setup(configNumberBox5);
+    NumberBoxConfig configNumberBox6 = {
+            .funcPtr = screen2,
+            .callback = pg2runtime_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb6_val,
+            .width = 125,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg2runtime.setup(configNumberBox6);
+    NumberBoxConfig configNumberBox7 = {
+            .funcPtr = screen2,
+            .callback = pg2stoptime_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb7_val,
+            .width = 124,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg2stoptime.setup(configNumberBox7);
+    NumberBoxConfig configNumberBox8 = {
+            .funcPtr = screen2,
+            .callback = pg2freqmax_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb8_val,
+            .width = 125,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 2
+        };
+    pg2freqmax.setup(configNumberBox8);
+    NumberBoxConfig configNumberBox9 = {
+            .funcPtr = screen2,
+            .callback = pg2rpmmax_cb,
+            .font = &RobotoRegular10pt7b,
+            .startValue = nb9_val,
+            .width = 125,
+            .height = 25,
+            .letterColor = CFK_WHITE,
+            .backgroundColor = CFK_GREY6,
+            .decimalPlaces = 0
+        };
+    pg2rpmmax.setup(configNumberBox9);
+    myDisplay.setNumberbox(arrayNumberbox,qtdNumberbox);
+
+
+    TextButtonConfig configTextButton0 = {
+            .text = "START",
+            .callback = startbtn_cb,
+            .fontFamily = &RobotoBold13pt7b,
+            .width = 160,
+            .height = 50,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR025,
+            .textColor = CFK_BLACK
+        };
+
+    startbtn.setup(configTextButton0);
+    TextButtonConfig configTextButton1 = {
+            .text = "REVERSE",
+            .callback = reversebtn_cb,
+            .fontFamily = &RobotoBold13pt7b,
+            .width = 160,
+            .height = 50,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR050,
+            .textColor = CFK_BLACK
+        };
+
+    reversebtn.setup(configTextButton1);
+    TextButtonConfig configTextButton2 = {
+            .text = "EMERGENCY",
+            .callback = emergcybtn_cb,
+            .fontFamily = &RobotoBold13pt7b,
+            .width = 160,
+            .height = 50,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR007,
+            .textColor = CFK_BLACK
+        };
+
+    emergcybtn.setup(configTextButton2);
+    TextButtonConfig configTextButton3 = {
+            .text = "STOP",
+            .callback = stopbtn_cb,
+            .fontFamily = &RobotoBold13pt7b,
+            .width = 160,
+            .height = 50,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR019,
+            .textColor = CFK_BLACK
+        };
+
+    stopbtn.setup(configTextButton3);
+    TextButtonConfig configTextButton4 = {
+            .text = "PROG 1",
+            .callback = prog1btn_cb,
+            .fontFamily = &RobotoBold13pt7b,
+            .width = 160,
+            .height = 50,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR013,
+            .textColor = CFK_BLACK
+        };
+
+    prog1btn.setup(configTextButton4);
+    TextButtonConfig configTextButton5 = {
+            .text = "PROG 2",
+            .callback = prog2btn_cb,
+            .fontFamily = &RobotoBold13pt7b,
+            .width = 160,
+            .height = 50,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR013,
+            .textColor = CFK_BLACK
+        };
+
+    prog2btn.setup(configTextButton5);
+    TextButtonConfig configTextButton6 = {
+            .text = "PROG 1",
+            .callback = prog1startbtn_cb,
+            .fontFamily = &RobotoBold14pt7b,
+            .width = 233,
+            .height = 80,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR013,
+            .textColor = CFK_BLACK
+        };
+
+    prog1startbtn.setup(configTextButton6);
+    TextButtonConfig configTextButton7 = {
+            .text = "STOP",
+            .callback = stop1btn_cb,
+            .fontFamily = &RobotoBold14pt7b,
+            .width = 233,
+            .height = 80,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR007,
+            .textColor = CFK_WHITE
+        };
+
+    stop1btn.setup(configTextButton7);
+    TextButtonConfig configTextButton8 = {
+            .text = "PROG 2",
+            .callback = prog2startbtn_cb,
+            .fontFamily = &RobotoBold14pt7b,
+            .width = 233,
+            .height = 80,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR013,
+            .textColor = CFK_BLACK
+        };
+
+    prog2startbtn.setup(configTextButton8);
+    TextButtonConfig configTextButton9 = {
+            .text = "STOP",
+            .callback = stop2btn_cb,
+            .fontFamily = &RobotoBold14pt7b,
+            .width = 233,
+            .height = 80,
+            .radius = 10,
+            .backgroundColor = CFK_COLOR007,
+            .textColor = CFK_WHITE
+        };
+
+    stop2btn.setup(configTextButton9);
+    myDisplay.setTextButton(arrayTextButton,qtdTextButton);
+
+
+    VerticalAnalogConfig configVAnalog0 = {
+            .minValue = 0,
+            .maxValue = 400,
+            .width = 40,
+            .height = 135,
+            .arrowColor = CFK_COLOR007,
+            .textColor = CFK_BLACK,
+            .backgroundColor = CFK_WHITE,
+            .borderColor = CFK_BLACK,
+            .steps = 10
+        };
+    analogvdc.setup(configVAnalog0);
+    VerticalAnalogConfig configVAnalog1 = {
+            .minValue = 0,
+            .maxValue = 270,
+            .width = 40,
+            .height = 134,
+            .arrowColor = CFK_COLOR007,
+            .textColor = CFK_BLACK,
+            .backgroundColor = CFK_WHITE,
+            .borderColor = CFK_BLACK,
+            .steps = 10
+        };
+    analogtout.setup(configVAnalog1);
+    VerticalAnalogConfig configVAnalog2 = {
+            .minValue = 0,
+            .maxValue = 10,
+            .width = 40,
+            .height = 134,
+            .arrowColor = CFK_COLOR007,
+            .textColor = CFK_BLACK,
+            .backgroundColor = CFK_WHITE,
+            .borderColor = CFK_BLACK,
+            .steps = 10
+        };
+    analogcur.setup(configVAnalog2);
+    myDisplay.setVAnalog(arrayVanalog,qtdVAnalog);
+
+
+    ImageFromPixelsConfig configImage0 = {
+            .pixels = iipg1backPixels,
+            .maskAlpha = iipg1backMask,
+            .cb = iipg1back_cb,
+            .angle = 0,
+            .width = iipg1backW,
+            .height = iipg1backH,
+            .backgroundColor = CFK_GREY6
+        };
+    iipg1back.setupFromPixels(configImage0);
+    ImageFromPixelsConfig configImage1 = {
+            .pixels = iipg2backPixels,
+            .maskAlpha = iipg2backMask,
+            .cb = iipg2back_cb,
+            .angle = 0,
+            .width = iipg2backW,
+            .height = iipg2backH,
+            .backgroundColor = CFK_GREY6
+        };
+    iipg2back.setupFromPixels(configImage1);
+    myDisplay.setImage(arrayImagem,qtdImagem);
+
+
+}
+
+// This function is a callback of this element slidergeral.
+// You dont need call it. Make sure it is as short and quick as possible.
+void slidergeral_cb(){
+
+    hslider0_val = slidergeral.getValue();
+}
+// This function is a callback of this element sliderprg1.
+// You dont need call it. Make sure it is as short and quick as possible.
+void sliderprg1_cb(){
+
+    hslider1_val = sliderprg1.getValue();
+}
+// This function is a callback of this element sliderprg2.
+// You dont need call it. Make sure it is as short and quick as possible.
+void sliderprg2_cb(){
+
+    hslider2_val = sliderprg2.getValue();
+}
+// This function is a callback of this element pg1starttime.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg1starttime_cb(){
+
+    nb0_val = pg1starttime.getValue();
+}
+// This function is a callback of this element pg1runtime.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg1runtime_cb(){
+
+    nb1_val = pg1runtime.getValue();
+}
+// This function is a callback of this element pg1endtime.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg1endtime_cb(){
+
+    nb2_val = pg1endtime.getValue();
+}
+// This function is a callback of this element pg1freqmax.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg1freqmax_cb(){
+
+    nb3_val = pg1freqmax.getValue();
+}
+// This function is a callback of this element pg1rpmmax.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg1rpmmax_cb(){
+
+    nb4_val = pg1rpmmax.getValue();
+}
+// This function is a callback of this element pg2starttime.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg2starttime_cb(){
+
+    nb5_val = pg2starttime.getValue();
+}
+// This function is a callback of this element pg2runtime.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg2runtime_cb(){
+
+    nb6_val = pg2runtime.getValue();
+}
+// This function is a callback of this element pg2stoptime.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg2stoptime_cb(){
+
+    nb7_val = pg2stoptime.getValue();
+}
+// This function is a callback of this element pg2freqmax.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg2freqmax_cb(){
+
+    nb8_val = pg2freqmax.getValue();
+}
+// This function is a callback of this element pg2rpmmax.
+// You dont need call it. Make sure it is as short and quick as possible.
+void pg2rpmmax_cb(){
+
+    nb9_val = pg2rpmmax.getValue();
+}
+// This function is a callback of this element startbtn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void startbtn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("startbtn_cb");
+}
+// This function is a callback of this element reversebtn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void reversebtn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("reversebtn_cb");
+}
+// This function is a callback of this element emergcybtn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void emergcybtn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("emergcybtn_cb");
+}
+// This function is a callback of this element stopbtn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void stopbtn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("stopbtn_cb");
+}
+// This function is a callback of this element prog1btn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void prog1btn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("prog1btn_cb");
+}
+// This function is a callback of this element prog2btn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void prog2btn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("prog2btn_cb");
+}
+// This function is a callback of this element prog1startbtn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void prog1startbtn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("prog1startbtn_cb");
+}
+// This function is a callback of this element stop1btn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void stop1btn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("stop1btn_cb");
+}
+// This function is a callback of this element prog2startbtn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void prog2startbtn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("prog2startbtn_cb");
+}
+// This function is a callback of this element stop2btn.
+// You dont need call it. Make sure it is as short and quick as possible.
+void stop2btn_cb(){
+
+    Serial.print("Clicked on: ");Serial.println("stop2btn_cb");
+}
+// This function is a callback of this element iipg1back.
+// You dont need call it. Make sure it is as short and quick as possible.
+void iipg1back_cb(){
+
+    // Image "ipg1back" clicked
+    Serial.println("Image ipg1back clicked");
+}
+// This function is a callback of this element iipg2back.
+// You dont need call it. Make sure it is as short and quick as possible.
+void iipg2back_cb(){
+
+    // Image "ipg2back" clicked
+    Serial.println("Image ipg2back clicked");
+}

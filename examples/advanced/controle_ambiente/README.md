@@ -1,41 +1,41 @@
-# AURA: aprenda a programar uma sala de faz de conta
+# Controle de ambiente
 
-Imagine que você ganhou o painel de controle de uma sala. Você escolhe a temperatura, muda a ventilação e vê os números responderem. Neste projeto, a sala existe **dentro do programa**: não precisamos de sensores, ventilador, relé nem conexão Wi-Fi.
+O projeto AURA demonstra um **controle de ambiente simulado**. Você escolhe a temperatura desejada, ajusta a ventilação e acompanha as mudanças nas leituras. Os valores são calculados pelo programa, sem sensores, ventilador, relé ou conexão Wi-Fi.
 
-Este manual acompanha o [controle_ambiente.ino](controle_ambiente.ino). Primeiro vamos brincar com o painel. Depois vamos abrir sua “caixa de ferramentas” e mudar cores, tamanhos, escalas e regras.
+Este manual acompanha o [controle_ambiente.ino](controle_ambiente.ino). Ele explica como operar o painel, entender o código e alterar cores, tamanhos, escalas e regras de funcionamento.
 
 ![Mapa da tela AURA com os controles e suas funções.](images/01-mapa-da-tela.png)
 
-**Sobre as imagens:** as nove pranchas novas são ilustrações didáticas baseadas na tela original da pasta. Elas ajudam a comparar as mudanças; não são capturas de testes na placa nem desenhos para medir com régua. Fontes, cores e proporções podem ter pequenas diferenças. Os valores exatos estão no código. Na simulação em funcionamento, os números continuam mudando.
+**Sobre as imagens:** as nove pranchas novas são ilustrações didáticas baseadas na tela original da pasta. Elas ajudam a comparar as mudanças; não são capturas de testes na placa nem representações com precisão de pixels. Fontes, cores e proporções podem ter pequenas diferenças. Os valores exatos estão no código. Na simulação em funcionamento, os números continuam mudando.
 
-## Escolha seu caminho
+## Conteúdo
 
 1. [Prepare e execute o exemplo](#1-prepare-e-execute-o-exemplo).
 2. [Aprenda o que cada toque faz](#2-aprenda-o-que-cada-toque-faz).
-3. [Encontre as peças no código](#3-encontre-as-peças-no-código).
-4. [Entenda como os widgets conversam](#4-entenda-como-os-widgets-conversam).
+3. [Conheça a organização do código](#3-conheça-a-organização-do-código).
+4. [Entenda como os widgets interagem](#4-entenda-como-os-widgets-interagem).
 5. [Troque as cores](#5-troque-as-cores).
 6. [Mude as escalas](#6-mude-as-escalas).
 7. [Mude tamanhos e posições](#7-mude-tamanhos-e-posições).
 8. [Mude letras e textos](#8-mude-letras-e-textos).
-9. [Invente seus próprios perfis](#9-invente-seus-próprios-perfis).
+9. [Configure seus próprios perfis](#9-configure-seus-próprios-perfis).
 10. [Consulte as funções e os métodos](#10-consulte-as-funções-e-os-métodos).
 11. [Faça experiências e resolva problemas](#11-faça-experiências-e-resolva-problemas).
 12. [Copie o programa completo](#12-programa-completo).
 
-Se esta for sua primeira vez, faça os capítulos 1 e 2. Depois escolha **uma** modificação das figuras e experimente. Não precisa decorar tudo para começar.
+Se esta for sua primeira vez, faça os capítulos 1 e 2. Depois escolha **uma** modificação das figuras e experimente. Consulte os demais capítulos conforme precisar.
 
 ## 1. Prepare e execute o exemplo
 
 ### O material
 
-- Uma placa **ESP32 clássico**, com os GPIOs da tabela disponíveis. Este exemplo não usa a mesma pinagem dos exemplos ESP32-S3.
+- Uma placa **ESP32-S3**, com os GPIOs da tabela disponíveis.
 - Display **ST7796 de 320 × 480 pixels**, com comunicação SPI, e toque capacitivo **FT6336U**, com comunicação I2C.
 - Cabo USB de dados, alimentação adequada ao módulo e fios.
 - IDE Arduino, esta biblioteca **DisplayWX 1.0.33** e **GFX Library for Arduino**. A referência local usa GFX **1.6.5**.
 - Pacote de placas **esp32 by Espressif Systems 3.3.12**. A DisplayWX desta pasta aceita as versões 3.3.11 e 3.3.12.
 
-Peça ajuda de um adulto para montar os fios com a alimentação desligada. Os sinais do ESP32 usam **3,3 V**. A alimentação e a iluminação do display devem seguir as especificações do seu módulo.
+Peça ajuda de um adulto para montar os fios com a alimentação desligada. Os sinais do ESP32-S3 usam **3,3 V**. A alimentação e a iluminação do display devem seguir as especificações do seu módulo.
 
 ### Configure a biblioteca
 
@@ -50,31 +50,31 @@ Comente as outras opções de display, toque e câmera com `//`. Por exemplo, `#
 
 ### Ligue o display e o toque
 
-| Sinal | GPIO do ESP32 |
+| Sinal | GPIO do ESP32-S3 |
 | --- | --- |
-| MOSI / SDI do display | 23 |
-| SCK / CLK do display | 18 |
-| CS do display | 5 |
-| DC / RS do display | 2 |
-| RST do display | 4 |
-| SDA do toque | 21 |
-| SCL do toque | 22 |
-| INT do toque | 19 |
-| RST do toque | 15 |
+| MOSI / SDI do display | 11 |
+| SCK / CLK do display | 12 |
+| CS do display | 10 |
+| DC / RS do display | 8 |
+| RST do display | 9 |
+| SDA do toque | 13 |
+| SCL do toque | 14 |
+| INT do toque | 18 |
+| RST do toque | 17 |
 | GND | GND comum aos módulos |
 
-`DISP_MISO = -1` significa que não há fio de leitura SPI. A iluminação não tem GPIO de controle declarado neste sketch: use a ligação de backlight do seu módulo. Os pinos originais de display e toque foram preservados. O LED verde do painel é **um desenho**, não um LED que você precisa ligar a um GPIO.
+`DISP_MISO = -1` significa que não há fio de leitura SPI. A iluminação não tem GPIO de controle declarado neste sketch: use a ligação de backlight do seu módulo. A tabela corresponde às constantes de pinagem do `.ino` para ESP32-S3. O LED verde do painel é **um desenho**, não um LED que você precisa ligar a um GPIO.
 
 ### Carregue o programa
 
 1. Copie a pasta `controle_ambiente` para sua pasta de projetos.
 2. Abra [controle_ambiente.ino](controle_ambiente.ino) na IDE Arduino. O código completo também está no final deste manual.
-3. Selecione o modelo ESP32 da sua placa e a porta USB correta.
+3. Selecione o modelo ESP32-S3 correspondente à sua placa e a porta USB correta.
 4. Confira o `user_setup.h`, clique em **Verificar** e depois em **Carregar**.
 5. Abra o Monitor Serial em **115200 baud**. Reinicie a placa e procure `AURA: simulacao iniciada`.
 6. Espere a tela aparecer e faça os testes do próximo capítulo.
 
-A tela fica em pé, com rotação `0`: são 320 pixels de largura e 480 de altura. Um pixel é um pontinho da imagem.
+A tela fica em pé, com rotação `0`: são 320 pixels de largura e 480 de altura. Um pixel é um ponto que compõe a imagem.
 
 <details>
 <summary>Veja a imagem original que veio com o projeto</summary>
@@ -117,24 +117,24 @@ Arraste a ventilação totalmente para a esquerda. AUTO desliga, aparece `MANUAL
 
 No manual, a meta fica guardada, mas não comanda o aquecimento/resfriamento. Ligue AUTO para voltar a usá-la. Desligar AUTO **não zera** a ventilação: conserva o valor atual.
 
-### Experiência C: invente uma meta
+### Experiência C: defina uma meta
 
 Use − e +. Cada toque muda a meta em 1 grau e o perfil passa a `PERSONAL`. Se AUTO já estiver ligado, a sala tentará se aproximar da nova meta. Se estiver desligado, continua manual até você ligar a chave.
 
 Faça toques curtos, soltando o dedo. Alguns controles podem repetir a ação quando você segura o toque.
 
-### As regras da sala de faz de conta
+### Regras da simulação
 
 - A sala começa em 28 °C; a temperatura externa fictícia é 30 °C.
 - AUTO compara temperatura e meta, escolhe a ventilação e simula aquecer ou resfriar.
 - Uma diferença de até 0,3 grau é considerada estável. Não precisa acertar um decimal perfeito.
-- No manual, mais ventilação faz a temperatura tender a um valor mais baixo. Essa regra foi inventada para o exercício.
+- No manual, mais ventilação faz a temperatura tender a um valor mais baixo. Essa regra foi definida para a simulação.
 - Mais ventilação tende a diminuir a umidade e aumentar o índice fictício de qualidade do ar.
 - `BOM` significa índice de pelo menos 70; `REGULAR`, de 40 até menos de 70; `RUIM`, abaixo de 40.
 
-**Esses números não medem uma sala real.** O índice de qualidade é inventado, não uma medição de CO₂, poluição ou segurança do ar. O programa não aciona equipamentos externos. Reiniciar a placa restaura os valores iniciais; este exemplo não salva as escolhas.
+**Esses números não medem uma sala real.** O índice de qualidade é simulado, não uma medição de CO₂, poluição ou segurança do ar. O programa não aciona equipamentos externos. Reiniciar a placa restaura os valores iniciais; este exemplo não salva as escolhas.
 
-## 3. Encontre as peças no código
+## 3. Conheça a organização do código
 
 O `.ino` tem blocos numerados. Use **Ctrl+F** na IDE para procurar a constante ou função que quer mudar.
 
@@ -144,19 +144,19 @@ O `.ino` tem blocos numerados. Use **Ctrl+F** na IDE para procurar a constante o
 | 2 | `COR_FUNDO` | Cores e fonte da umidade. |
 | 3 | `ANEL_X` | Posições, tamanhos e arredondamento. |
 | 4 | `DISPLAY_W` | Ligações do display e do toque. |
-| 5 | `EstadoAmbiente` | Memória da sala e tipos de comandos. |
+| 5 | `EstadoAmbiente` | Estado do ambiente e tipos de comandos. |
 | 6 | `HSlider slider1` | Objetos e listas. |
 | 7 | `limitarInteiro` | Regras e contas da simulação. |
 | 8 | `void setup()` | Início, repetição e atualização visual. |
 | 9 | `void screen0()` | Fundo e textos fixos. |
 | 10 | `void loadWidgets()` | Fichas de configuração dos widgets. |
-| 11 | `void enviarComando` | Callbacks e fila de pedidos. |
+| 11 | `void enviarComando` | Callbacks e fila de comandos. |
 
-### Uma pequena tradução do C++
+### Termos básicos de C++
 
-| Palavra/símbolo | Pense assim |
+| Palavra/símbolo | Significado |
 | --- | --- |
-| Variável | Uma caixinha que guarda uma informação. |
+| Variável | Um espaço na memória que guarda uma informação. |
 | `int` | Número inteiro, como 24. |
 | `float` | Número com parte decimal, como `28.5f`. Use ponto, não vírgula. |
 | `bool` | `true` (sim) ou `false` (não). |
@@ -214,9 +214,9 @@ O nome do callback aparece **sem `()`**, porque estamos escolhendo a função pa
 
 Mantenha a ordem dos campos do exemplo. Para mudar as fichas, edite e carregue novamente. Vários widgets ignoram uma segunda chamada de `setup()`; não tente trocar o tema chamando `loadWidgets()` repetidamente no loop.
 
-## 4. Entenda como os widgets conversam
+## 4. Entenda como os widgets interagem
 
-Pense numa escola: os controles escrevem bilhetes; o `loop()` lê, atualiza a sala e muda o painel.
+Ao receber um toque, o controle envia um comando para uma fila. O `loop()` lê os comandos, atualiza o estado do ambiente e mostra o resultado no painel.
 
 ```text
 Seu toque → callback → fila de comandos
@@ -230,7 +230,7 @@ Seu toque → callback → fila de comandos
                botoes, anel, textos e LED
 ```
 
-### O bilhete e a memória
+### O comando e o estado do ambiente
 
 ```cpp
 struct Comando {
@@ -243,7 +243,7 @@ struct Comando {
 
 A biblioteca atende o toque em sua própria tarefa. A fila entrega os pedidos ao loop de maneira organizada; só ele modifica `ambiente` depois do início. Você não precisa criar outras tarefas para personalizar o exemplo.
 
-### Callbacks curtinhos
+### Callbacks de interação
 
 ```cpp
 void slider1_cb() {
@@ -253,7 +253,7 @@ void slider1_cb() {
 
 `getValue()` lê o número escolhido. O callback envia o pedido e termina, sem esperar a sala esfriar.
 
-| Callback | Bilhete |
+| Callback | Comando enviado |
 | --- | --- |
 | `spinbox1_cb` | `AJUSTE` e a nova meta. |
 | `toggle1_cb` | `AUTO` com 1 para ligado ou 0 para desligado. |
@@ -273,7 +273,7 @@ void enviarComando(TipoComando tipo, int valor) {
 
 Há espaço para 16 pedidos. O último `0` de `xQueueSend` significa que o callback não espera por espaço. Se a fila ficar cheia, a Serial pede para repetir o toque.
 
-### Um pedido muda várias peças
+### Um comando atualiza vários widgets
 
 ```cpp
 void aplicarComando(EstadoAmbiente& estado, const Comando& comando) {
@@ -304,14 +304,14 @@ No caso `VENTILACAO`, o programa guarda a porcentagem e coloca `automatico = fal
 
 `AJUSTE` muda a meta, mas conserva o modo. Os casos de perfil chamam `aplicarPerfil()`, que escolhe meta, limite e liga AUTO.
 
-### O loop anda aos pouquinhos
+### Atualização periódica no loop
 
 ```cpp
 void loop() {
     if (filaComandos == nullptr) { delay(100); return; }
     bool mudou = false;
     Comando comando;
-    // Cada bilhete da fila representa uma acao feita na tela.
+    // Cada comando da fila representa uma acao feita na tela.
     for (int i = 0; i < 16 && xQueueReceive(filaComandos, &comando, 0) == pdTRUE; ++i) {
         aplicarComando(ambiente, comando);
         mudou = true;
@@ -333,7 +333,7 @@ void loop() {
 
 `agora - ultimaSimulacao` mede o tempo decorrido; dividir por `1000.0f` transforma esse tempo em segundos. Assim, reduzir o intervalo não acelera sozinho a sala.
 
-### O `false` que evita uma conversa sem fim
+### Como evitar callbacks repetidos
 
 ```cpp
 slider1.setValue(valorSlider, false);
@@ -341,7 +341,7 @@ spinbox1.setValue(ambiente.meta, false);
 toggle1.setStatus(ambiente.automatico, false);
 ```
 
-`false` atualiza a peça sem pedir seu callback. Se o automático movesse o slider com callback, o programa pensaria que você arrastou a bolinha e ligaria o modo manual!
+`false` atualiza o widget sem executar seu callback. Se o controle automático movesse o slider com callback, essa mudança seria interpretada como uma ação do usuário e ativaria o modo manual.
 
 ```cpp
 void atualizarWidgets() {
@@ -369,7 +369,7 @@ void atualizarWidgets() {
 
 `startCustomDraw()` e `finishCustomDraw()` agrupam as mudanças visuais. Mantenha o par e não coloque esperas demoradas entre as chamadas. As comparações antes dos setters evitam reescrever os controles sem necessidade.
 
-### As contas da sala
+### Cálculos da simulação
 
 ```cpp
 void ajustarVentilacaoAutomatica(EstadoAmbiente& estado) {
@@ -397,7 +397,7 @@ void simularPasso(EstadoAmbiente& estado, float segundos) {
         if (erro > FAIXA_ESTAVEL) estado.temperatura += (erro < passo ? erro : passo);
         if (erro < -FAIXA_ESTAVEL) estado.temperatura -= (-erro < passo ? -erro : passo);
     } else {
-        // No mundo de faz de conta, ventilar pode baixar ate 6 graus.
+        // Nesta simulacao, a ventilacao pode reduzir a temperatura em ate 6 graus.
         float destino = TEMP_EXTERNA - 6.0f * forca;
         estado.temperatura += (destino - estado.temperatura) * 0.08f * segundos;
     }
@@ -412,17 +412,17 @@ void simularPasso(EstadoAmbiente& estado, float segundos) {
 }
 ```
 
-A receita é escolher um destino, aproximar um pouco o valor atual e conferir os limites. `forca` vai de 0 a 1: 50% vira `0.5f`. Não precisa decorar todas as multiplicações para mudar as cores ou os tamanhos.
+O cálculo define um valor de destino, aproxima o valor atual gradualmente e verifica os limites. `forca` vai de 0 a 1: 50% vira `0.5f`. As cores e os tamanhos podem ser alterados sem modificar esses cálculos.
 
-As três últimas linhas limitam a temperatura a 5–45 °C e umidade/qualidade a 0–100. São limites do **mundo simulado**; a escala desenhada no anel é outra escolha.
+As três últimas linhas limitam a temperatura a 5–45 °C e umidade/qualidade a 0–100. São limites do **ambiente simulado**; a escala desenhada no anel é outra escolha.
 
 ## 5. Troque as cores
 
 ![Mesma interface com paletas padrão, Sol e Claro.](images/02-cores.png)
 
-**Para cada receita:** encontre a constante, substitua sua linha, verifique e carregue novamente. Não acrescente outra constante com o mesmo nome. Parta da versão padrão e faça uma experiência de cada vez.
+**Para cada alteração:** encontre a constante, substitua sua linha, verifique e carregue novamente. Não acrescente outra constante com o mesmo nome. Parta da versão padrão e faça uma experiência de cada vez.
 
-### Receita 1: tema Sol
+### Exemplo 1: tema Sol
 
 No bloco 2, substitua estas linhas:
 
@@ -434,7 +434,7 @@ const uint16_t COR_DADOS = CFK_YELLOW;
 
 O anel fica laranja; a ventilação, ciano; umidade e qualidade, amarelas. O código também usa `COR_ANEL` no número do ajuste, então esse número acompanha a cor do anel.
 
-### Receita 2: tema Claro
+### Exemplo 2: tema Claro
 
 Partindo novamente das cores padrão, substitua:
 
@@ -471,7 +471,7 @@ As outras cores ficam como no programa completo. Mudar somente o fundo para bran
 
 ## 6. Mude as escalas
 
-### A escala do anel é uma régua
+### Escala do anel
 
 ![Temperatura 28 nas escalas 10–40 e 0–100.](images/04-escala-temperatura.png)
 
@@ -484,7 +484,7 @@ const int TEMP_ESCALA_MIN = 0;
 const int TEMP_ESCALA_MAX = 100;
 ```
 
-Isso muda a régua. **Não transforma 28 °C em ventilação de 28%**, não muda a meta nem aquece a sala. A ficha do anel usa essas constantes em `minValue` e `maxValue`.
+Isso muda a faixa de valores representada pelo anel. **Não transforma 28 °C em ventilação de 28%**, não muda a meta nem aquece a sala. A ficha do anel usa essas constantes em `minValue` e `maxValue`.
 
 O mínimo precisa ser menor que o máximo. Escolha uma faixa que contenha as temperaturas que quer ver. O CircularBar limita a leitura exibida à sua escala: fora dela, o desenho fica preso no limite, mesmo que a memória tenha outro valor.
 
@@ -581,7 +581,7 @@ O SpinBox usa largura 112 e altura 40 na ficha. Preserve largura maior que `2 ×
 
 ## 8. Mude letras e textos
 
-### Aumente a umidade
+### Aumente a fonte da umidade
 
 ![Leitura de umidade com fontes de 15 e 20 pontos.](images/06-fonte-umidade.png)
 
@@ -618,7 +618,7 @@ Esses métodos mudam o texto. `printText()` desenha uma frase fixa. Os antigos `
 
 Se usar as linhas acima como teste, `atualizarWidgets()` escreverá os valores da sala novamente na próxima atualização. Para mudar permanentemente a informação, altere sua regra ou a linha correspondente dentro dessa função.
 
-## 9. Invente seus próprios perfis
+## 9. Configure seus próprios perfis
 
 Um perfil é um pacote de escolhas, definido no bloco 1:
 
@@ -681,8 +681,8 @@ O intervalo continua 500 ms, mas cada passo representa mais tempo. Passos muito 
 | `loop()` | Recebe pedidos e avança a simulação. |
 | `loadWidgets()` | Preenche fichas, configura e registra as listas. |
 | `screen0()` | Pinta fundo, textos fixos e widgets da tela 0. |
-| `enviarComando` | Coloca um bilhete na fila; usada nos callbacks. |
-| `aplicarComando` | Interpreta o bilhete; chamada pelo loop. |
+| `enviarComando` | Coloca um comando na fila; usada nos callbacks. |
+| `aplicarComando` | Interpreta o comando; chamada pelo loop. |
 | `aplicarPerfil` | Escolhe uma meta e um limite para ECO, CONFORTO ou TURBO. |
 | `ajustarVentilacaoAutomatica` | Decide a ventilação quando AUTO está ligado. |
 | `simularPasso` | Avança os números um pouco. |
@@ -691,7 +691,7 @@ O intervalo continua 500 ms, mas cada passo representa mais tempo. Passos muito 
 | `valorSliderParaPercentual` / `percentualParaValorSlider` | Traduzem a escala do slider e porcentagem. |
 | `nomePerfil`, `nomeQualidade`, `nomeAcao` | Escolhem os textos da tela. |
 
-### Mude algo pelo código sem brigar com o loop
+### Altere valores pelo código mantendo o estado atualizado
 
 Use o caminho dos toques:
 
@@ -716,7 +716,7 @@ As fichas de `setup(...)` existem dentro de `loadWidgets()`. Não copie o nome d
 
 ### HSlider: métodos para seu programa
 
-Um controle deslizante horizontal. Arrastar a bolinha escolhe um número entre o mínimo e o máximo.
+Um controle deslizante horizontal. Arrastar o controle escolhe um número entre o mínimo e o máximo.
 
 | Método | Como usar | Resultado e cuidado |
 | --- | --- | --- |
@@ -751,7 +751,7 @@ A metade esquerda diminui e a direita aumenta. `.step` controla o salto. Reserve
 
 ### ToggleButton: métodos para seu programa
 
-Um interruptor desenhado com uma bolinha: à direita representa ligado, à esquerda desligado.
+Um interruptor com um indicador circular: à direita representa ligado, à esquerda desligado.
 
 | Método | Como usar | Resultado e cuidado |
 | --- | --- | --- |
@@ -890,7 +890,7 @@ Carregue e envie uma letra minúscula no Monitor Serial: `e`, `c` e `t` escolhem
 
 ### O que foi conferido
 
-As regras do próprio `.ino` foram compiladas e executadas em testes no computador: perfis, limites, aquecimento/resfriamento, manual/automático, escalas 0–100 e 0–255, evolução prolongada e limites de tempo. Isso verifica a lógica; não substitui a compilação completa para ESP32 nem o ensaio de display/toque na montagem física. As imagens são ilustrações de referência, não resultados desses testes.
+As regras do próprio `.ino` foram compiladas e executadas em testes no computador: perfis, limites, aquecimento/resfriamento, manual/automático, escalas 0–100 e 0–255, evolução prolongada e limites de tempo. Isso verifica a lógica; não substitui a compilação completa para ESP32-S3 nem o ensaio de display/toque na montagem física. As imagens são ilustrações de referência, não resultados desses testes.
 
 ## 12. Programa completo
 
@@ -899,9 +899,9 @@ Este é o conteúdo completo de [controle_ambiente.ino](controle_ambiente.ino). 
 ```cpp
 /*
   AURA - controle de ambiente SIMULADO.
-  Placa: ESP32; display ST7796 320 x 480; touch FT6336U.
+  Placa: ESP32S3; display ST7796 320 x 480; touch FT6336U.
   Em user_setup.h da biblioteca: DISP_DEFAULT e TOUCH_FT6336.
-  Nao ha sensores, Wi-Fi, motor ou rele: os valores sao inventados pelo programa.
+  Nao ha sensores, Wi-Fi, motor ou rele: os valores sao simulados pelo programa.
   Veja README.md para aprender a mudar cores, tamanhos, escalas e perfis.
 */
 #include <SPI.h>
@@ -982,16 +982,16 @@ const int TOUCH_MAP_Y1 = 480;
 const bool TOUCH_SWAP_XY = false;
 const bool TOUCH_INVERT_X = false;
 const bool TOUCH_INVERT_Y = false;
-const int DISP_MOSI = 23;
+const int DISP_MOSI = 11;
 const int DISP_MISO = -1;
-const int DISP_SCLK = 18;
-const int DISP_CS = 5;
-const int DISP_DC = 2;
-const int DISP_RST = 4;
-const int TOUCH_SCL = 22;
-const int TOUCH_SDA = 21;
-const int TOUCH_INT = 19;
-const int TOUCH_RST = 15;
+const int DISP_SCLK = 12;
+const int DISP_CS = 10;
+const int DISP_DC = 8;
+const int DISP_RST = 9;
+const int TOUCH_SCL = 14;
+const int TOUCH_SDA = 13;
+const int TOUCH_INT = 18;
+const int TOUCH_RST = 17;
 const uint8_t rotationScreen = 0;
 const bool isIPS = true;
 
@@ -1144,7 +1144,7 @@ void simularPasso(EstadoAmbiente& estado, float segundos) {
         if (erro > FAIXA_ESTAVEL) estado.temperatura += (erro < passo ? erro : passo);
         if (erro < -FAIXA_ESTAVEL) estado.temperatura -= (-erro < passo ? -erro : passo);
     } else {
-        // No mundo de faz de conta, ventilar pode baixar ate 6 graus.
+        // Nesta simulacao, a ventilacao pode reduzir a temperatura em ate 6 graus.
         float destino = TEMP_EXTERNA - 6.0f * forca;
         estado.temperatura += (destino - estado.temperatura) * 0.08f * segundos;
     }
@@ -1207,7 +1207,7 @@ void loop() {
     if (filaComandos == nullptr) { delay(100); return; }
     bool mudou = false;
     Comando comando;
-    // Cada bilhete da fila representa uma acao feita na tela.
+    // Cada comando da fila representa uma acao feita na tela.
     for (int i = 0; i < 16 && xQueueReceive(filaComandos, &comando, 0) == pdTRUE; ++i) {
         aplicarComando(ambiente, comando);
         mudou = true;
@@ -1338,7 +1338,7 @@ void loadWidgets() {
     myDisplay.setLabel(arrayLabel, 4);
 }
 
-// 11. CALLBACKS: colocam bilhetes na fila; o loop faz o trabalho.
+// 11. CALLBACKS: enviam comandos para a fila; o loop os processa.
 void enviarComando(TipoComando tipo, int valor) {
     if (filaComandos == nullptr) return;
     Comando comando = {tipo, valor};

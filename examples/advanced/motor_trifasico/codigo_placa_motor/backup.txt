@@ -1,0 +1,1025 @@
+/*
+  CONTROLADOR DO MOTOR TRIFASICO - EXEMPLO PARA ARDUINO IDE
+
+  Placa: ESP32 Dev Module (equivalente ao esp32dev da referencia).
+  Bibliotecas: LinkerWX, ModbusMaster (2.0.1 na referencia) e
+  TM1637TinyDisplay. WiFi e HardwareSerial acompanham o pacote ESP32.
+  SEIS_DIGITOS seleciona o TM1637TinyDisplay6; para a alternativa de quatro
+  digitos, comente esse define e instale tambem a biblioteca TM1637Display.
+  Monitor serial: 115200 baud, comandos terminados por nova linha.
+
+  Origem: references_code/generic/Projetos/motor_trifasico/
+          codigo_display_7in/src/main.cpp (os nomes de origem estao invertidos).
+  Este dispositivo usa LinkerWX 1:1 e envia telemetria em broadcast ao grupo 1.
+  Pinos, registradores Modbus, comandos, RPM e temporizacoes preservados.
+  Watchdog de tarefa: 30 segundos, com reinicio em caso de timeout.
+  Este sketch nao utiliza displaywx nem depende do seu user_setup.h.
+*/
+
+#include <Arduino.h>
+
+/**
+ * @file codigo_placa_motor.ino
+ * @brief ESP32 + LinkerWX + Modbus RTU, telemetria em broadcast no grupo
+ *
+ * Fluxo geral:
+ *  1. Conecta ao WiFi e ao servidor TLS pelo LinkerWXWiFi.
+ *  2. Registra o dispositivo via protocolo LinkerWX.
+ *  3. Lê telemetria do inversor de frequência via Modbus RTU.
+ *  4. Mede RPM por sensor de pulso (interrupção).
+ *  5. Envia telemetria em broadcast ao grupo via LinkerWX.
+ *  6. Aceita comandos via Serial ou remotamente (RECV).
+ */
+
+// =============================================================================
+// DISPLAY TM1637 — seleção entre 4 ou 6 dígitos via define
+// =============================================================================
+
+// Defina SEIS_DIGITOS para usar o display de 6 dígitos
+#define SEIS_DIGITOS
+
+#ifdef SEIS_DIGITOS
+#include <TM1637TinyDisplay6.h>
+TM1637TinyDisplay6 display(18, 19);  // CLK=18, DIO=19
+#else
+#include <TM1637Display.h>
+TM1637Display display(18, 19);       // CLK=18, DIO=19
+#endif
+
+// =============================================================================
+// BIBLIOTECAS
+// =============================================================================
+
+#include <LinkerWX.h>
+#include <LinkerWXWiFi.h>
+#include <WiFi.h>
+#include <HardwareSerial.h>
+#include <ModbusMaster.h>
+#include <esp_err.h>
+#include <esp_task_wdt.h>
+
+const uint32_t WATCHDOG_TIMEOUT_MS = 30000;
+
+// =============================================================================
+// CONFIGURAÇÕES — WiFi, Servidor TLS, LinkerWX
+// =============================================================================
+
+// Credenciais da rede WiFi
+const char* ssid     = "Labmaker";
+const char* password = "Anglo2020pp";
+
+// Servidor TLS usado nos exemplos atuais da LinkerWX
+const char* serverHost = LinkerWX::SERVER_ADDRESS;
+const uint16_t serverPort = LinkerWX::SERVER_PORT;
+
+// ISRG Root X1 completo, conferido pelo SHA-256 oficial:
+// 96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6
+// https://letsencrypt.org/certs/isrgrootx1.pem
+const char* ROOT_CA =
+    "-----BEGIN CERTIFICATE-----\n"
+    "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\n"
+    "m+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n"
+    "-----END CERTIFICATE-----\n";
+
+// Identificação deste dispositivo no protocolo LinkerWX
+const uint16_t DEVICE_ID = 1;
+const uint16_t GRUPO     = 1;
+const String   TOKEN     = "987654321";
+
+// Grupo de destino da telemetria (display, Syller e demais participantes).
+const uint16_t TARGET_TELEMETRY_GROUP = 1;
+
+// =============================================================================
+// OBJETOS GLOBAIS
+// =============================================================================
+
+LinkerWXWiFi wifi;   // WiFi, TLS e manutenção da sessão LinkerWX
+
+// =============================================================================
+// PINOS DE CONTROLE DO MOTOR (saídas digitais)
+// =============================================================================
+
+const int PIN_START     = 32;
+const int PIN_STOP      = 33;
+const int PIN_REVERSE   = 14;
+const int PIN_EMERGENCY = 12;
+
+// =============================================================================
+// SENSOR DE RPM — interrupção por pulso
+// =============================================================================
+
+const int    SENSOR_RPM_PIN          = 34;
+const double MICROS_IN_ONE_MINUTE    = 60000000.0; // 60s em microssegundos
+const uint8_t PULSOS_POR_VOLTA       = 1;          // pulsos por revolução
+
+// Variáveis compartilhadas entre ISR e loop principal (volatile)
+volatile unsigned long lastPulseTime    = 0;
+volatile unsigned long pulseInterval    = 0;
+volatile unsigned long currentPulseTime = 0;
+
+uint32_t rpmAtual      = 0;
+uint32_t lastRpmCalcMs = 0;
+
+// =============================================================================
+// MODBUS RTU — configuração de hardware e temporização
+// =============================================================================
+
+const uint8_t  MODBUS_SLAVE_ID       = 1;
+const int      MODBUS_RX_PIN         = 26;
+const int      MODBUS_TX_PIN         = 27;
+const int      MODBUS_DERE_PIN       = 25;   // pino DE/RE do transceiver RS-485
+const uint32_t MODBUS_CYCLE_INTERVAL = 1000; // intervalo entre leituras (ms)
+
+uint32_t lastModbusCycle = 0;
+
+HardwareSerial serialPort_1(1); // UART1 do ESP32
+ModbusMaster   modbusNode;      // instância do mestre Modbus
+
+// =============================================================================
+// TEMPORIZAÇÃO DA TELEMETRIA APÓS REGISTRO LinkerWX
+// =============================================================================
+
+uint32_t lastRegisterTime       = 0;
+
+// =============================================================================
+// ESTRUTURA DE TELEMETRIA
+// =============================================================================
+
+/**
+ * @brief Snapshot dos dados lidos do inversor + sensor de RPM.
+ *
+ * Campos uint32_t (4 bytes), float (4 bytes) e uint16_t (2 bytes)
+ * são agrupados para minimizar padding. Total ~40 bytes.
+ */
+struct TelemetryData {
+    // --- inteiros 32 bits ---
+    uint32_t rpm          = 0;  // RPM medido pelo sensor de pulso
+    uint32_t lastUpdateMs = 0;  // timestamp da última leitura Modbus (ms)
+
+    // --- ponto flutuante ---
+    float freqAtual    = 0.0f;  // frequência de saída atual (Hz)
+    float freqSetpoint = 0.0f;  // setpoint de frequência (Hz)
+    float tensaoDC     = 0.0f;  // tensão do barramento DC (V)
+    float tensaoSaida  = 0.0f;  // tensão de saída (V)
+    float corrente     = 0.0f;  // corrente de saída (A)
+    float torque       = 0.0f;  // torque estimado (%)
+
+    // --- inteiro 16 bits ---
+    uint16_t estadoDO = 0;      // estado das saídas digitais do inversor
+};
+
+TelemetryData telemetryData;
+bool telemetryDataFresh  = false; // true quando há dados novos prontos para envio
+bool modbusInitialized   = false; // true após setupModbus() bem-sucedido
+
+// =============================================================================
+// PROTÓTIPOS DE FUNÇÕES
+// =============================================================================
+
+// Controle de pinos e motor
+void configurarPinosControle();
+void executarAcaoMotor(const String& comando);
+void handleRemoteCommand(const String& dados);
+
+// Telemetria
+String gerarPacoteTelemetriaA();
+void   sendTelemetryData();
+bool   telemetryReady();
+
+// Modbus
+bool setupModbus();
+void preTxModbus();
+void postTxModbus();
+void pollModbusTelemetry();
+bool sendCommandToDrive(const String& comando);
+bool writeRegisterWithMsg(uint16_t address, uint16_t value,
+                          const char* okMsg, const char* errMsg);
+void showStatusDrive();
+
+// Serial
+void serialCommandInterpreter();
+void processSerialCommand(const String& comando);
+
+// Sensor de RPM
+void IRAM_ATTR detectPulseRPM();
+void configurarSensorRPM();
+void atualizarRPM();
+void atualizarDisplayRPM();
+
+// =============================================================================
+// CALLBACKS LinkerWX
+// =============================================================================
+
+/**
+ * @brief Chamado quando o servidor responde ao registro do dispositivo.
+ *        HI = registro novo; AGAIN = já estava registrado.
+ */
+void onSRV(const SRVResponse& response) {
+    Serial.print("[SRV] Tipo: ");
+
+    switch (response.type) {
+        case SRVType::HI:
+            Serial.println("HI - Registro bem-sucedido");
+            lastRegisterTime  = millis();
+            Serial.println("✅ Dispositivo registrado com sucesso!");
+            break;
+
+        case SRVType::AGAIN:
+            Serial.println("AGAIN - Dispositivo já estava registrado");
+            lastRegisterTime  = millis();
+            break;
+
+        case SRVType::WELCOME:
+            Serial.println("WELCOME - Mensagem de boas-vindas");
+            break;
+
+        case SRVType::UNKNOWN:
+        default:
+            Serial.println("UNKNOWN - Tipo desconhecido");
+            break;
+    }
+}
+
+/**
+ * @brief Chamado quando este dispositivo recebe uma mensagem de outro.
+ *        Extrai o payload (removendo prefixo "cmd=" se presente) e
+ *        repassa para processSerialCommand().
+ */
+void onRECV(const RECVResponse& response) {
+    Serial.print("[RECV] De ");
+    Serial.print(response.sourceGroup);
+    Serial.print(":");
+    Serial.print(response.sourceId);
+    Serial.print(" - ");
+    Serial.println(response.data);
+
+    String dados = String(response.data);
+    dados.trim();
+
+    if (dados.length() == 0) return;
+
+    // Remove prefixo opcional "cmd=" ou "CMD="
+    if (dados.startsWith("cmd=") || dados.startsWith("CMD=")) {
+        dados = dados.substring(4);
+        dados.trim();
+    }
+
+    processSerialCommand(dados);
+}
+
+/**
+ * @brief Chamado em caso de erro reportado pelo servidor LinkerWX.
+ *        Código 1  = dispositivo não registrado.
+ *        Código 10 = desconexão forçada pelo servidor.
+ *        Código 11 = token inválido para o destino.
+ */
+void onERR(const ERRResponse& response) {
+    Serial.print("[ERR] Código: ");
+    Serial.print(response.code);
+    Serial.print(" - ");
+    Serial.println(response.message);
+
+    if (response.code == 1) {
+        wifi.disconnectServer();
+    }
+
+    if (response.code == 10) {
+        Serial.println("⚠️ Desconexão forçada detectada! Reconectando...");
+        // O LinkerWXWiFi já encerrou a sessão; poll() fará a reconexão.
+    }
+
+    if (response.code == 11) {
+        Serial.println("⚠️ Token inválido para o destino.");
+    }
+}
+
+/** @brief Chamado quando o servidor informa o IP/porta de um destino. */
+void onDEST(const DESTResponse& response) {
+    Serial.print("[DEST] IP: ");
+    Serial.print(response.ip);
+    Serial.print(", Porta: ");
+    Serial.println(response.port);
+}
+
+/** @brief Chamado em erros internos da biblioteca LinkerWX. */
+void onError(ErrorCode errorCode, const char* command) {
+    Serial.print("[ERROR] Código: ");
+    Serial.print((int)errorCode);
+    Serial.print(" - Comando: ");
+    Serial.println(command);
+}
+
+/** @brief Chamado quando o servidor confirma o recebimento de um pacote enviado. */
+void onRECVOk() {
+    Serial.println("✅ [RECV_OK] Servidor confirmou recebimento do pacote!");
+}
+
+// =============================================================================
+// SENSOR DE RPM
+// =============================================================================
+
+/**
+ * @brief ISR — executada a cada borda de subida no pino do sensor.
+ *        Registra o intervalo entre pulsos consecutivos em microssegundos.
+ *        Atributo IRAM_ATTR garante execução na RAM (mais rápido e seguro em ISR).
+ */
+void IRAM_ATTR detectPulseRPM() {
+    currentPulseTime = micros();
+
+    if (lastPulseTime > 0) {
+        pulseInterval = currentPulseTime - lastPulseTime;
+    }
+
+    lastPulseTime = currentPulseTime;
+}
+
+/** @brief Configura o pino do sensor e anexa a interrupção de borda de subida. */
+void configurarSensorRPM() {
+    pinMode(SENSOR_RPM_PIN, INPUT);
+    attachInterrupt(digitalPinToInterrupt(SENSOR_RPM_PIN), detectPulseRPM, RISING);
+    Serial.println("✅ Sensor de RPM configurado");
+}
+
+/**
+ * @brief Recalcula o RPM a partir do intervalo entre pulsos.
+ *        Executado a cada 1 segundo. Zera o RPM se não houver pulso
+ *        por mais de 5 segundos (timeout).
+ */
+void atualizarRPM() {
+    if (millis() - lastRpmCalcMs < 1000) return;
+    lastRpmCalcMs = millis();
+
+    // Copia atômica das variáveis voláteis (desabilita interrupções brevemente)
+    unsigned long intervalCopy = 0;
+    unsigned long lastPulseCopy = 0;
+
+    noInterrupts();
+    intervalCopy  = pulseInterval;
+    lastPulseCopy = lastPulseTime;
+    interrupts();
+
+    unsigned long deltaTime = micros() - lastPulseCopy;
+    const unsigned long TIMEOUT_US = 5000000UL; // 5 segundos em microssegundos
+
+    if (intervalCopy > 0 &&
+        intervalCopy <= MICROS_IN_ONE_MINUTE &&
+        deltaTime <= TIMEOUT_US) {
+
+        // RPM = (60.000.000 µs/min) / (intervalo µs/pulso) / (pulsos/volta)
+        rpmAtual = (uint32_t)(MICROS_IN_ONE_MINUTE / intervalCopy / PULSOS_POR_VOLTA);
+
+    } else {
+        rpmAtual = 0;
+
+        // Limpa o intervalo salvo se o sensor ficou silencioso por muito tempo
+        if (deltaTime > TIMEOUT_US) {
+            noInterrupts();
+            pulseInterval = 0;
+            interrupts();
+        }
+    }
+
+    telemetryData.rpm = rpmAtual;
+    atualizarDisplayRPM();
+}
+
+/** @brief Exibe o RPM atual no display TM1637 (4 ou 6 dígitos). */
+void atualizarDisplayRPM() {
+#ifdef SEIS_DIGITOS
+    display.showNumber((int)rpmAtual, false);
+#else
+    display.showNumberDec((int)rpmAtual, false);
+#endif
+}
+
+// =============================================================================
+// WATCHDOG — supervisiona a tarefa que executa setup() e loop()
+// =============================================================================
+
+void configurarWatchdog() {
+    esp_task_wdt_config_t config = {};
+    config.timeout_ms = WATCHDOG_TIMEOUT_MS;
+    config.trigger_panic = true;
+
+    // Mantem a supervisao das tarefas idle definida pelo nucleo ESP32.
+#if defined(CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0) && CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0
+    config.idle_core_mask |= (1U << 0);
+#endif
+#if defined(CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1) && CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1
+    config.idle_core_mask |= (1U << 1);
+#endif
+
+    // O Arduino-ESP32 3.x normalmente ja inicializa o TWDT.
+    if (esp_task_wdt_status(nullptr) == ESP_ERR_INVALID_STATE) {
+        ESP_ERROR_CHECK(esp_task_wdt_init(&config));
+    } else {
+        ESP_ERROR_CHECK(esp_task_wdt_reconfigure(&config));
+    }
+
+    if (esp_task_wdt_status(nullptr) != ESP_OK) {
+        ESP_ERROR_CHECK(esp_task_wdt_add(nullptr));
+    }
+    ESP_ERROR_CHECK(esp_task_wdt_reset());
+    Serial.println("[WDT] Watchdog ativo: 30 segundos.");
+}
+
+// =============================================================================
+// SETUP
+// =============================================================================
+
+void setup() {
+    Serial.begin(115200);
+    delay(1000);
+
+    // Inicializa pinos de controle do motor e sensor de RPM
+    configurarPinosControle();
+    configurarSensorRPM();
+    configurarWatchdog();
+
+    // Inicializa o display TM1637 e exibe zero
+#ifdef SEIS_DIGITOS
+    display.begin();
+    display.setBrightness(BRIGHT_HIGH);
+    // Testa todos os digitos antes de iniciar WiFi/TLS e a leitura Modbus.
+    Serial.println("[DISPLAY] Teste Tiny6: deve aparecer 888888 por 1 segundo (CLK=18, DIO=19)");
+    display.showNumber(888888, true);
+    delay(1000);
+    display.showNumber(0, false);
+#else
+    display.setBrightness(0x0f);
+    display.showNumberDec(0, false);
+#endif
+    Serial.println("✅ Display TM1637 configurado");
+
+    Serial.println("\n========================================");
+    Serial.println("LinkerWX + Modbus RTU (broadcast no grupo)");
+    Serial.println("========================================\n");
+
+    // Configura o protocolo LinkerWX com ID, grupo e token
+    Serial.println("Configurando LinkerWX...");
+    if (!wifi.setup(DEVICE_ID, GRUPO, TOKEN)) {
+        Serial.println("❌ Erro ao configurar LinkerWX!");
+        while (1) delay(1000); // trava em caso de falha crítica
+    }
+    Serial.println("✅ LinkerWX configurado");
+
+    // Define chave de criptografia para os pacotes
+    const uint8_t cryptKey[] = {0xFF, 0xFE, 0x84};
+    wifi.setCryptKey(cryptKey, sizeof(cryptKey));
+    wifi.setWiFiCredentials(ssid, password);
+    wifi.setServer(serverHost, serverPort);
+    wifi.setRootCA(ROOT_CA);
+    Serial.println("🔐 Chave de criptografia configurada");
+
+    // Registra todos os callbacks do protocolo LinkerWX
+    wifi.registerSRVCallback(onSRV);
+    wifi.registerRECVCallback(onRECV);
+    wifi.registerERRCallback(onERR);
+    wifi.registerDESTCallback(onDEST);
+    wifi.registerErrorCallback(onError);
+    wifi.registerRECVOkCallback(onRECVOk);
+    Serial.println("✅ Callbacks registrados");
+
+    // Exibe resumo da topologia de comunicação
+    Serial.println("\n📡 Configuração de Comunicação:");
+    Serial.print("  Dispositivo: ");
+    Serial.print(GRUPO);
+    Serial.print(":");
+    Serial.println(DEVICE_ID);
+    Serial.print("  Grupo de broadcast: ");
+    Serial.println(TARGET_TELEMETRY_GROUP);
+    Serial.println("  ✅ Telemetria para o grupo\n");
+
+    // Inicializa o barramento Modbus RTU
+    Serial.println("Configurando Modbus...");
+    modbusInitialized = setupModbus();
+    if (modbusInitialized) {
+        Serial.println("✅ Modbus pronto");
+    } else {
+        Serial.println("❌ Falha ao configurar Modbus!");
+    }
+
+    // LinkerWXWiFi chama disconnect() antes de begin(); inicializa o driver antes.
+    if (!WiFi.mode(WIFI_STA)) {
+        Serial.println("Falha ao inicializar WiFi em modo estacao");
+    }
+
+    // Inicia a etapa de conexao com o prazo completo do watchdog.
+    ESP_ERROR_CHECK(esp_task_wdt_reset());
+    if (!wifi.begin()) {
+        Serial.println("Conexao inicial falhou; poll() tentara reconectar");
+    } else {
+        Serial.println("TLS conectado; aguardando registro no servidor");
+    }
+
+    Serial.println("\n✅ Setup completo! Aguardando respostas...\n");
+}
+
+// =============================================================================
+// TELEMETRIA — geração e broadcast no grupo
+// =============================================================================
+
+/**
+ * @brief Envia o pacote de telemetria em broadcast ao grupo via LinkerWX.
+ *        Só envia se o dispositivo estiver registrado, conectado e houver
+ *        dados frescos (telemetryDataFresh == true).
+ *        Usa SendType::REQ_ACK para solicitar confirmação do servidor.
+ */
+void sendTelemetryData() {
+    static uint32_t sendCount = 0;
+
+    if (!wifi.isLinkUp()) return;
+    if (!telemetryDataFresh) return;
+    if (millis() - lastRegisterTime <= 300) return;
+
+    String dadosA = gerarPacoteTelemetriaA();
+    if (wifi.broadcastText(TARGET_TELEMETRY_GROUP, dadosA, SendType::REQ_ACK)) {
+        telemetryDataFresh = false; // consome os dados apenas após envio completo
+        sendCount++;
+        Serial.printf("[BROADCAST #%lu] %u bytes payload enviados ao grupo %u\n",
+                      (unsigned long)sendCount, (unsigned)dadosA.length(), TARGET_TELEMETRY_GROUP);
+    } else {
+        Serial.println("Falha ao enviar telemetria; os dados continuam pendentes");
+    }
+}
+
+/**
+ * @brief Serializa os dados de telemetryData em uma string chave=valor
+ *        separada por ponto-e-vírgula, pronta para envio via LinkerWX.
+ *
+ * Formato: "fa=X.X;fs=X.X;vdc=X.X;vs=X.X;i=X.X;tq=X.X;edo=N;rpm=N"
+ */
+String gerarPacoteTelemetriaA() {
+    TelemetryData snapshot = telemetryData; // cópia local para consistência
+    char temp[24];
+    String payload;
+    payload.reserve(80);
+
+    snprintf(temp, sizeof(temp), "fa=%.1f",   snapshot.freqAtual);    payload += temp;
+    snprintf(temp, sizeof(temp), ";fs=%.1f",  snapshot.freqSetpoint); payload += temp;
+    snprintf(temp, sizeof(temp), ";vdc=%.1f", snapshot.tensaoDC);     payload += temp;
+    snprintf(temp, sizeof(temp), ";vs=%.1f",  snapshot.tensaoSaida);  payload += temp;
+    snprintf(temp, sizeof(temp), ";i=%.1f",   snapshot.corrente);     payload += temp;
+    snprintf(temp, sizeof(temp), ";tq=%.1f",  snapshot.torque);       payload += temp;
+    snprintf(temp, sizeof(temp), ";edo=%u",   snapshot.estadoDO);     payload += temp;
+    snprintf(temp, sizeof(temp), ";rpm=%lu",  snapshot.rpm);          payload += temp;
+
+    return payload;
+}
+
+/**
+ * @brief Verifica se há telemetria válida e recente disponível.
+ * @return true se Modbus inicializado, dados frescos e atualizados há menos de 5s.
+ */
+bool telemetryReady() {
+    if (!modbusInitialized || !telemetryDataFresh) return false;
+    return (millis() - telemetryData.lastUpdateMs) <= 5000;
+}
+
+// =============================================================================
+// COMANDOS REMOTOS E CONTROLE DO MOTOR
+// =============================================================================
+
+/**
+ * @brief Ponto de entrada para comandos recebidos remotamente via LinkerWX.
+ *        Remove prefixo "cmd=" se presente e repassa para processSerialCommand().
+ */
+void handleRemoteCommand(const String& dados) {
+    String comando = dados;
+    comando.trim();
+
+    if (comando.startsWith("cmd=") || comando.startsWith("CMD=")) {
+        comando = comando.substring(4);
+        comando.trim();
+    }
+
+    if (comando.length() == 0) return;
+
+    processSerialCommand(comando);
+}
+
+/**
+ * @brief Aciona fisicamente um pino de controle do motor por 150 ms.
+ *        Comandos válidos: START, STOP, REVERSE, EMERGENCY.
+ *        O pulso simula o pressionamento de um botão no painel físico.
+ */
+void executarAcaoMotor(const String& comando) {
+    int pinAtivo = -1;
+
+    if      (comando == "START")     pinAtivo = PIN_START;
+    else if (comando == "STOP")      pinAtivo = PIN_STOP;
+    else if (comando == "REVERSE")   pinAtivo = PIN_REVERSE;
+    else if (comando == "EMERGENCY") pinAtivo = PIN_EMERGENCY;
+
+    if (pinAtivo == -1) {
+        Serial.println("[CMD] Comando desconhecido.");
+        return;
+    }
+
+    // Pulso de 150 ms para simular acionamento de botão
+    digitalWrite(pinAtivo, HIGH);
+    delay(150);
+    digitalWrite(pinAtivo, LOW);
+    Serial.println("[CMD] Saída acionada.");
+}
+
+/** @brief Configura os pinos de controle do motor como saída e os inicializa em LOW. */
+void configurarPinosControle() {
+    pinMode(PIN_START,     OUTPUT);
+    pinMode(PIN_STOP,      OUTPUT);
+    pinMode(PIN_REVERSE,   OUTPUT);
+    pinMode(PIN_EMERGENCY, OUTPUT);
+
+    digitalWrite(PIN_START,     LOW);
+    digitalWrite(PIN_STOP,      LOW);
+    digitalWrite(PIN_REVERSE,   LOW);
+    digitalWrite(PIN_EMERGENCY, LOW);
+}
+
+// =============================================================================
+// MODBUS RTU — inicialização, polling e envio de comandos
+// =============================================================================
+
+/**
+ * @brief Inicializa a UART1 e o mestre Modbus RTU.
+ *        Configura o pino DE/RE do transceiver RS-485 e registra os
+ *        callbacks de pré/pós transmissão para controle de direção do barramento.
+ * @return true (sempre, pois não há verificação de hardware neste ponto).
+ */
+bool setupModbus() {
+    pinMode(MODBUS_DERE_PIN, OUTPUT);
+    digitalWrite(MODBUS_DERE_PIN, LOW); // inicia em modo recepção
+
+    serialPort_1.begin(9600, SERIAL_8N1, MODBUS_RX_PIN, MODBUS_TX_PIN);
+    modbusNode.begin(MODBUS_SLAVE_ID, serialPort_1);
+    modbusNode.preTransmission(preTxModbus);
+    modbusNode.postTransmission(postTxModbus);
+
+    telemetryData = TelemetryData{}; // zera a estrutura de telemetria
+    return true;
+}
+
+/** @brief Coloca o transceiver RS-485 em modo transmissão antes de enviar. */
+void preTxModbus() {
+    digitalWrite(MODBUS_DERE_PIN, HIGH);
+    delayMicroseconds(50); // aguarda estabilização do barramento
+}
+
+/** @brief Retorna o transceiver RS-485 para modo recepção após transmitir. */
+void postTxModbus() {
+    serialPort_1.flush();          // garante que todos os bytes foram enviados
+    delayMicroseconds(500);        // aguarda o último bit sair do buffer
+    digitalWrite(MODBUS_DERE_PIN, LOW);
+}
+
+/**
+ * @brief Lê 9 registradores a partir de 0x7000 (telemetria do inversor).
+ *        Executado a cada MODBUS_CYCLE_INTERVAL ms.
+ *        Em caso de sucesso, atualiza telemetryData e dispara sendTelemetryData().
+ *
+ * Mapa de registradores (base 0x7000):
+ *   +0 freqAtual    (×0.01 Hz)
+ *   +1 freqSetpoint (×0.01 Hz)
+ *   +2 tensaoDC     (×0.1 V)
+ *   +3 tensaoSaida  (×1 V)
+ *   +4 corrente     (×0.1 A)
+ *   +5 torque       (×0.1 %)
+ *   +8 estadoDO     (bitmask saídas digitais)
+ */
+void pollModbusTelemetry() {
+    if (millis() - lastModbusCycle < MODBUS_CYCLE_INTERVAL) return;
+    lastModbusCycle = millis();
+
+    uint32_t t0 = millis(); // marca tempo para medir duração da leitura
+
+    uint8_t result = modbusNode.readHoldingRegisters(0x7000, 9);
+
+    if (result == modbusNode.ku8MBSuccess) {
+        // Converte os valores brutos aplicando os fatores de escala do inversor
+        telemetryData.freqAtual    = modbusNode.getResponseBuffer(0) * 0.01f;
+        telemetryData.freqSetpoint = modbusNode.getResponseBuffer(1) * 0.01f;
+        telemetryData.tensaoDC     = modbusNode.getResponseBuffer(2) * 0.1f;
+        telemetryData.tensaoSaida  = modbusNode.getResponseBuffer(3) * 1.0f;
+        telemetryData.corrente     = modbusNode.getResponseBuffer(4) * 0.1f;
+        telemetryData.torque       = modbusNode.getResponseBuffer(5) * 0.1f;
+        telemetryData.estadoDO     = modbusNode.getResponseBuffer(8);
+
+        telemetryData.rpm          = rpmAtual; // captura RPM junto com a leitura Modbus
+        telemetryData.lastUpdateMs = millis();
+        telemetryDataFresh         = true;
+
+        Serial.printf("✅ Modbus OK em %lums\n", millis() - t0);
+
+        // Envia imediatamente após leitura bem-sucedida
+        sendTelemetryData();
+
+    } else {
+        Serial.printf("❌ Modbus erro=0x%02X\n", result);
+    }
+}
+
+/**
+ * @brief Traduz um comando de texto em escrita Modbus no inversor.
+ *
+ * Comandos suportados:
+ *   START     → 0x2000 = 1  (forward)
+ *   REVERSE   → 0x2000 = 2  (reverse)
+ *   STOP      → 0x2000 = 6  (soft stop)
+ *   EMERGENCY → 0x2000 = 5  (parada de emergência)
+ *   SET2000N  → 0x2000 = N  (valor arbitrário)
+ *   STATUS    → leitura de diagnóstico (sem escrita)
+ *   <número>  → 0x1000 = valor×100 (setpoint de frequência em Hz)
+ *
+ * @return true se o comando foi executado com sucesso.
+ */
+bool sendCommandToDrive(const String& comando) {
+    if (!modbusInitialized) {
+        Serial.println("Modbus não inicializado. Comando ignorado.");
+        return false;
+    }
+
+    String trimmed = comando;
+    trimmed.trim();
+    if (trimmed.length() == 0) return false;
+
+    String normalized = trimmed;
+    normalized.toUpperCase();
+
+    if (normalized == "START") {
+        return writeRegisterWithMsg(0x2000, 1, "Motor iniciado (forward)", "Falha ao iniciar motor");
+    } else if (normalized == "REVERSE") {
+        return writeRegisterWithMsg(0x2000, 2, "Motor iniciado (reverse)", "Falha ao reverter motor");
+    } else if (normalized == "STOP") {
+        return writeRegisterWithMsg(0x2000, 6, "Motor parado (soft)", "Falha ao parar motor");
+    } else if (normalized == "EMERGENCY") {
+        return writeRegisterWithMsg(0x2000, 5, "Parada de emergência acionada", "Falha na emergência");
+    } else if (normalized.startsWith("SET2000")) {
+        int val = trimmed.substring(7).toInt();
+        return writeRegisterWithMsg(0x2000, val, "Valor escrito em 0x2000", "Falha no SET2000");
+    } else if (normalized == "STATUS") {
+        showStatusDrive();
+        return true;
+    } else {
+        // Tenta interpretar como frequência numérica (ex: "45.5")
+        float freq = trimmed.toFloat();
+        if (freq > 0.0f) {
+            uint16_t freqRaw = static_cast<uint16_t>(freq * 100.0f);
+            return writeRegisterWithMsg(0x1000, freqRaw,
+                                        "Setpoint de frequência atualizado",
+                                        "Falha ao escrever frequência");
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @brief Escreve um único registrador Modbus e imprime mensagem de resultado.
+ * @param address  Endereço do registrador.
+ * @param value    Valor a escrever.
+ * @param okMsg    Mensagem exibida em caso de sucesso.
+ * @param errMsg   Mensagem exibida em caso de falha (inclui código de erro).
+ * @return true se a escrita foi bem-sucedida.
+ */
+bool writeRegisterWithMsg(uint16_t address, uint16_t value,
+                          const char* okMsg, const char* errMsg) {
+    uint8_t result = modbusNode.writeSingleRegister(address, value);
+    if (result == modbusNode.ku8MBSuccess) {
+        Serial.printf("✓ %s\n", okMsg);
+        return true;
+    }
+
+    Serial.printf("✗ %s (Code: %d)\n", errMsg, result);
+    return false;
+}
+
+/**
+ * @brief Lê e exibe registradores de diagnóstico do inversor via Serial.
+ *        Registradores lidos: Run State (0x703D), Fault Code (0x703E),
+ *        frequência atual (0x7000), corrente de saída (0x7004) e RPM do sensor.
+ */
+void showStatusDrive() {
+    Serial.println("\n=== ESTADO DO INVERSOR ===");
+
+    if (modbusNode.readHoldingRegisters(0x703D, 1) == modbusNode.ku8MBSuccess) {
+        uint16_t state = modbusNode.getResponseBuffer(0);
+        Serial.printf("Run State (0x703D): %d (BIN: %s)\n", state, String(state, BIN).c_str());
+    } else {
+        Serial.println("Falha ao ler Run State.");
+    }
+
+    if (modbusNode.readHoldingRegisters(0x703E, 1) == modbusNode.ku8MBSuccess) {
+        Serial.printf("Fault Code (0x703E): %d\n", modbusNode.getResponseBuffer(0));
+    } else {
+        Serial.println("Falha ao ler Fault Code.");
+    }
+
+    if (modbusNode.readHoldingRegisters(0x7000, 1) == modbusNode.ku8MBSuccess) {
+        Serial.printf("Current Frequency: %.2f Hz\n", modbusNode.getResponseBuffer(0) / 100.0f);
+    }
+
+    if (modbusNode.readHoldingRegisters(0x7004, 1) == modbusNode.ku8MBSuccess) {
+        Serial.printf("Output Current: %.2f A\n", modbusNode.getResponseBuffer(0) / 10.0f);
+    }
+
+    Serial.printf("RPM Sensor: %lu\n", telemetryData.rpm);
+
+    Serial.println("==========================\n");
+}
+
+// =============================================================================
+// LOOP PRINCIPAL
+// =============================================================================
+
+/**
+ * @brief Loop principal — executado continuamente pelo ESP32.
+ *
+ * Ordem de execução:
+ *  1. Lê comandos da Serial.
+ *  2. Mantém WiFi, TLS, registro e recebimento pelo LinkerWXWiFi.
+ *  3. Atualiza cálculo de RPM.
+ *  4. Faz polling Modbus (que internamente chama sendTelemetryData).
+ */
+void loop() {
+    serialCommandInterpreter();
+
+    wifi.poll();
+
+    atualizarRPM();
+
+    if (modbusInitialized) pollModbusTelemetry(); // já chama sendTelemetryData internamente
+
+
+    delay(1);
+
+    // Alimenta somente depois de concluir todas as etapas deste ciclo.
+    ESP_ERROR_CHECK(esp_task_wdt_reset());
+}
+
+// =============================================================================
+// INTERPRETADOR DE COMANDOS SERIAL
+// =============================================================================
+
+/**
+ * @brief Lê caracteres da Serial e monta linhas de comando.
+ *        Descarta '\r' e processa a linha ao receber '\n'.
+ *        Buffer limitado a 100 caracteres para evitar overflow.
+ */
+void serialCommandInterpreter() {
+    static String inputLine = "";
+
+    while (Serial.available() > 0) {
+        char c = (char)Serial.read();
+
+        if (c == '\r') continue; // ignora retorno de carro
+
+        if (c == '\n') {
+            inputLine.trim();
+
+            if (inputLine.length() > 0) {
+                processSerialCommand(inputLine);
+            }
+
+            inputLine = "";
+            continue;
+        }
+
+        inputLine += c;
+
+        // Proteção contra linhas excessivamente longas
+        if (inputLine.length() > 100) {
+            inputLine = "";
+            Serial.println("⚠️ Linha muito longa. Buffer descartado.");
+        }
+    }
+}
+
+/**
+ * @brief Processa um comando de texto (Serial ou remoto) e executa a ação correspondente.
+ *
+ * Fluxo de decisão:
+ *  1. HELP       → exibe lista de comandos.
+ *  2. SET2000=N  → escreve N diretamente em 0x2000.
+ *  3. START / STOP / REVERSE / EMERGENCY / STATUS
+ *                → envia via Modbus e aciona pino físico (exceto STATUS).
+ *  4. Número     → interpreta como frequência (Hz) e escreve em 0x1000.
+ *  5. Desconhecido → avisa e sugere HELP.
+ */
+void processSerialCommand(const String& comandoRecebido) {
+    String comando = comandoRecebido;
+    comando.trim();
+
+    if (comando.length() == 0) return;
+
+    Serial.print("[SERIAL CMD] Recebido: ");
+    Serial.println(comando);
+
+    String comandoUpper = comando;
+    comandoUpper.toUpperCase();
+
+    if (comandoUpper == "RPMSTATUS") {
+        unsigned long intervalCopy;
+        unsigned long lastPulseCopy;
+        noInterrupts();
+        intervalCopy = pulseInterval;
+        lastPulseCopy = lastPulseTime;
+        interrupts();
+        Serial.printf("[RPM] rpm=%lu GPIO%d=%d intervalo_us=%lu ultimo_pulso_us=%lu agora_us=%lu\n",
+                      (unsigned long)rpmAtual, SENSOR_RPM_PIN, digitalRead(SENSOR_RPM_PIN),
+                      intervalCopy, lastPulseCopy, micros());
+        return;
+    }
+
+    if (comandoUpper == "HELP") {
+        Serial.println("\n=== COMANDOS DISPONIVEIS ===");
+        Serial.println("START        -> inicia motor");
+        Serial.println("STOP         -> para motor");
+        Serial.println("REVERSE      -> reverso");
+        Serial.println("EMERGENCY    -> emergencia");
+        Serial.println("STATUS       -> le status do inversor + rpm");
+        Serial.println("RPMSTATUS    -> diagnostico do sensor de RPM no GPIO34");
+        Serial.println("SET2000=VAL  -> escreve VAL no registrador 0x2000");
+        Serial.println("30 ou 45.5   -> escreve frequencia em 0x1000");
+        Serial.println("============================\n");
+        return;
+    }
+
+    if (!modbusInitialized) {
+        Serial.println("❌ Modbus nao inicializado.");
+        return;
+    }
+
+    // Comando SET2000=N — extrai o valor após '=' e escreve em 0x2000
+    if (comandoUpper.startsWith("SET2000=")) {
+        String valorStr = comando.substring(comando.indexOf('=') + 1);
+        valorStr.trim();
+        int valor = valorStr.toInt();
+
+        bool ok = writeRegisterWithMsg(0x2000, (uint16_t)valor,
+                                       "Valor escrito em 0x2000",
+                                       "Falha ao escrever em 0x2000");
+        if (!ok) Serial.println("❌ Comando SET2000 falhou.");
+        return;
+    }
+
+    // Comandos de controle do motor — envia via Modbus e aciona pino físico
+    if (comandoUpper == "START"     || comandoUpper == "STOP" ||
+        comandoUpper == "REVERSE"   || comandoUpper == "EMERGENCY" ||
+        comandoUpper == "STATUS") {
+
+        bool ok = sendCommandToDrive(comandoUpper);
+        if (!ok) {
+            Serial.println("❌ Falha ao executar comando.");
+            return;
+        }
+
+        // STATUS não aciona pino físico, apenas lê registradores
+        if (comandoUpper != "STATUS") {
+            executarAcaoMotor(comandoUpper);
+        }
+        return;
+    }
+
+    // Verifica se o comando contém dígitos para tentar interpretar como frequência
+    bool temDigito = false;
+    for (size_t i = 0; i < comando.length(); i++) {
+        if (isDigit(comando[i])) { temDigito = true; break; }
+    }
+
+    if (temDigito) {
+        float freq = comando.toFloat();
+        if (freq > 0.0f) {
+            uint16_t freqRaw = (uint16_t)(freq * 100.0f);
+            bool ok = writeRegisterWithMsg(0x1000, freqRaw,
+                                           "Setpoint de frequencia atualizado",
+                                           "Falha ao escrever frequencia");
+            if (!ok) Serial.println("❌ Falha ao escrever frequencia.");
+            return;
+        }
+    }
+
+    Serial.println("❌ Comando desconhecido. Digite HELP.");
+}

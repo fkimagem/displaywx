@@ -1,2 +1,2 @@
 #define DISP_DEFAULT	
-#define TOUCH_FT6236U	
+#define TOUCH_GT911
