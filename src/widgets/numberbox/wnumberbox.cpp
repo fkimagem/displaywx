@@ -193,7 +193,7 @@ void NumberBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
   m_config.height = _height;
   m_config.font = _font;
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (_font) {
     WidgetBase::objTFT->setFont(_font);
     TextBound_t area;

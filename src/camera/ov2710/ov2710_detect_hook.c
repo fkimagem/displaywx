@@ -3,9 +3,9 @@
  * This object replaces esp_cam_sensor_detect_get_array() and probes OV2710 only.
  */
 
-#include "../../../user_setup.h"
+#include "../../check_camera.h"
 
-#if defined(CAM_OV2710)
+#if defined(HAS_CAMERA_MIPI) && defined(CAM_OV2710)
 
 #include "esp_log.h"
 #include "esp_cam_sensor_detect.h"

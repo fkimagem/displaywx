@@ -6,6 +6,20 @@
 #include "soc/soc_caps.h"
 #include "sdkconfig.h"
 #include "../../user_setup.h"
+
+// Backend capabilities. Widget availability alone does not exclude its .cpp.
+#if defined(DISP_DEFAULT)
+#define USING_GRAPHIC_LIB
+#define DFK_HAS_RGB565
+#define DFK_HAS_FILL_ARC
+#elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_ST7565)
+#define USING_GRAPHIC_LIB
+#define DFK_MONO_ADAFRUIT
+#elif defined(DISP_U8G2)
+#define DFK_MONO_U8G2
+#else
+#error "Choose DISP_DEFAULT, DISP_PCD8544, DISP_SSD1306, DISP_U8G2 or DISP_ST7565"
+#endif
 #define INVERTE_BITS_16(x) ((uint16_t)(~(x)))
 
 //#define DEBUG_DISPLAY_FK
@@ -47,7 +61,7 @@ constexpr uint16_t rgb2brg(uint16_t val) {
 constexpr uint16_t process_color(uint16_t val) {
     return rgb2brg(invert_bits(val));
 }
-#elif defined(DISP_PCD8544) || defined(DISP_SSD1306)
+#elif defined(DFK_MONO_ADAFRUIT)
 constexpr uint16_t process_color(uint16_t val) {
     return (val == 0xFFFF) ? 0x0 : 0x1;
 }
@@ -88,7 +102,7 @@ constexpr uint16_t process_color(uint16_t val) {
 #define USE_SPIFFS 1
 #define USE_FATFS 1
 
-#if defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
+#if defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
 #undef DFK_TOUCHAREA
 #undef DFK_CIRCLEBTN
 #undef DFK_RECTBTN
@@ -98,23 +112,23 @@ constexpr uint16_t process_color(uint16_t val) {
 #undef DFK_CHECKBOX
 #undef DFK_RADIO
 #undef DFK_NUMBERBOX
-#undef DFK_VANALOG
-#undef DFK_GAUGE
-#undef DFK_LINECHART
 #undef DFK_SPINBOX
 #undef DFK_TEXTBUTTON
 #undef DFK_CIRCULARBAR
 #endif
 
 #if defined(DISP_U8G2)
+#undef DFK_VANALOG
+#undef DFK_GAUGE
+#undef DFK_LINECHART
 #undef DFK_LABEL
 #undef DFK_THERMOMETER
 #undef DFK_VBAR
 #undef DFK_LED
 #endif
 
-#if defined(DISP_DEFAULT) || defined(DISP_PCD8544) || defined(DISP_SSD1306)
-#define USING_GRAPHIC_LIB
+#if !defined(DISP_DEFAULT)
+#undef DFK_CAMERA_MIPI
 #endif
 
  #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 4, 0)  // ESP_Video MIPI-CSI exige IDF >= 5.4
@@ -232,78 +246,78 @@ constexpr uint16_t CFK_GREY12    = process_color(0xCE79);
 constexpr uint16_t CFK_GREY13    = process_color(0xDEFB);
 constexpr uint16_t CFK_GREY14    = process_color(0xEF7D);
 
-const uint16_t CFK_COLOR004 = process_color(0x7800);   // #7F0000
-const uint16_t CFK_COLOR005 = process_color(0x7945);   // #7F2A2A
-const uint16_t CFK_COLOR006 = process_color(0x7AAA);   // #7F5555
-const uint16_t CFK_COLOR007 = process_color(0xF800);   // #FF0000
-const uint16_t CFK_COLOR008 = process_color(0xFAAA);   // #FF5555
-const uint16_t CFK_COLOR009 = process_color(0xFD55);   // #FFAAAA
-const uint16_t CFK_COLOR010 = process_color(0x79E0);   // #7F3F00
-const uint16_t CFK_COLOR011 = process_color(0x7AA5);   // #7F552A
-const uint16_t CFK_COLOR012 = process_color(0x7B4A);   // #7F6A55
-const uint16_t CFK_COLOR013 = process_color(0xFBE0);   // #FF7F00
-const uint16_t CFK_COLOR014 = process_color(0xFD4A);   // #FFAA55
-const uint16_t CFK_COLOR015 = process_color(0xFEB5);   // #FFD4AA
-const uint16_t CFK_COLOR016 = process_color(0x7BE0);   // #7F7F00
-const uint16_t CFK_COLOR017 = process_color(0x7BE5);   // #7F7F2A
-const uint16_t CFK_COLOR018 = process_color(0x7BEA);   // #7F7F55
-const uint16_t CFK_COLOR019 = process_color(0xFFE0);   // #FFFF00
-const uint16_t CFK_COLOR020 = process_color(0xFFEA);   // #FFFF55
-const uint16_t CFK_COLOR021 = process_color(0xFFF5);   // #FFFFAA
-const uint16_t CFK_COLOR022 = process_color(0x3BE0);   // #3F7F00
-const uint16_t CFK_COLOR023 = process_color(0x53E5);   // #557F2A
-const uint16_t CFK_COLOR024 = process_color(0x6BEA);   // #6A7F55
-const uint16_t CFK_COLOR025 = process_color(0x7FE0);   // #7FFF00
-const uint16_t CFK_COLOR026 = process_color(0xAFEA);   // #AAFF55
-const uint16_t CFK_COLOR027 = process_color(0xD7F5);   // #D4FFAA
-const uint16_t CFK_COLOR028 = process_color(0x03E0);   // #007F00
-const uint16_t CFK_COLOR029 = process_color(0x2BE5);   // #2A7F2A
-const uint16_t CFK_COLOR030 = process_color(0x53EA);   // #557F55
-const uint16_t CFK_COLOR031 = process_color(0x07E0);   // #00FF00
-const uint16_t CFK_COLOR032 = process_color(0x57EA);   // #55FF55
-const uint16_t CFK_COLOR033 = process_color(0xAFF5);   // #AAFFAA
-const uint16_t CFK_COLOR034 = process_color(0x03E7);   // #007F3F
-const uint16_t CFK_COLOR035 = process_color(0x2BEA);   // #2A7F55
-const uint16_t CFK_COLOR036 = process_color(0x53ED);   // #557F6A
-const uint16_t CFK_COLOR037 = process_color(0x07EF);   // #00FF7F
-const uint16_t CFK_COLOR038 = process_color(0x57F5);   // #55FFAA
-const uint16_t CFK_COLOR039 = process_color(0xAFFA);   // #AAFFD4
-const uint16_t CFK_COLOR040 = process_color(0x03EF);   // #007F7F
-const uint16_t CFK_COLOR041 = process_color(0x2BEF);   // #2A7F7F
-const uint16_t CFK_COLOR042 = process_color(0x53EF);   // #557F7F
-const uint16_t CFK_COLOR043 = process_color(0x07FF);   // #00FFFF
-const uint16_t CFK_COLOR044 = process_color(0x57FF);   // #55FFFF
-const uint16_t CFK_COLOR045 = process_color(0xAFFF);   // #AAFFFF
-const uint16_t CFK_COLOR046 = process_color(0x01EF);   // #003F7F
-const uint16_t CFK_COLOR047 = process_color(0x2AAF);   // #2A557F
-const uint16_t CFK_COLOR048 = process_color(0x534F);   // #556A7F
-const uint16_t CFK_COLOR049 = process_color(0x03FF);   // #007FFF
-const uint16_t CFK_COLOR050 = process_color(0x555F);   // #55AAFF
-const uint16_t CFK_COLOR051 = process_color(0xAEBF);   // #AAD4FF
-const uint16_t CFK_COLOR052 = process_color(0x000F);   // #00007F
-const uint16_t CFK_COLOR053 = process_color(0x294F);   // #2A2A7F
-const uint16_t CFK_COLOR054 = process_color(0x52AF);   // #55557F
-const uint16_t CFK_COLOR055 = process_color(0x001F);   // #0000FF
-const uint16_t CFK_COLOR056 = process_color(0x52BF);   // #5555FF
-const uint16_t CFK_COLOR057 = process_color(0xAD5F);   // #AAAAFF
-const uint16_t CFK_COLOR058 = process_color(0x380F);   // #3F007F
-const uint16_t CFK_COLOR059 = process_color(0x514F);   // #552A7F
-const uint16_t CFK_COLOR060 = process_color(0x6AAF);   // #6A557F
-const uint16_t CFK_COLOR061 = process_color(0x781F);   // #7F00FF
-const uint16_t CFK_COLOR062 = process_color(0xAABF);   // #AA55FF
-const uint16_t CFK_COLOR063 = process_color(0xD55F);   // #D4AAFF
-const uint16_t CFK_COLOR064 = process_color(0x780F);   // #7F007F
-const uint16_t CFK_COLOR065 = process_color(0x794F);   // #7F2A7F
-const uint16_t CFK_COLOR066 = process_color(0x7AAF);   // #7F557F
-const uint16_t CFK_COLOR067 = process_color(0xF81F);   // #FF00FF
-const uint16_t CFK_COLOR068 = process_color(0xFABF);   // #FF55FF
-const uint16_t CFK_COLOR069 = process_color(0xFD5F);   // #FFAAFF
-const uint16_t CFK_COLOR070 = process_color(0x7807);   // #7F003F
-const uint16_t CFK_COLOR071 = process_color(0x794A);   // #7F2A55
-const uint16_t CFK_COLOR072 = process_color(0x7AAD);   // #7F556A
-const uint16_t CFK_COLOR073 = process_color(0xF80F);   // #FF007F
-const uint16_t CFK_COLOR074 = process_color(0xFAB5);   // #FF55AA
-const uint16_t CFK_COLOR075 = process_color(0xFD5A);   // #FFAAD4
+constexpr uint16_t CFK_COLOR004 = process_color(0x7800);   // #7F0000
+constexpr uint16_t CFK_COLOR005 = process_color(0x7945);   // #7F2A2A
+constexpr uint16_t CFK_COLOR006 = process_color(0x7AAA);   // #7F5555
+constexpr uint16_t CFK_COLOR007 = process_color(0xF800);   // #FF0000
+constexpr uint16_t CFK_COLOR008 = process_color(0xFAAA);   // #FF5555
+constexpr uint16_t CFK_COLOR009 = process_color(0xFD55);   // #FFAAAA
+constexpr uint16_t CFK_COLOR010 = process_color(0x79E0);   // #7F3F00
+constexpr uint16_t CFK_COLOR011 = process_color(0x7AA5);   // #7F552A
+constexpr uint16_t CFK_COLOR012 = process_color(0x7B4A);   // #7F6A55
+constexpr uint16_t CFK_COLOR013 = process_color(0xFBE0);   // #FF7F00
+constexpr uint16_t CFK_COLOR014 = process_color(0xFD4A);   // #FFAA55
+constexpr uint16_t CFK_COLOR015 = process_color(0xFEB5);   // #FFD4AA
+constexpr uint16_t CFK_COLOR016 = process_color(0x7BE0);   // #7F7F00
+constexpr uint16_t CFK_COLOR017 = process_color(0x7BE5);   // #7F7F2A
+constexpr uint16_t CFK_COLOR018 = process_color(0x7BEA);   // #7F7F55
+constexpr uint16_t CFK_COLOR019 = process_color(0xFFE0);   // #FFFF00
+constexpr uint16_t CFK_COLOR020 = process_color(0xFFEA);   // #FFFF55
+constexpr uint16_t CFK_COLOR021 = process_color(0xFFF5);   // #FFFFAA
+constexpr uint16_t CFK_COLOR022 = process_color(0x3BE0);   // #3F7F00
+constexpr uint16_t CFK_COLOR023 = process_color(0x53E5);   // #557F2A
+constexpr uint16_t CFK_COLOR024 = process_color(0x6BEA);   // #6A7F55
+constexpr uint16_t CFK_COLOR025 = process_color(0x7FE0);   // #7FFF00
+constexpr uint16_t CFK_COLOR026 = process_color(0xAFEA);   // #AAFF55
+constexpr uint16_t CFK_COLOR027 = process_color(0xD7F5);   // #D4FFAA
+constexpr uint16_t CFK_COLOR028 = process_color(0x03E0);   // #007F00
+constexpr uint16_t CFK_COLOR029 = process_color(0x2BE5);   // #2A7F2A
+constexpr uint16_t CFK_COLOR030 = process_color(0x53EA);   // #557F55
+constexpr uint16_t CFK_COLOR031 = process_color(0x07E0);   // #00FF00
+constexpr uint16_t CFK_COLOR032 = process_color(0x57EA);   // #55FF55
+constexpr uint16_t CFK_COLOR033 = process_color(0xAFF5);   // #AAFFAA
+constexpr uint16_t CFK_COLOR034 = process_color(0x03E7);   // #007F3F
+constexpr uint16_t CFK_COLOR035 = process_color(0x2BEA);   // #2A7F55
+constexpr uint16_t CFK_COLOR036 = process_color(0x53ED);   // #557F6A
+constexpr uint16_t CFK_COLOR037 = process_color(0x07EF);   // #00FF7F
+constexpr uint16_t CFK_COLOR038 = process_color(0x57F5);   // #55FFAA
+constexpr uint16_t CFK_COLOR039 = process_color(0xAFFA);   // #AAFFD4
+constexpr uint16_t CFK_COLOR040 = process_color(0x03EF);   // #007F7F
+constexpr uint16_t CFK_COLOR041 = process_color(0x2BEF);   // #2A7F7F
+constexpr uint16_t CFK_COLOR042 = process_color(0x53EF);   // #557F7F
+constexpr uint16_t CFK_COLOR043 = process_color(0x07FF);   // #00FFFF
+constexpr uint16_t CFK_COLOR044 = process_color(0x57FF);   // #55FFFF
+constexpr uint16_t CFK_COLOR045 = process_color(0xAFFF);   // #AAFFFF
+constexpr uint16_t CFK_COLOR046 = process_color(0x01EF);   // #003F7F
+constexpr uint16_t CFK_COLOR047 = process_color(0x2AAF);   // #2A557F
+constexpr uint16_t CFK_COLOR048 = process_color(0x534F);   // #556A7F
+constexpr uint16_t CFK_COLOR049 = process_color(0x03FF);   // #007FFF
+constexpr uint16_t CFK_COLOR050 = process_color(0x555F);   // #55AAFF
+constexpr uint16_t CFK_COLOR051 = process_color(0xAEBF);   // #AAD4FF
+constexpr uint16_t CFK_COLOR052 = process_color(0x000F);   // #00007F
+constexpr uint16_t CFK_COLOR053 = process_color(0x294F);   // #2A2A7F
+constexpr uint16_t CFK_COLOR054 = process_color(0x52AF);   // #55557F
+constexpr uint16_t CFK_COLOR055 = process_color(0x001F);   // #0000FF
+constexpr uint16_t CFK_COLOR056 = process_color(0x52BF);   // #5555FF
+constexpr uint16_t CFK_COLOR057 = process_color(0xAD5F);   // #AAAAFF
+constexpr uint16_t CFK_COLOR058 = process_color(0x380F);   // #3F007F
+constexpr uint16_t CFK_COLOR059 = process_color(0x514F);   // #552A7F
+constexpr uint16_t CFK_COLOR060 = process_color(0x6AAF);   // #6A557F
+constexpr uint16_t CFK_COLOR061 = process_color(0x781F);   // #7F00FF
+constexpr uint16_t CFK_COLOR062 = process_color(0xAABF);   // #AA55FF
+constexpr uint16_t CFK_COLOR063 = process_color(0xD55F);   // #D4AAFF
+constexpr uint16_t CFK_COLOR064 = process_color(0x780F);   // #7F007F
+constexpr uint16_t CFK_COLOR065 = process_color(0x794F);   // #7F2A7F
+constexpr uint16_t CFK_COLOR066 = process_color(0x7AAF);   // #7F557F
+constexpr uint16_t CFK_COLOR067 = process_color(0xF81F);   // #FF00FF
+constexpr uint16_t CFK_COLOR068 = process_color(0xFABF);   // #FF55FF
+constexpr uint16_t CFK_COLOR069 = process_color(0xFD5F);   // #FFAAFF
+constexpr uint16_t CFK_COLOR070 = process_color(0x7807);   // #7F003F
+constexpr uint16_t CFK_COLOR071 = process_color(0x794A);   // #7F2A55
+constexpr uint16_t CFK_COLOR072 = process_color(0x7AAD);   // #7F556A
+constexpr uint16_t CFK_COLOR073 = process_color(0xF80F);   // #FF007F
+constexpr uint16_t CFK_COLOR074 = process_color(0xFAB5);   // #FF55AA
+constexpr uint16_t CFK_COLOR075 = process_color(0xFD5A);   // #FFAAD4
 
 #if defined(USING_GRAPHIC_LIB)
 

@@ -112,7 +112,7 @@ void RadioGroup::redraw() {
 
   m_shouldRedraw = false;
 
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
 
   // uint16_t darkBg = WidgetBase::lightMode ? CFK_GREY3 : CFK_GREY11;
   uint16_t lightBg = WidgetBase::lightMode ? CFK_GREY11 : CFK_GREY3;

@@ -58,6 +58,7 @@
 #include "check_touch.h"
 #include "check_camera.h"
 
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 #if defined(CAM_OV02C10)
 #include "camera/ov02c10/ov02c10/ov02c10.h"
 #endif
@@ -70,7 +71,6 @@
 #if defined(CAM_OV2710)
 #include "camera/ov2710/ov2710/ov2710.h"
 #endif
-#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 #include "camera/cameracontroller/cameracontroller.h"
 #endif
 
@@ -399,6 +399,8 @@ public:
     void setDrawObject(Adafruit_PCD8544 *objTFT); ///< Pointer to the PCD8544 display object.
 #elif defined(DISP_SSD1306)
     void setDrawObject(Adafruit_SSD1306 *objTFT); ///< Pointer to the SSD1306 display object.
+#elif defined(DISP_ST7565)
+    void setDrawObject(ST7565_LCD *objTFT);
 #elif defined(DISP_U8G2)
     void setDrawObject(U8G2 *objTFT); ///< Pointer to the U8G2 display object.
 #else
@@ -485,7 +487,7 @@ public:
     void deallocateStringSafe(char* str);
 
 #if defined(HAS_TOUCH)
-#if defined(TOUCH_XPT2046)
+#if defined(DFK_TOUCH_XPT2046)
     void checkCalibration();
     void recalibrate();
 #endif
@@ -495,7 +497,7 @@ public:
     void setInvertAxis(bool invert_x, bool invert_y);
     void setSwapAxis(bool swap);
 
-#if defined(TOUCH_XPT2046)
+#if defined(DFK_TOUCH_XPT2046)
     void startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency = 0, int displayPinCS = 0);
     void startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSclk, int8_t pinMosi, int8_t pinMiso, int8_t pinCS, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency = 0, int displayPinCS = -1);
 #elif defined(TOUCH_FT6236U)
@@ -646,7 +648,7 @@ public:
 
 private:
     static const char *TAG;
-#if defined(HAS_TOUCH) && defined(TOUCH_XPT2046) && (CALIBRATE_POINTS == 9)
+#if defined(HAS_TOUCH) && defined(DFK_TOUCH_XPT2046) && (CALIBRATE_POINTS == 9)
     void checkCalibrationNinePoints();
 #endif
     // Variáveis privadas estáticas

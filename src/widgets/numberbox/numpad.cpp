@@ -405,7 +405,7 @@ bool Numpad::setup()
     ESP_LOGW(TAG, "Keyboard already configured");
     return false;
   }
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   m_screenW = WidgetBase::objTFT->width();
   m_screenH = WidgetBase::objTFT->height();
 #endif
@@ -474,7 +474,7 @@ void Numpad::setup(const NumpadConfig &config)
 #endif
 
 // Initialize layout without calling setup() to avoid recursion
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   m_screenW = WidgetBase::objTFT->width();
   m_screenH = WidgetBase::objTFT->height();
 #endif
@@ -519,7 +519,7 @@ void Numpad::open(NumberBox *_field)
   strncpy(m_previousContent, m_content.getString(), MAX_LENGTH_CSTR);
   m_previousContent[MAX_LENGTH_CSTR] = '\0';
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   WidgetBase::objTFT->setFont(&RobotoBold10pt7b);
 #endif
 
@@ -538,7 +538,7 @@ void Numpad::close()
   // Libera tecla pressionada antes de fechar
   releaseKey();
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   WidgetBase::setFontNull();
 #endif
   ESP_LOGD(TAG, "Value of content is: %s", m_content.getString());

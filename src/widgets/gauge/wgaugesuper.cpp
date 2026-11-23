@@ -98,7 +98,7 @@ functionCB_t GaugeSuper::getCallbackFunc()
 void GaugeSuper::start()
 {
   CHECK_TFT_VOID
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
   if (m_config.maxValue < m_config.minValue)
   {
     int temp = m_config.minValue;
@@ -193,7 +193,7 @@ void GaugeSuper::drawBackground()
 {
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
   CHECK_CURRENTSCREEN_VOID
   CHECK_USINGKEYBOARD_VOID
   CHECK_LOADED_VOID
@@ -445,7 +445,7 @@ void GaugeSuper::redraw()
 {
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
   CHECK_CURRENTSCREEN_VOID
   CHECK_USINGKEYBOARD_VOID
   CHECK_LOADED_VOID

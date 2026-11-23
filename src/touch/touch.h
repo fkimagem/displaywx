@@ -18,10 +18,10 @@
 #include <cstdint>
 #include "../extras/baseTypes.h"
 
-#include "check_touch.h"
+#include "../check_touch.h"
 
 #if defined(DEBUG_DISPLAY_FK)
-  #if defined(TOUCH_XPT2046)
+  #if defined(DFK_TOUCH_XPT2046)
     #pragma message("Using XPT2046 touch driver")
   #elif defined(TOUCH_FT6236U)
     #pragma message("Using FT6236U touch driver")
@@ -43,7 +43,7 @@
   #endif
 
   // Include the touch library
-  #if defined(TOUCH_XPT2046)
+  #if defined(DFK_TOUCH_XPT2046)
     #include "xpt2046/XPT2046.h"
     #include <SPI.h>
     #include <Arduino_GFX_Library.h>
@@ -92,18 +92,10 @@ class TouchScreen
 private:
 static const char *TAG; ///< Tag estática para identificação em logs do ESP32.
   // Private for each touch controller
-  #if defined(TOUCH_XPT2046)
+  #if defined(DFK_TOUCH_XPT2046)
   XPT2046 *m_ts = nullptr;
   uint16_t *m_calibration = nullptr;
-  #if defined(DISP_DEFAULT)
   Arduino_GFX *m_objTFT = nullptr;
-  #elif defined(DISP_PCD8544)
-  Adafruit_PCD8544 *m_objTFT = nullptr;
-  #elif defined(DISP_SSD1306)
-  Adafruit_SSD1306 *m_objTFT = nullptr;
-  #else
-  #error "Undefined display type"
-  #endif
   uint16_t m_touchCalibration_x0 = 300;
   uint16_t m_touchCalibration_x1 = 3600;
   uint16_t m_touchCalibration_y0 = 300;
@@ -196,7 +188,7 @@ public:
   void setSwapAxis(bool swap);
   void setLogMessages(bool enable);
 
-  #if defined(TOUCH_XPT2046)
+  #if defined(DFK_TOUCH_XPT2046)
   CalibrationPoint_t getMinPoint(CalibrationPoint_t pontos[4]);
   CalibrationPoint_t getMaxPoint(CalibrationPoint_t pontos[4]);
   void startAsXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSclk,uint8_t pinMosi, uint8_t pinMiso, uint8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS);

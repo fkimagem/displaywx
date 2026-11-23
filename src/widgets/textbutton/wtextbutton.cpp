@@ -177,7 +177,7 @@ void TextButton::redraw()
  */
 void TextButton::start()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   m_config.width = constrain(m_config.width, 5, WidgetBase::objTFT->width());
   m_config.height = constrain(m_config.height, 5, WidgetBase::objTFT->height());
 #endif

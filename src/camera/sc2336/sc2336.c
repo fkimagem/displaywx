@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "../../../user_setup.h"
+#include "../../check_camera.h"
 
-#if defined(CAM_SC2336)
+#if defined(HAS_CAMERA_MIPI) && defined(CAM_SC2336)
 
 #include <string.h>
 #include <sys/param.h>

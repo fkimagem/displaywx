@@ -57,7 +57,7 @@ TouchScreen::TouchScreen()
   ESP_LOGD(TAG, "TouchScreen constructor");
 }
 
-#if defined(TOUCH_XPT2046)
+#if defined(DFK_TOUCH_XPT2046)
 void TouchScreen::startAsXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSclk, uint8_t pinMosi, uint8_t pinMiso, uint8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
 {
   m_displayPinCS = displayPinCS;
@@ -288,7 +288,7 @@ void TouchScreen::touch_init()
     Serial.println("GT911 Waveshare nao iniciado");
   }
 
-#elif defined(TOUCH_XPT2046)
+#elif defined(DFK_TOUCH_XPT2046)
 
   if (m_displayPinCS > 0)
   {
@@ -381,7 +381,7 @@ bool TouchScreen::touch_has_signal()
 #elif defined(TOUCH_GT911) || defined(TOUCH_GT911_WAVESHARE)
   return true;
 
-#elif defined(TOUCH_XPT2046)
+#elif defined(DFK_TOUCH_XPT2046)
   return true;
 #elif defined(TOUCH_FT6236U)
   return true;
@@ -469,7 +469,7 @@ bool TouchScreen::touch_touched()
   }
   return false;
 
-#elif defined(TOUCH_XPT2046)
+#elif defined(DFK_TOUCH_XPT2046)
 
   if (!m_calibMatrix)
   {
@@ -770,7 +770,7 @@ bool TouchScreen::touch_released()
 #elif defined(TOUCH_GT911) || defined(TOUCH_GT911_WAVESHARE)
   return true;
 
-#elif defined(TOUCH_XPT2046)
+#elif defined(DFK_TOUCH_XPT2046)
   return true;
 #elif defined(TOUCH_FT6236U)
   return true;
@@ -807,7 +807,7 @@ uint8_t TouchScreen::getRotation()
   return m_rotation;
 }
 
-#if defined(HAS_TOUCH) && defined(TOUCH_XPT2046) && (CALIBRATE_POINTS == 9)
+#if defined(HAS_TOUCH) && defined(DFK_TOUCH_XPT2046) && (CALIBRATE_POINTS == 9)
 
 namespace
 {
@@ -1195,7 +1195,7 @@ ScreenPoint_t TouchScreen::touchToScreenNinePoints(int16_t xTouch, int16_t yTouc
  * @brief Sets the calibration of the touch screen.
  * @param array Array of calibration points.
  */
-#if defined(HAS_TOUCH) && defined(TOUCH_XPT2046)
+#if defined(HAS_TOUCH) && defined(DFK_TOUCH_XPT2046)
 void TouchScreen::setCalibration(CalibrationPoint_t *array)
 {
 #if CALIBRATE_POINTS == 9
@@ -1238,7 +1238,7 @@ void TouchScreen::setCalibration(CalibrationPoint_t *array)
  * @param color_bg Color of the background.
  * @param sizeMarker Size of the marker.
  */
-#if defined(HAS_TOUCH) && defined(TOUCH_XPT2046)
+#if defined(HAS_TOUCH) && defined(DFK_TOUCH_XPT2046)
 void TouchScreen::calibrateTouchStruct(CalibrationPoint_t *points, uint8_t length, Rect_t *rectScreen, uint32_t color_fg, uint32_t color_bg, uint8_t sizeMarker)
 {
   // CalibrationPoint_t points[4];
@@ -1452,7 +1452,7 @@ void TouchScreen::calibrateTouchStruct(CalibrationPoint_t *points, uint8_t lengt
  * @param size Size of the star.
  * @param color Color of the star.
  */
-#if defined(TOUCH_XPT2046) && defined(HAS_TOUCH)
+#if defined(DFK_TOUCH_XPT2046) && defined(HAS_TOUCH)
 
 CalibrationPoint_t TouchScreen::getMinPoint(CalibrationPoint_t pontos[4])
 {
@@ -1501,7 +1501,7 @@ void TouchScreen::drawStar(int16_t xPos, int16_t yPos, uint8_t size, uint16_t co
  * @param yTouch Y position of the touch.
  * @return Screen position of the touch.
  */
-#if defined(TOUCH_XPT2046) && defined(HAS_TOUCH)
+#if defined(DFK_TOUCH_XPT2046) && defined(HAS_TOUCH)
 
 int TouchScreen::mapTouch(int val, int in_min, int in_max, int out_min, int out_max)
 {
@@ -1658,7 +1658,7 @@ ScreenPoint_t TouchScreen::getScreenPosition(int16_t xTouch, int16_t yTouch)
  * @param color_bg Color of the background.
  * @param size Size of the calibration points.
  */
-#if defined(TOUCH_XPT2046) && defined(HAS_TOUCH)
+#if defined(DFK_TOUCH_XPT2046) && defined(HAS_TOUCH)
 void TouchScreen::calibrateTouch(uint16_t *parameters, uint32_t color_fg, uint32_t color_bg, uint8_t size)
 {
   int16_t values[] = {0, 0, 0, 0, 0, 0, 0, 0};

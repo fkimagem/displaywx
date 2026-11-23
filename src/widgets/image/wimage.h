@@ -20,7 +20,7 @@ enum class SourceFile {
   FATFS = 3 ///< Image source from FAT filesystem
 };
 
-#if defined(DISP_DEFAULT)
+#if defined(DFK_HAS_RGB565)
   typedef uint16_t pixel_t;
 #else
   typedef uint8_t pixel_t;
@@ -51,11 +51,14 @@ struct ImageFromFileConfig {
  * 
  * @note The pixel data format depends on the display type:
  *       - DISP_DEFAULT: 16-bit RGB565 format
- *       - DISP_PCD8544/SSD1306/U8G2: 8-bit monochrome format
+ *       - DISP_PCD8544/SSD1306/ST7565: packed 1-bit rows, MSB first.
+ *       - DISP_U8G2: packed XBM rows, LSB first.
+ *       Each monochrome row occupies (width + 7) / 8 bytes.
+ *       Files loaded by setupFromFile use one byte per monochrome pixel internally.
  */
 struct ImageFromPixelsConfig {
   const pixel_t *pixels;        ///< Pointer to the pixel map data (format depends on display type)
-  const uint8_t *maskAlpha;     ///< Pointer to the alpha mask data for transparency (optional)
+  const uint8_t *maskAlpha;     ///< Optional packed 1-bit mask, MSB first, row padded; 1 = visible.
   functionCB_t cb;              ///< Callback function to be called when the image is touched
   float angle;                  ///< Rotation angle of the image in degrees (0.0 = no rotation)
   uint16_t width;               ///< Width of the image (must be > 0)
@@ -174,7 +177,10 @@ private:
   bool m_drawBackground; ///< Flag para controlar desenho do fundo (true = desenha, false = não desenha).
   
   bool readFileFromDisk(fs::FS &filesystem, const char *path);
-  void drawUnpackedMonoPixels();
+  void drawMonoPixels();
+  bool monoPixelSet(uint16_t x, uint16_t y) const;
+  bool pixelVisible(uint16_t x, uint16_t y) const;
+  void clearBackground();
   void defineFileSystem(SourceFile source);
   void drawRotatedImage();
   bool validateConfig();

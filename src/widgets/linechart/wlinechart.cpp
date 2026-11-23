@@ -8,7 +8,7 @@ const char* LineChart::TAG = "LineChart";
 
 void LineChart::initMutex()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (!m_mutex)
     m_mutex = xSemaphoreCreateMutex();
 #endif
@@ -16,7 +16,7 @@ void LineChart::initMutex()
 
 void LineChart::destroyMutex()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (m_mutex) {
     vSemaphoreDelete(m_mutex);
     m_mutex = nullptr;
@@ -101,14 +101,14 @@ LineChart::LineChart(uint16_t _x, uint16_t _y, uint8_t _screen)
   memset(m_subtitles, 0, sizeof(m_subtitles));
   memset(m_headBySeries, 0, sizeof(m_headBySeries));
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   initMutex();
 #endif
 }
 
 LineChart::~LineChart()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   freeBuffers();
   destroyMutex();
 #endif
@@ -148,7 +148,7 @@ bool LineChart::validateConfig(const LineChartConfig& config)
 void LineChart::start()
 {
   CHECK_TFT_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
 
   if (m_config.maxValue < m_config.minValue) {
     int tmp = m_config.minValue;
@@ -233,7 +233,7 @@ void LineChart::setup(const LineChartConfig& config)
 
 bool LineChart::push(uint16_t serieIndex, int newValue)
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (!m_loaded || !m_ringValues) return false;
   if (!m_config.workInBackground && WidgetBase::currentScreen != m_screen) return false;
   if (serieIndex >= m_config.amountSeries || m_amountPoints == 0) return false;
@@ -260,7 +260,7 @@ bool LineChart::push(uint16_t serieIndex, int newValue)
 
 uint32_t LineChart::snapshotUnderMutex()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (!m_mutex) return 0;
   xSemaphoreTake(m_mutex, portMAX_DELAY);
 
@@ -289,7 +289,7 @@ void LineChart::drawBackground()
   CHECK_LOADED_VOID
   CHECK_CURRENTSCREEN_VOID
   CHECK_USINGKEYBOARD_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (!m_shouldRedraw) return;
 
   for (uint16_t i = 0; i < m_borderSize; i++) {
@@ -339,7 +339,7 @@ void LineChart::drawBackground()
 void LineChart::drawGrid()
 {
   CHECK_TFT_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (m_config.verticalDivision == 0) return;
 
   uint16_t sizeVSpace = (uint16_t)round(m_maxHeight / m_config.verticalDivision);
@@ -361,7 +361,7 @@ void LineChart::drawGrid()
 
 void LineChart::drawMarkLineAt(int value)
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   uint16_t y = (uint16_t)map(value, m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
   WidgetBase::objTFT->drawFastHLine(
     m_xPos + m_leftPadding + m_borderSize, y, m_maxWidth, m_config.textColor);
@@ -371,7 +371,7 @@ void LineChart::drawMarkLineAt(int value)
 void LineChart::eraseSerieFromBuffer(uint8_t serieIndex, const int* values)
 {
   CHECK_TFT_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   const uint16_t startX = m_xPos + m_leftPadding + m_borderSize + 1;
   const uint16_t bg     = m_config.backgroundColor;
 
@@ -395,7 +395,7 @@ void LineChart::eraseSerieFromBuffer(uint8_t serieIndex, const int* values)
 void LineChart::drawSerieFromBuffer(uint8_t serieIndex, const int* values)
 {
   CHECK_TFT_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   const uint16_t startX = m_xPos + m_leftPadding + m_borderSize + 1;
   const uint16_t color  = m_colorsSeries[serieIndex];
 
@@ -421,7 +421,7 @@ void LineChart::drawSerieFromBuffer(uint8_t serieIndex, const int* values)
 
 void LineChart::eraseAllFromLastDrawn()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   for (uint16_t s = 0; s < m_config.amountSeries; s++)
     eraseSerieFromBuffer((uint8_t)s, m_lastDrawnValues[s]);
 #endif
@@ -429,7 +429,7 @@ void LineChart::eraseAllFromLastDrawn()
 
 void LineChart::drawAllFromSnapshot()
 {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   for (uint16_t s = 0; s < m_config.amountSeries; s++)
     drawSerieFromBuffer((uint8_t)s, m_snapshotValues[s]);
 #endif
@@ -445,7 +445,7 @@ void LineChart::redraw()
   CHECK_CURRENTSCREEN_VOID
   CHECK_USINGKEYBOARD_VOID
   CHECK_DEBOUNCE_REDRAW_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (!m_shouldRedraw) return;
 
   uint32_t capturedVer = snapshotUnderMutex();

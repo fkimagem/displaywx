@@ -211,8 +211,10 @@ void Led::drawBackground() {
   CHECK_USINGKEYBOARD_VOID
   CHECK_CURRENTSCREEN_VOID
 
+#if defined(USING_GRAPHIC_LIB)
   uint16_t borderColor = WidgetBase::lightMode ? CFK_BLACK : CFK_WHITE;
   WidgetBase::objTFT->drawCircle(m_xPos, m_yPos, m_config.radius, borderColor);
+#endif
   
   ESP_LOGD(TAG, "Led background drawn at (%d, %d)", m_xPos, m_yPos);
 }
@@ -238,7 +240,7 @@ void Led::redraw() {
 
   m_shouldRedraw = false;
 
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
   
   ESP_LOGD(TAG, "Redrawing Led at (%d, %d), status: %s", m_xPos, m_yPos, m_status ? "ON" : "OFF");
 

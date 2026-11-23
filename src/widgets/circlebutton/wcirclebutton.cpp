@@ -121,7 +121,7 @@ void CircleButton::redraw() {
   CHECK_CURRENTSCREEN_VOID
   CHECK_SHOULDREDRAW_VOID
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   m_shouldRedraw = false;
 
   uint16_t lightBg = WidgetBase::lightMode ? CFK_GREY11 : CFK_GREY3;

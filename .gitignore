@@ -17,3 +17,5 @@ doc/
 animacao_camera/
 .dma-slides-build/
 references_code/
+*.pptx
+*.py

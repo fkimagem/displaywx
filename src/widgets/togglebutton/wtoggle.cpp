@@ -109,7 +109,7 @@ void ToggleButton::redraw()
   {
     return;
   }
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (WidgetBase::currentScreen != m_screen || !m_loaded || !m_shouldRedraw)
   {
     return;
@@ -176,7 +176,7 @@ void ToggleButton::blitRowFromCanvas(int x, int y, int w)
 void ToggleButton::start()
 {
   CHECK_TFT_VOID
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   m_config.width = constrain(m_config.width, 30, WidgetBase::objTFT->width());
 #endif
 }

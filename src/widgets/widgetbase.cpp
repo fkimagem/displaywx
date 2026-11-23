@@ -22,6 +22,8 @@ Arduino_GFX *WidgetBase::objTFT = nullptr;
 Adafruit_PCD8544 *WidgetBase::objTFT = nullptr;
 #elif defined(DISP_SSD1306)
 Adafruit_SSD1306 *WidgetBase::objTFT = nullptr;
+#elif defined(DISP_ST7565)
+ST7565_LCD *WidgetBase::objTFT = nullptr;
 #elif defined(DISP_U8G2)
 U8G2 *WidgetBase::objTFT = nullptr;
 #else
@@ -435,38 +437,39 @@ const GFXfont *WidgetBase::getBestRobotoBold(uint16_t availableWidth, uint16_t a
     return this->getBestFontForArea( texto, availableWidth, availableHeight, fontes, amountFonts);
 }
 
+#endif // USING_GRAPHIC_LIB: font measurement helpers
+
 /**
  * @brief Updates the font according to the specified font type.
  * @param _f Font type to set (NORMAL, BOLD).
  */
 void WidgetBase::updateFont(FontType _f)
 {
+#if defined(USING_GRAPHIC_LIB)
+    if (!objTFT) return;
     WidgetBase::objTFT->setTextSize(1);
     switch (_f)
     {
     case FontType::NORMAL:
     {
-#if defined(USING_GRAPHIC_LIB)
         WidgetBase::objTFT->setFont(WidgetBase::fontNormal);
-#endif
     }
     break;
     case FontType::BOLD:
     { 
-#if defined(USING_GRAPHIC_LIB)
         WidgetBase::objTFT->setFont(WidgetBase::fontBold);
-#endif
     }
     break;
 
     default:
     {
-#if defined(USING_GRAPHIC_LIB)
         WidgetBase::setFontNull();
-#endif
     }
     break;
     }
+#else
+    UNUSED(_f);
+#endif
 }
 
 
@@ -478,6 +481,7 @@ void WidgetBase::updateFont(FontType _f)
  * @param _y Y position of the text.
  * @param _datum Datum of the text.
  */
+#if defined(USING_GRAPHIC_LIB)
 void WidgetBase::printText(const char* _texto, uint16_t _x, uint16_t _y, uint8_t _datum){
     //int ox = _x, oy = _y;
     WidgetBase::recalculateTextPosition(_texto, &_x, &_y, _datum);
@@ -696,16 +700,21 @@ void WidgetBase::drawRotatedImageOptimized(uint16_t *image, int16_t width, int16
     objTFT->endWrite();  // Termina a transação de escrita
 }
 
+#endif // USING_GRAPHIC_LIB: drawing helpers
+
 /**
  * @brief Shows the origin of the widget.
  * @param color The color of the origin.
  */
 void WidgetBase::showOrigin(uint16_t color){
-#if defined(HELPERS)
+#if defined(HELPERS) && defined(USING_GRAPHIC_LIB)
+    if (!objTFT) return;
     uint8_t tam = 5;
     objTFT->drawFastVLine(m_xPos, m_yPos-tam, 2*tam, color);
     objTFT->drawFastHLine(m_xPos-tam, m_yPos, 2*tam, color);
     objTFT->fillCircle(m_xPos, m_yPos, 2, color);
+#else
+    UNUSED(color);
 #endif
 }
 
@@ -745,7 +754,3 @@ void WidgetBase::unlock() {
 bool WidgetBase::isLocked() const {
     return m_locked;
 }
-
-// Pure virtual methods - must be implemented by derived classes
-// setup, forceUpdate, redraw
-#endif

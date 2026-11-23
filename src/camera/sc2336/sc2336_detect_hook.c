@@ -3,9 +3,9 @@
  * This object replaces esp_cam_sensor_detect_get_array() and probes SC2336 only.
  */
 
-#include "../../../user_setup.h"
+#include "../../check_camera.h"
 
-#if defined(CAM_SC2336)
+#if defined(HAS_CAMERA_MIPI) && defined(CAM_SC2336)
 
 #include "esp_log.h"
 #include "esp_cam_sensor_detect.h"

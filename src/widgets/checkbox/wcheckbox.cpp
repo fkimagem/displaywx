@@ -134,7 +134,7 @@ void CheckBox::redraw() {
   CHECK_DEBOUNCE_REDRAW_VOID
   CHECK_SHOULDREDRAW_VOID
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   m_shouldRedraw = false;
 
   ESP_LOGD(TAG, "Redrawing checkbox at (%d,%d) size %d, status: %s", 
@@ -292,7 +292,7 @@ uint16_t CheckBox::getBorderColor() {
  *          Usa os pontos calculados em setup() para criar o desenho.
  */
 void CheckBox::drawCheckmark() {
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   uint8_t weight = static_cast<uint8_t>(m_config.weight);
 
   if(weight >= (int)CheckBoxWeight::HEAVY) {
@@ -319,7 +319,7 @@ void CheckBox::drawCheckmark() {
  *          m_borderWidth. Usa a cor retornada por getBorderColor().
  */
 void CheckBox::drawBorder() {
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
   uint16_t borderColor = getBorderColor();
   
   // Draw border around the checkbox

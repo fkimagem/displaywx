@@ -96,7 +96,7 @@ void TextBox::redraw() {
   if (!m_visible) {
     return;
   }
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (WidgetBase::currentScreen != m_screen || !m_loaded || !m_shouldRedraw) {
     return;
   }
@@ -196,7 +196,7 @@ void TextBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
   m_width = _width;
   m_height = _height;
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
   if (_font) {
     WidgetBase::objTFT->setFont(_font);
     TextBound_t area;

@@ -174,6 +174,7 @@ void CameraMipi::forceUpdate() {
 }
 
 void CameraMipi::drawBackground() {
+#if defined(DISP_DEFAULT) && defined(DFK_CAMERA_MIPI)
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -187,6 +188,7 @@ void CameraMipi::drawBackground() {
   WidgetBase::objTFT->drawRect(m_xPos, m_yPos, m_config.width, m_config.height, borderColor);
 
   ESP_LOGD(TAG, "CameraMipi drawBackground completed");
+#endif
 }
 
 functionCB_t CameraMipi::getCallbackFunc() { return m_callback; }

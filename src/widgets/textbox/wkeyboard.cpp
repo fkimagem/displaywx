@@ -395,7 +395,7 @@ bool WKeyboard::setup()
         return false;
     }
 
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
     m_screenW = WidgetBase::objTFT->width();
     m_screenH = WidgetBase::objTFT->height();
 #endif
@@ -461,7 +461,7 @@ void WKeyboard::open(TextBox *_field)
     m_content.setString(m_field->getValue(), true);
     strncpy(m_previousContent, m_content.getString(), MAX_LENGTH_CSTR);
     m_previousContent[MAX_LENGTH_CSTR] = '\0';
-#if defined(DISP_DEFAULT)
+#if defined(USING_GRAPHIC_LIB)
     if (m_keyH > 20)
     {
         WidgetBase::objTFT->setFont(&RobotoBold10pt7b);

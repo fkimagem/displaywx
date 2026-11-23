@@ -8,6 +8,44 @@
 
 const char* Image::TAG = "Image";
 
+void Image::clearBackground() {
+#if defined(USING_GRAPHIC_LIB)
+  objTFT->fillRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.backgroundColor);
+#elif defined(DISP_U8G2)
+  const uint8_t previousColor = objTFT->getDrawColor();
+  objTFT->setDrawColor(m_config.backgroundColor != 0 ? 1 : 0);
+  objTFT->drawBox(m_xPos, m_yPos, m_config.width, m_config.height);
+  objTFT->setDrawColor(previousColor);
+#endif
+}
+
+bool Image::pixelVisible(uint16_t x, uint16_t y) const {
+  if (!m_config.maskAlpha) return true;
+  const uint32_t rowBytes = (static_cast<uint32_t>(m_config.width) + 7u) / 8u;
+  const uint32_t index = static_cast<uint32_t>(y) * rowBytes + x / 8u;
+  return (pgm_read_byte(m_config.maskAlpha + index) & (0x80u >> (x & 7u))) != 0;
+}
+
+bool Image::monoPixelSet(uint16_t x, uint16_t y) const {
+#if defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
+  if (m_ownsMemory) {
+    return m_config.pixels[static_cast<uint32_t>(y) * m_config.width + x] != 0;
+  }
+  const uint32_t rowBytes = (static_cast<uint32_t>(m_config.width) + 7u) / 8u;
+  const uint32_t index = static_cast<uint32_t>(y) * rowBytes + x / 8u;
+  const uint8_t bits = pgm_read_byte(m_config.pixels + index);
+#if defined(DISP_U8G2)
+  return (bits & (1u << (x & 7u))) != 0;
+#else
+  return (bits & (0x80u >> (x & 7u))) != 0;
+#endif
+#else
+  UNUSED(x);
+  UNUSED(y);
+  return false;
+#endif
+}
+
 /**
  * @brief Construtor da classe Image.
  * @param _x Posição X da imagem.
@@ -93,7 +131,7 @@ namespace {
 
 constexpr size_t kImageReadChunk = 512;
 
-#if defined(DISP_DEFAULT)
+#if defined(DFK_HAS_RGB565)
 constexpr uint8_t kFileBytesPerPixel = 2;
 #else
 constexpr uint8_t kFileBytesPerPixel = 1;
@@ -183,7 +221,7 @@ bool Image::readFileFromDisk(fs::FS &filesystem, const char *path) {
   memset(pixels, 0, static_cast<size_t>(pixelCount) * sizeof(pixel_t));
   memset(mask, 0, layout.maskBytes);
 
-#if defined(DISP_DEFAULT)
+#if defined(DFK_HAS_RGB565)
   size_t stored = 0;
   uint8_t chunk[kImageReadChunk];
   while (stored < layout.pixelBytes) {
@@ -268,11 +306,7 @@ void Image::drawBackground() {
   }
 
   
-  #if defined(USING_GRAPHIC_LIB)
-  WidgetBase::objTFT->fillRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.backgroundColor);
-  #else
-  WidgetBase::objTFT->drawFrame(m_xPos, m_yPos, m_config.width, m_config.height);
-  #endif
+  clearBackground();
   ESP_LOGD(TAG, "Background drawn: %dx%d at (%d,%d)", m_config.width, m_config.height, m_xPos, m_yPos);
 }
 
@@ -328,11 +362,7 @@ void Image::draw() {
   if (!m_visible && m_drawBackground) {
     // Validate configuration before drawing background
     if (validateConfig()) {
-      #if defined(USING_GRAPHIC_LIB)
-      WidgetBase::objTFT->fillRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.backgroundColor);
-      #else
-      WidgetBase::objTFT->drawFrame(m_xPos, m_yPos, m_config.width, m_config.height);
-      #endif
+      clearBackground();
       ESP_LOGD(TAG, "Image hidden - background drawn: %dx%d", m_config.width, m_config.height);
     } else {
       ESP_LOGW(TAG, "Cannot draw background - invalid configuration");
@@ -352,13 +382,18 @@ void Image::draw() {
 
   ESP_LOGD(TAG, "Redraw image: %d x %d (angle: %.1f°)", m_config.width, m_config.height, m_config.angle);
 
+#if defined(DISP_U8G2)
+  const uint8_t previousColor = objTFT->getDrawColor();
+  objTFT->setDrawColor(1);
+#endif
+
   // Apply rotation if angle is not zero
   if (m_config.angle != 0.0f) {
     ESP_LOGD(TAG, "Drawing rotated image");
     drawRotatedImage();
   } else {
     // Draw without rotation
-#if defined(DISP_DEFAULT)
+#if defined(DFK_HAS_RGB565)
     if (m_config.maskAlpha != nullptr) {
       WidgetBase::objTFT->draw16bitRGBBitmapWithMask(
           m_xPos, m_yPos, m_config.pixels, m_config.maskAlpha, m_config.width, m_config.height);
@@ -366,18 +401,22 @@ void Image::draw() {
       WidgetBase::objTFT->draw16bitRGBBitmap(
           m_xPos, m_yPos, m_config.pixels, m_config.width, m_config.height);
     }
-#elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
-    if (m_ownsMemory) {
-      drawUnpackedMonoPixels();
+#elif defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
+    if (m_ownsMemory || m_config.maskAlpha != nullptr) {
+      drawMonoPixels();
     } else {
 #if defined(DISP_U8G2)
       WidgetBase::objTFT->drawXBMP(m_xPos, m_yPos, m_config.width, m_config.height, m_config.pixels);
-#else
+#elif defined(DFK_MONO_ADAFRUIT)
       WidgetBase::objTFT->drawBitmap(m_xPos, m_yPos, m_config.pixels, m_config.width, m_config.height, CFK_BLACK);
 #endif
     }
 #endif
   }
+
+#if defined(DISP_U8G2)
+  objTFT->setDrawColor(previousColor);
+#endif
   
   // End performance timing
   uint32_t endTime = micros();
@@ -725,7 +764,7 @@ void Image::drawRotatedImage() {
         #if defined(USING_GRAPHIC_LIB)
 
         bool inBounds = screenX >= 0 && screenX < WidgetBase::objTFT->width() &&  screenY >= 0 && screenY < WidgetBase::objTFT->height();
-        #else
+        #elif defined(DISP_U8G2)
         bool inBounds = screenX >= 0 && screenX < WidgetBase::objTFT->getDisplayWidth() &&  screenY >= 0 && screenY < WidgetBase::objTFT->getDisplayHeight();
         #endif
         
@@ -733,28 +772,17 @@ void Image::drawRotatedImage() {
 
 
           
-#if defined(DISP_DEFAULT)
-          uint16_t color = m_config.pixels[pixelIndex];
-          if (m_ownsMemory) {
-            if (m_maskAlpha != nullptr && !displaywx::imagebin::maskBitVisible(m_maskAlpha, m_config.width, static_cast<uint16_t>(origXInt), static_cast<uint16_t>(origYInt))) {
-              continue;
-            }
-          } else if (m_config.maskAlpha && m_config.maskAlpha[pixelIndex] < 255) {
-            continue;
-          }
+#if defined(DFK_HAS_RGB565)
+          if (!pixelVisible(origXInt, origYInt)) continue;
+          const uint16_t color = pgm_read_word(m_config.pixels + pixelIndex);
           WidgetBase::objTFT->drawPixel(screenX, screenY, color);
-#elif defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
-          uint8_t color = m_config.pixels[pixelIndex];
-          if (m_ownsMemory && m_maskAlpha != nullptr && !displaywx::imagebin::maskBitVisible(m_maskAlpha, m_config.width, static_cast<uint16_t>(origXInt), static_cast<uint16_t>(origYInt))) {
-            continue;
-          }
-          if (color != 0) { // Only draw non-transparent pixels
-
-            #if defined(DISP_U8G2)
+#elif defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
+          if (pixelVisible(origXInt, origYInt) && monoPixelSet(origXInt, origYInt)) {
+#if defined(DISP_U8G2)
             WidgetBase::objTFT->drawPixel(screenX, screenY);
-            #else
-            WidgetBase::objTFT->drawPixel(screenX, screenY, color);
-            #endif
+#elif defined(DFK_MONO_ADAFRUIT)
+            WidgetBase::objTFT->drawPixel(screenX, screenY, CFK_BLACK);
+#endif
           }
 #endif
         }
@@ -787,7 +815,6 @@ void Image::drawRotatedImage() {
  */
 bool Image::validateConfig() {
 
-  #if defined(USING_GRAPHIC_LIB)
   // Validate basic configuration
   if (m_config.pixels == nullptr) {
     ESP_LOGE(TAG, "Image pixels are null");
@@ -834,8 +861,13 @@ bool Image::validateConfig() {
   }
   
   // Check if image fits within display (with rotation consideration)
-  int maxWidth = WidgetBase::objTFT->width();
-  int maxHeight = WidgetBase::objTFT->height();
+#if defined(USING_GRAPHIC_LIB)
+  const int maxWidth = WidgetBase::objTFT->width();
+  const int maxHeight = WidgetBase::objTFT->height();
+#elif defined(DISP_U8G2)
+  const int maxWidth = WidgetBase::objTFT->getDisplayWidth();
+  const int maxHeight = WidgetBase::objTFT->getDisplayHeight();
+#endif
   
   if (m_config.angle == 0.0f) {
     // Simple bounds check for non-rotated images
@@ -862,25 +894,6 @@ bool Image::validateConfig() {
   ESP_LOGD(TAG, "Configuration validation passed: %dx%d at (%d,%d) angle=%.1f°", 
            m_config.width, m_config.height, m_xPos, m_yPos, m_config.angle);
   return true;
-#else
-  if (m_config.pixels == nullptr) {
-    ESP_LOGE(TAG, "Image pixels are null");
-    return false;
-  }
-  if (m_config.width == 0 || m_config.height == 0 || m_config.width > 4096 || m_config.height > 4096) {
-    ESP_LOGE(TAG, "Invalid image dimensions: %dx%d", m_config.width, m_config.height);
-    return false;
-  }
-  if (!WidgetBase::objTFT) {
-    ESP_LOGE(TAG, "TFT display not initialized");
-    return false;
-  }
-  if (m_xPos + m_config.width > WidgetBase::objTFT->getDisplayWidth() || m_yPos + m_config.height > WidgetBase::objTFT->getDisplayHeight()) {
-    ESP_LOGW(TAG, "Image extends beyond display bounds");
-    return false;
-  }
-  return true;
-#endif
 }
 
 /**
@@ -937,17 +950,13 @@ void Image::clearBuffers() {
   m_source = SourceFile::EMBED;
 }
 
-void Image::drawUnpackedMonoPixels() {
-#if defined(DISP_PCD8544) || defined(DISP_SSD1306) || defined(DISP_U8G2)
+void Image::drawMonoPixels() {
+#if defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
   const uint16_t width = m_config.width;
   const uint16_t height = m_config.height;
   for (uint16_t y = 0; y < height; ++y) {
     for (uint16_t x = 0; x < width; ++x) {
-      const uint32_t index = (static_cast<uint32_t>(y) * width) + x;
-      if (m_pixels[index] == 0) {
-        continue;
-      }
-      if (m_maskAlpha != nullptr && !displaywx::imagebin::maskBitVisible(m_maskAlpha, width, x, y)) {
+      if (!monoPixelSet(x, y) || !pixelVisible(x, y)) {
         continue;
       }
       const int16_t screenX = static_cast<int16_t>(m_xPos + x);

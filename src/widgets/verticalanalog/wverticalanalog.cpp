@@ -251,7 +251,7 @@ void VAnalog::redraw()
   CHECK_SHOULDREDRAW_VOID
   m_shouldRedraw = false;
 
-  #if defined(DISP_DEFAULT)
+  #if defined(USING_GRAPHIC_LIB)
   
   if(!m_changedScale){
     clearArrow();

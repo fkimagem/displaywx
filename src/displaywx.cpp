@@ -2079,7 +2079,7 @@ void DisplayWX::setSwapAxis(bool swap)
     m_swapAxis = swap;
 }
 
-#if defined(TOUCH_XPT2046)
+#if defined(DFK_TOUCH_XPT2046)
 void DisplayWX::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
 {
     // Robust input validation
@@ -2939,7 +2939,9 @@ void DisplayWX::processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTou
     {
         Serial.printf("Touch pressed at [%i, %i]\n", xTouch, yTouch);
         CHECK_TFT_VOID
+#if defined(USING_GRAPHIC_LIB)
         WidgetBase::objTFT->fillCircle(xTouch, yTouch, 2, CFK_FUCHSIA);
+#endif
     }
 
     if (m_lastTouchState == TouchEventType::TOUCH_DOWN)
@@ -3990,6 +3992,11 @@ void DisplayWX::setDrawObject(Adafruit_SSD1306 *objTFT)
 {
     WidgetBase::objTFT = objTFT;
 }
+#elif defined(DISP_ST7565)
+void DisplayWX::setDrawObject(ST7565_LCD *objTFT)
+{
+    WidgetBase::objTFT = objTFT;
+}
 #elif defined(DISP_U8G2)
 void DisplayWX::setDrawObject(U8G2 *objTFT)
 {
@@ -4004,7 +4011,14 @@ void DisplayWX::setBackgroundColor(uint16_t color)
     {
         return;
     }
+#if defined(USING_GRAPHIC_LIB)
     WidgetBase::objTFT->fillScreen(color);
+#elif defined(DISP_U8G2)
+    const uint8_t previousColor = WidgetBase::objTFT->getDrawColor();
+    WidgetBase::objTFT->setDrawColor(color != 0 ? 1 : 0);
+    WidgetBase::objTFT->drawBox(0, 0, WidgetBase::objTFT->getDisplayWidth(), WidgetBase::objTFT->getDisplayHeight());
+    WidgetBase::objTFT->setDrawColor(previousColor);
+#endif
 }
 
 void DisplayWX::cameraTask()
@@ -4185,7 +4199,7 @@ void DisplayWX::displaywxTask()
 
         updateWidgets();
 
-#if defined(DISP_PCD8544)
+#if defined(DFK_MONO_ADAFRUIT)
         if (WidgetBase::objTFT)
         {
             WidgetBase::objTFT->display();
@@ -4340,7 +4354,7 @@ void DisplayWX::disableTouchLog()
 #endif
 }
 
-#if defined(TOUCH_XPT2046) && defined(HAS_TOUCH)
+#if defined(DFK_TOUCH_XPT2046) && defined(HAS_TOUCH)
 
 /**
  * @brief Checks and performs touch calibration

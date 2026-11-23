@@ -2,9 +2,11 @@
 #define CHECKOUT_CAMERA_H
 
 #include "../user_setup.h"
+#include <esp_idf_version.h>
+#include "sdkconfig.h"
 
-// Define HAS_CAMERA se a camera estiver definida na user_setup.h
-#if (defined(CAM_OV02C10) || defined(CAM_OV5647) || defined(CAM_SC2336) || defined(CAM_OV2710))
+// C-compatible gate shared by the widgets and the bundled sensor drivers.
+#if defined(DISP_DEFAULT) && defined(CONFIG_IDF_TARGET_ESP32P4) && (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)) && (defined(CAM_OV02C10) || defined(CAM_OV5647) || defined(CAM_SC2336) || defined(CAM_OV2710))
 #if !defined(HAS_CAMERA_MIPI)
 #define HAS_CAMERA_MIPI 1
 #endif

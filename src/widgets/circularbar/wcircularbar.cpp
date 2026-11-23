@@ -22,6 +22,7 @@ static inline int getClockwiseSpan(int start, int end) {
 }
 
 // Desenha arco lidando com a virada dos 360 graus (wrap-around)
+#if defined(DFK_HAS_FILL_ARC)
 static void drawArcWrap(Arduino_GFX *tft, int x, int y, int rOut, int rIn, int aStart, int aEnd, uint16_t color) {
   aStart = normAngle(aStart);
   aEnd = normAngle(aEnd);
@@ -34,6 +35,8 @@ static void drawArcWrap(Arduino_GFX *tft, int x, int y, int rOut, int rIn, int a
     tft->fillArc(x, y, rOut, rIn, 0.0f, (float)aEnd, color);
   }
 }
+
+#endif
 
 // ------------------------- Implementação CircularBar -------------------------
 
@@ -54,6 +57,7 @@ functionCB_t CircularBar::getCallbackFunc() { return m_callback; }
 
 
 void CircularBar::drawBackground() {
+#if defined(DFK_HAS_FILL_ARC)
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_LOADED_VOID
@@ -70,6 +74,7 @@ void CircularBar::drawBackground() {
   m_lastValue = m_config.minValue; // Reseta referência de desenho
   m_shouldRedraw = true;
   redraw();
+#endif
 }
 
 void CircularBar::sortValues() {
@@ -119,7 +124,7 @@ void CircularBar::redraw() {
   CHECK_CURRENTSCREEN_VOID
   CHECK_SHOULDREDRAW_VOID
 
-#if defined(DISP_DEFAULT)
+#if defined(DFK_HAS_FILL_ARC)
   CHECK_DEBOUNCE_REDRAW_VOID
   m_shouldRedraw = false;
 

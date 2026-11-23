@@ -4,9 +4,9 @@
  * esp_cam_sensor_detect_get_array() and probes OV02C10 first.
  */
 
-#include "../../../user_setup.h"
+#include "../../check_camera.h"
 
-#if defined(CAM_OV02C10)
+#if defined(HAS_CAMERA_MIPI) && defined(CAM_OV02C10)
 
 #include "esp_log.h"
 #include "esp_cam_sensor_detect.h"

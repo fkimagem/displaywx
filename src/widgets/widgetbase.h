@@ -6,7 +6,7 @@
 #include <esp32-hal.h>
 #include <stdint.h>
 
-#include "../user_setup.h"
+#include "../../user_setup.h"
 #include "../extras/baseTypes.h"
 #include "../extras/wutils.h"
 #include "widgetsetup.h"
@@ -21,6 +21,9 @@
 #elif defined(DISP_SSD1306)
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#elif defined(DISP_ST7565)
+#include <Adafruit_GFX.h>
+#include <ST7565_LCD.h>
 #elif defined(DISP_U8G2)
 #include <Arduino.h>
 #include <U8g2lib.h>
@@ -433,6 +436,8 @@ public:
   static Adafruit_PCD8544 *objTFT; ///< Ponteiro para o objeto de display PCD8544.
 #elif defined(DISP_SSD1306)
   static Adafruit_SSD1306 *objTFT; ///< Ponteiro para o objeto de display SSD1306.
+#elif defined(DISP_ST7565)
+  static ST7565_LCD *objTFT;
 #elif defined(DISP_U8G2)
   static U8G2 *objTFT; ///< Ponteiro para o objeto de display U8G2.
 #else

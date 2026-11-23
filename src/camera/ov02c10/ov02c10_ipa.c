@@ -4,9 +4,9 @@
 * SPDX-License-Identifier: ESPRESSIF MIT
 */
 
-#include "../../../user_setup.h"
+#include "../../check_camera.h"
 
-#if defined(CAM_OV02C10)
+#if defined(HAS_CAMERA_MIPI) && defined(CAM_OV02C10)
 
 #include <string.h>
 #include "esp_ipa.h"
