@@ -150,8 +150,8 @@ void screen0(){
     myDisplay.setBackgroundColor(CFK_WHITE);
     //This screen has a/an toggleButton
     //This screen has a/an toggleButton
-    myDisplay.printText("Led 1", 160, 107, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Led 2", 160, 167, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Led 1", 160, 107, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Led 2", 160, 167, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

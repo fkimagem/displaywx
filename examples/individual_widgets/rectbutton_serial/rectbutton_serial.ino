@@ -150,8 +150,8 @@ void loop(){
 void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("Button 01", 160, 107, TL_DATUM, CFK_COLOR20, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Button 02", 160, 167, TL_DATUM, CFK_COLOR23, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Button 01", 160, 107, TL_DATUM, CFK_COLOR20, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Button 02", 160, 167, TL_DATUM, CFK_COLOR23, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an rectButton
     //This screen has a/an rectButton
     myDisplay.drawWidgetsOnScreen(0);

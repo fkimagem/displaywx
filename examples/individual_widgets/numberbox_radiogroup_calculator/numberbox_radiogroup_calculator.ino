@@ -242,15 +242,15 @@ void screen0(){
     tft->drawRect(5, 100, 466, 35, CFK_BLACK);
     tft->fillRect(5, 60, 466, 35, CFK_GREY11);
     tft->drawRect(5, 60, 466, 35, CFK_BLACK);
-    myDisplay.printText("Calc VRIW", 205, 12, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Calc VRIW", 205, 12, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
-    myDisplay.printText("V", 60, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("R", 180, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("I", 300, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("W", 410, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("V", 60, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("R", 180, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("I", 300, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("W", 410, 37, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an textButton
     //This screen has a/an textButton
     //This screen has a/an textButton
@@ -264,8 +264,8 @@ void screen0(){
     //This screen has a/an radiobutton
     //This screen has a/an radiobutton
     //This screen has a/an radiobutton
-    myDisplay.printText("A", 15, 67, TL_DATUM, CFK_BLACK, CFK_GREY11, &RobotoRegular10pt7b);
-    myDisplay.printText("B", 15, 107, TL_DATUM, CFK_BLACK, CFK_GREY11, &RobotoRegular10pt7b);
+    myDisplay.printText("A", 15, 67, TL_DATUM, CFK_BLACK, CFK_GREY11, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("B", 15, 107, TL_DATUM, CFK_BLACK, CFK_GREY11, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 
@@ -279,7 +279,9 @@ void loadWidgets(){
             .fontFamily = &RobotoRegular10pt7b,
             .datum = TC_DATUM,
             .fontColor = CFK_BLACK,
-            .backgroundColor = CFK_WHITE
+            .backgroundColor = CFK_WHITE,
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         };
     txtresult.setup(configLabel0);
     myDisplay.setLabel(arrayLabel,qtdLabel);

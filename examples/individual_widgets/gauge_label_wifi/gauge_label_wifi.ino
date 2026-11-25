@@ -179,7 +179,7 @@ void screen0() {
   // This screen has a/an ponteiroAnalog
   // This screen has a/an label
   myDisplay.printText("WiFi force", 195, 17, TL_DATUM, CFK_BLACK, CFK_WHITE,
-                      &RobotoRegular10pt7b);
+                      &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
   myDisplay.drawWidgetsOnScreen(0);
 }
 
@@ -211,7 +211,10 @@ void loadWidgets() {
                               .fontFamily = &RobotoRegular10pt7b,
                               .datum = TL_DATUM,
                               .fontColor = CFK_BLACK,
-                              .backgroundColor = CFK_WHITE};
+                              .backgroundColor = CFK_WHITE,
+                              .textMetrics = nullptr, // Measure using the configured GFX font.
+                              .fillBackground = true
+  };
   txtforce.setup(configLabel0);
   myDisplay.setLabel(arrayLabel, qtdLabel);
 }

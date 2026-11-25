@@ -163,11 +163,11 @@ void screen0(){
     //This screen has a/an led
     //This screen has a/an led
     //This screen has a/an led
-    myDisplay.printText("Motor enabled", 175, 102, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("End sensor", 165, 157, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Start sensor", 165, 207, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Motor enabled", 175, 102, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("End sensor", 165, 157, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Start sensor", 165, 207, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an rectButton
-    myDisplay.printText("Control Motor", 185, 47, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Control Motor", 185, 47, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

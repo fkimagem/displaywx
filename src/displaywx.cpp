@@ -2434,7 +2434,7 @@ void DisplayWX::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
     {
         for (uint32_t indice = 0; indice < (qtdLabel); indice++)
         {
-            arrayLabel[indice]->forceUpdate();
+            arrayLabel[indice]->invalidateBackground();
             arrayLabel[indice]->redraw();
         }
     }
@@ -4587,7 +4587,13 @@ void DisplayWX::recalibrate()
 #if defined(USING_GRAPHIC_LIB)
 void DisplayWX::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font)
 {
+    printText(_texto, _x, _y, _datum, _colorText, _colorPadding, _font, {0, 0, 0, 0});
+}
+
+void DisplayWX::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font, const TextBound_t &_background, bool _fillBackground)
+{
     CHECK_TFT_VOID
+    if (!_texto) return;
     if (_font)
     {
         WidgetBase::objTFT->setFont(_font);
@@ -4597,8 +4603,17 @@ void DisplayWX::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t 
         WidgetBase::setFontNull();
     }
 
-    WidgetBase::objTFT->setTextColor(_colorText, _colorPadding);
+    WidgetBase::objTFT->setTextWrap(false);
     WidgetBase::recalculateTextPosition(_texto, &_x, &_y, _datum);
+    if (_fillBackground) {
+        TextBound_t area = _background;
+        if (!area.width || !area.height)
+            WidgetBase::objTFT->getTextBounds(_texto, _x, _y, &area.x, &area.y, &area.width, &area.height);
+        WidgetBase::objTFT->fillRect(area.x, area.y, area.width, area.height, _colorPadding);
+    }
+    // GFX custom fonts do not consistently support the two-color print API.
+    // Fill once above, then draw only the glyphs without backend-specific padding.
+    WidgetBase::objTFT->setTextColor(_colorText);
     WidgetBase::objTFT->setCursor(_x, _y);
     WidgetBase::objTFT->print(_texto);
     WidgetBase::setFontNull();

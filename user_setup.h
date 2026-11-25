@@ -1,1 +1,2 @@
-#define DISP_PCD8544
+#define DISP_DEFAULT
+#define TOUCH_FT6236U

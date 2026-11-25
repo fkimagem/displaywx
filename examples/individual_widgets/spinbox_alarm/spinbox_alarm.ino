@@ -138,9 +138,9 @@ void loop(){
 void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("ADC Alarm", 185, 32, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("ADC Alarm", 185, 32, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an spinbox
-    myDisplay.printText("ADC mac value before alarm", 100, 92, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("ADC mac value before alarm", 100, 92, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

@@ -174,13 +174,13 @@ void loop(){
 void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("SSID", 120, 92, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("SSID", 120, 92, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an caixaTexto
     //This screen has a/an caixaTexto
-    myDisplay.printText("Pass", 120, 142, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Pass", 120, 142, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an textButton
     //This screen has a/an label
-    myDisplay.printText("Connect WiFi", 175, 22, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Connect WiFi", 175, 22, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 
@@ -194,7 +194,9 @@ void loadWidgets(){
             .fontFamily = &RobotoRegular10pt7b,
             .datum = TL_DATUM,
             .fontColor = CFK_BLACK,
-            .backgroundColor = CFK_WHITE
+            .backgroundColor = CFK_WHITE,
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         };
     text3.setup(configLabel0);
     myDisplay.setLabel(arrayLabel,qtdLabel);

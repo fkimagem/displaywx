@@ -147,7 +147,7 @@ void loop(){
 void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("LED Controller", 165, 42, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("LED Controller", 165, 42, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an led
     //This screen has a/an touchArea
     myDisplay.drawWidgetsOnScreen(0);

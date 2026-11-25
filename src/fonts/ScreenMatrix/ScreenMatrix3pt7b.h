@@ -1,3 +1,6 @@
+#ifndef FONT_SCREENMATRIX3PT7B_H
+#define FONT_SCREENMATRIX3PT7B_H
+
 const uint8_t ScreenMatrix3pt7bBitmaps[] PROGMEM = {
    };
 
@@ -104,3 +107,4 @@ const GFXfont ScreenMatrix3pt7b PROGMEM = {
   0x20, 0x7E, 6 };
 
 // Approx. 672 bytes
+#endif

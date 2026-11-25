@@ -225,12 +225,12 @@ void screen0(){
     //This screen has a/an verticalAnalog
     //This screen has a/an verticalAnalog
     //This screen has a/an slider
-    myDisplay.printText("Frequencia Atual:", 60, 327, TL_DATUM, CFK_BLACK, CFK_GREY5, &RobotoRegular9pt7b);
-    myDisplay.printText("Frequencia Setada:", 60, 362, TL_DATUM, CFK_BLACK, CFK_GREY5, &RobotoRegular9pt7b);
-    myDisplay.printText("Tensao DC", 50, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b);
-    myDisplay.printText("Tensao OUT", 160, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b);
-    myDisplay.printText("Corrente", 285, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b);
-    myDisplay.printText("RPM", 580, 227, TL_DATUM, CFK_COLOR020, CFK_GREY5, &RobotoRegular11pt7b);
+    myDisplay.printText("Frequencia Atual:", 60, 327, TL_DATUM, CFK_BLACK, CFK_GREY5, &RobotoRegular9pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Frequencia Setada:", 60, 362, TL_DATUM, CFK_BLACK, CFK_GREY5, &RobotoRegular9pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tensao DC", 50, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tensao OUT", 160, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Corrente", 285, 276, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular8pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("RPM", 580, 227, TL_DATUM, CFK_COLOR020, CFK_GREY5, &RobotoRegular11pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an texto
     //This screen has a/an texto
     //This screen has a/an textButton
@@ -260,13 +260,13 @@ void screen1(){
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
-    myDisplay.printText("RPM", 570, 232, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular11pt7b);
-    myDisplay.printText("Tempo de inicio:", 220, 82, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("Tempo ligado:", 225, 132, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("Tempo parado:", 225, 177, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("Freq. maxima:", 225, 222, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("RPM maxima:", 225, 272, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("SET RPM:", 225, 312, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("RPM", 570, 232, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular11pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tempo de inicio:", 220, 82, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tempo ligado:", 225, 132, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tempo parado:", 225, 177, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Freq. maxima:", 225, 222, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("RPM maxima:", 225, 272, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("SET RPM:", 225, 312, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an texto
     //This screen has a/an texto
     //This screen has a/an textButton
@@ -291,13 +291,13 @@ void screen2(){
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
     //This screen has a/an caixaNumero
-    myDisplay.printText("RPM", 585, 232, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular11pt7b);
-    myDisplay.printText("Tempo de inicio:", 220, 87, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("Tempo ligado:", 220, 127, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("Tempo parado:", 220, 177, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("Freq. maxima:", 220, 222, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("RPM maxima:", 220, 262, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
-    myDisplay.printText("SET RPM:", 220, 307, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b);
+    myDisplay.printText("RPM", 585, 232, TL_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular11pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tempo de inicio:", 220, 87, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tempo ligado:", 220, 127, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Tempo parado:", 220, 177, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Freq. maxima:", 220, 222, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("RPM maxima:", 220, 262, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("SET RPM:", 220, 307, TR_DATUM, CFK_WHITE, CFK_GREY5, &RobotoRegular13pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an texto
     //This screen has a/an texto
     //This screen has a/an textButton
@@ -377,6 +377,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TL_DATUM, ///< No texto da frequencia atual, alinha o texto pelo canto superior esquerdo.
             .fontColor = CFK_COLOR013, ///< Cor da fonte do texto da frequencia atual: CFK_COLOR013.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto da frequencia atual: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto da frequencia atual.
     valuefact.setup(configLabel0); ///< Aplica a ficha configLabel0 ao widget valuefact.
     LabelConfig configLabel1 = { ///< Abre a ficha do texto da frequencia de setpoint.
@@ -387,6 +389,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TL_DATUM, ///< No texto da frequencia de setpoint, alinha o texto pelo canto superior esquerdo.
             .fontColor = CFK_COLOR043, ///< Cor da fonte do texto da frequencia de setpoint: CFK_COLOR043.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto da frequencia de setpoint: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto da frequencia de setpoint.
     valuefset.setup(configLabel1); ///< Aplica a ficha configLabel1 ao widget valuefset.
     LabelConfig configLabel2 = { ///< Abre a ficha do texto do percentual do slider geral.
@@ -397,6 +401,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TC_DATUM, ///< No texto do percentual do slider geral, alinha o texto pelo centro superior.
             .fontColor = CFK_COLOR043, ///< Cor da fonte do texto do percentual do slider geral: CFK_COLOR043.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do percentual do slider geral: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto do percentual do slider geral.
     labelhsliderge.setup(configLabel2); ///< Aplica a ficha configLabel2 ao widget labelhsliderge.
     LabelConfig configLabel3 = { ///< Abre a ficha do texto do RPM do programa 1.
@@ -407,6 +413,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TL_DATUM, ///< No texto do RPM do programa 1, alinha o texto pelo canto superior esquerdo.
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do RPM do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do RPM do programa 1: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto do RPM do programa 1.
     setrpmvalue.setup(configLabel3); ///< Aplica a ficha configLabel3 ao widget setrpmvalue.
     LabelConfig configLabel4 = { ///< Abre a ficha do texto do percentual do programa 1.
@@ -417,6 +425,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TL_DATUM, ///< No texto do percentual do programa 1, alinha o texto pelo canto superior esquerdo.
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do percentual do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do percentual do programa 1: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto do percentual do programa 1.
     rpmvalue.setup(configLabel4); ///< Aplica a ficha configLabel4 ao widget rpmvalue.
     LabelConfig configLabel5 = { ///< Abre a ficha do texto do RPM do programa 2.
@@ -427,6 +437,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TL_DATUM, ///< No texto do RPM do programa 2, alinha o texto pelo canto superior esquerdo.
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do RPM do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do RPM do programa 2: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto do RPM do programa 2.
     text8copycopy.setup(configLabel5); ///< Aplica a ficha configLabel5 ao widget text8copycopy.
     LabelConfig configLabel6 = { ///< Abre a ficha do texto do percentual do programa 2.
@@ -437,6 +449,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TL_DATUM, ///< No texto do percentual do programa 2, alinha o texto pelo canto superior esquerdo.
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do percentual do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do percentual do programa 2: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto do percentual do programa 2.
     rpmvalue6.setup(configLabel6); ///< Aplica a ficha configLabel6 ao widget rpmvalue6.
     LabelConfig configLabel7 = { ///< Abre a ficha do texto do estado do servidor.
@@ -447,6 +461,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .datum = TC_DATUM, ///< No texto do estado do servidor, alinha o texto pelo centro superior.
             .fontColor = CFK_GREY14, ///< Cor da fonte do texto do estado do servidor: CFK_GREY14.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do estado do servidor: CFK_GREY5.
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         }; ///< Fecha a ficha do texto do estado do servidor.
     labelservstat.setup(configLabel7); ///< Aplica a ficha configLabel7 ao widget labelservstat.
     myDisplay.setLabel(arrayLabel,qtdLabel); ///< Registra os textos variaveis na DisplayWX.

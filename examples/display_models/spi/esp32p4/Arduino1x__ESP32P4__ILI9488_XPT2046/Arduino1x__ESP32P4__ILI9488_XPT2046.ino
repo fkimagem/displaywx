@@ -97,7 +97,7 @@ void screen0(){
     tft->drawCircle(32, 47, 10, CFK_BLACK);
     tft->fillCircle(56, 33, 10, CFK_COLOR28);
     tft->drawCircle(56, 33, 10, CFK_BLACK);
-    myDisplay.printText("Custom text", 100, 35, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Custom text", 100, 35, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

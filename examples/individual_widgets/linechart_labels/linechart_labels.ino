@@ -170,7 +170,9 @@ void loadWidgets(){
             .fontFamily = &RobotoRegular10pt7b,
             .datum = TL_DATUM,
             .fontColor = CFK_COLOR08,
-            .backgroundColor = CFK_GREY3
+            .backgroundColor = CFK_GREY3,
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         };
     labelchart11.setup(configLabel0);
     LabelConfig configLabel1 = {
@@ -180,7 +182,9 @@ void loadWidgets(){
             .fontFamily = &RobotoRegular10pt7b,
             .datum = TL_DATUM,
             .fontColor = CFK_COLOR28,
-            .backgroundColor = CFK_GREY3
+            .backgroundColor = CFK_GREY3,
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         };
     labelchart22.setup(configLabel1);
     myDisplay.setLabel(arrayLabel,qtdLabel);

@@ -138,14 +138,14 @@ void loop(){
 void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("Screen 0", 175, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Screen 0", 175, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an imagem
     myDisplay.drawWidgetsOnScreen(0);
 }
 void screen1(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("Screen 1", 175, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Screen 1", 175, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an imagem
     myDisplay.drawWidgetsOnScreen(1);
 }

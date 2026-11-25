@@ -61,7 +61,7 @@ void screen0(){
     myDisplay.setBackgroundColor(CFK_WHITE);
     tft->fillRect(30, 5, 19, 15, CFK_COLOR12);
     tft->drawRect(30, 5, 19, 15, CFK_COLOR01);
-    myDisplay.printText("p4", 5, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("p4", 5, 22, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     tft->display();
     myDisplay.drawWidgetsOnScreen(0);
 }

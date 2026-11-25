@@ -102,8 +102,8 @@ void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
     //This screen has a/an caixaNumero
-    myDisplay.printText("Valor 1", 130, 77, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Valor 2", 130, 117, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Valor 1", 130, 77, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Valor 2", 130, 117, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an caixaNumero
     //This screen has a/an label
     //This screen has a/an textButton
@@ -121,7 +121,9 @@ void loadWidgets(){
             .fontFamily = &RobotoRegular10pt7b,
             .datum = TC_DATUM,
             .fontColor = CFK_BLACK,
-            .backgroundColor = CFK_WHITE
+            .backgroundColor = CFK_WHITE,
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         };
     txtresultado.setup(configLabel0);
     myDisplay.setLabel(arrayLabel,qtdLabel);

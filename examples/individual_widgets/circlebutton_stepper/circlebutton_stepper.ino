@@ -178,11 +178,11 @@ void screen0(){
     //This screen has a/an circleButton
     //This screen has a/an circleButton
     //This screen has a/an circleButton
-    myDisplay.printText("M0", 131, 52, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("M1", 221, 52, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("M2", 306, 52, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("M0", 131, 52, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("M1", 221, 52, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("M2", 306, 52, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an circleButton
-    myDisplay.printText("Enable", 115, 262, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Enable", 115, 262, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

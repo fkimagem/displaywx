@@ -157,9 +157,9 @@ void screen0(){
     //This screen has a/an checkbox
     //This screen has a/an checkbox
     //This screen has a/an checkbox
-    myDisplay.printText("Relay 1", 120, 82, TL_DATUM, CFK_COLOR04, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Relay 2", 120, 132, TL_DATUM, CFK_COLOR20, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Relay 3", 120, 182, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Relay 1", 120, 82, TL_DATUM, CFK_COLOR04, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Relay 2", 120, 132, TL_DATUM, CFK_COLOR20, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Relay 3", 120, 182, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

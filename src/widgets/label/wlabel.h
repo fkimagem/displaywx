@@ -2,6 +2,7 @@
 #define WLABEL
 
 #include "../widgetbase.h"
+#include "labeltextmetrics.h"
 
 #define LABEL_MAX_TEXT_LENGTH 64
 #define LABEL_MAX_PREFIX_LENGTH 32
@@ -17,6 +18,13 @@ struct LabelConfig {
   uint16_t datum;
   uint16_t fontColor;
   uint16_t backgroundColor;
+  // Optional editor layout. Old sketches retain their existing Label behavior.
+  const EdgewxText::Metrics* textMetrics = nullptr;
+  uint8_t backgroundDatum = TL_DATUM;
+  float backgroundAnchorX = 0, backgroundAnchorY = 0;
+  bool fillBackground = true;
+  // Retained for source compatibility; Label updates never reload the page.
+  functionLoadScreen_t restoreBackground = nullptr;
 };
 
 class Label : public WidgetBase
@@ -42,11 +50,14 @@ public:
   void setup(const LabelConfig& config);
   void show() override;
   void hide() override;
+  void invalidateBackground();
 
 private:
   static const char* TAG;
 
   char m_text[LABEL_MAX_TEXT_LENGTH];
+  char m_lastText[LABEL_MAX_TEXT_LENGTH];
+  char m_value[LABEL_MAX_TEXT_LENGTH];
   char m_prefix[LABEL_MAX_PREFIX_LENGTH];
   char m_suffix[LABEL_MAX_SUFFIX_LENGTH];
 

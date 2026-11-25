@@ -179,19 +179,19 @@ void loop(){
 void screen0(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("Frequence pulse", 145, 27, TL_DATUM, CFK_COLOR04, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Frequence pulse", 145, 27, TL_DATUM, CFK_COLOR04, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an radiobutton
     //This screen has a/an radiobutton
     //This screen has a/an radiobutton
-    myDisplay.printText("Fast", 85, 122, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Slow", 85, 162, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Super Slow", 85, 202, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("LED 1", 90, 82, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("LED 2", 305, 82, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Fast", 85, 122, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Slow", 85, 162, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Super Slow", 85, 202, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("LED 1", 90, 82, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("LED 2", 305, 82, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an radiobutton
     //This screen has a/an radiobutton
-    myDisplay.printText("Fast", 310, 122, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
-    myDisplay.printText("Slow", 310, 167, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Fast", 310, 122, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("Slow", 310, 167, TL_DATUM, CFK_COLOR01, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 

@@ -350,14 +350,14 @@ void atualizarWidgets() {
 void screen0() {
     myDisplay.setBackgroundColor(COR_FUNDO);
     tft->fillRoundRect(12, 270, 298, 80, 20, COR_PAINEL);
-    myDisplay.printText("AURA", 10, 18, TL_DATUM, COR_TEXTO, COR_FUNDO, &RobotoBold15pt7b);
-    myDisplay.printText("SALA / SIMULACAO DE AMBIENTE", 10, 56, TL_DATUM, COR_TEXTO, COR_FUNDO, &RobotoRegular6pt7b);
-    myDisplay.printText("AJUSTE C", 215, 61, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b);
-    myDisplay.printText("TEMP ATUAL / C", 28, 231, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b);
-    myDisplay.printText("UMIDADE", 180, 106, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b);
-    myDisplay.printText("QUALIDADE DO AR", 180, 186, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b);
-    myDisplay.printText("VENTILACAO", 30, 281, TL_DATUM, COR_TEXTO, COR_PAINEL, &RobotoBold7pt7b);
-    myDisplay.printText("MODO AUTO", 35, 376, TL_DATUM, COR_TEXTO, COR_FUNDO, &RobotoRegular7pt7b);
+    myDisplay.printText("AURA", 10, 18, TL_DATUM, COR_TEXTO, COR_FUNDO, &RobotoBold15pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("SALA / SIMULACAO DE AMBIENTE", 10, 56, TL_DATUM, COR_TEXTO, COR_FUNDO, &RobotoRegular6pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("AJUSTE C", 215, 61, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("TEMP ATUAL / C", 28, 231, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("UMIDADE", 180, 106, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("QUALIDADE DO AR", 180, 186, TL_DATUM, COR_LEGENDA, COR_FUNDO, &RobotoRegular7pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("VENTILACAO", 30, 281, TL_DATUM, COR_TEXTO, COR_PAINEL, &RobotoBold7pt7b, {0, 0, 0, 0}, true);
+    myDisplay.printText("MODO AUTO", 35, 376, TL_DATUM, COR_TEXTO, COR_FUNDO, &RobotoRegular7pt7b, {0, 0, 0, 0}, true);
     myDisplay.drawWidgetsOnScreen(0);
 }
 
@@ -418,22 +418,30 @@ void loadWidgets() {
     myDisplay.setCircularBar(arrayCircularbar, 1);
     LabelConfig configUmidade = {
         .text = "", .prefix = "", .suffix = "%", .fontFamily = FONTE_UMIDADE,
-        .datum = TL_DATUM, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO
+        .datum = TL_DATUM, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO,
+        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .fillBackground = true
     };
     textoUmidade.setup(configUmidade);
     LabelConfig configQualidade = {
         .text = "", .prefix = "", .suffix = "", .fontFamily = &RobotoRegular12pt7b,
-        .datum = TL_DATUM, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO
+        .datum = TL_DATUM, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO,
+        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .fillBackground = true
     };
     textoQualidade.setup(configQualidade);
     LabelConfig configVentilacao = {
         .text = "", .prefix = "", .suffix = "%", .fontFamily = &RobotoBold7pt7b,
-        .datum = TR_DATUM, .fontColor = COR_VENTILACAO, .backgroundColor = COR_PAINEL
+        .datum = TR_DATUM, .fontColor = COR_VENTILACAO, .backgroundColor = COR_PAINEL,
+        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .fillBackground = true
     };
     textoVentilacao.setup(configVentilacao);
     LabelConfig configEstado = {
         .text = "", .prefix = "", .suffix = "", .fontFamily = &RobotoRegular5pt7b,
-        .datum = TL_DATUM, .fontColor = COR_LEGENDA, .backgroundColor = COR_FUNDO
+        .datum = TL_DATUM, .fontColor = COR_LEGENDA, .backgroundColor = COR_FUNDO,
+        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .fillBackground = true
     };
     textoEstado.setup(configEstado);
     myDisplay.setLabel(arrayLabel, 4);

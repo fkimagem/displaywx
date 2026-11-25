@@ -163,7 +163,7 @@ void screen0(){
 void screen1(){
 
     myDisplay.setBackgroundColor(CFK_WHITE);
-    myDisplay.printText("Click on button to back screen", 110, 87, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b);
+    myDisplay.printText("Click on button to back screen", 110, 87, TL_DATUM, CFK_BLACK, CFK_WHITE, &RobotoRegular10pt7b, {0, 0, 0, 0}, true);
     //This screen has a/an textButton
     myDisplay.drawWidgetsOnScreen(1);
 }
@@ -178,7 +178,9 @@ void loadWidgets(){
             .fontFamily = &RobotoRegular10pt7b,
             .datum = TL_DATUM,
             .fontColor = CFK_COLOR08,
-            .backgroundColor = CFK_GREY3
+            .backgroundColor = CFK_GREY3,
+            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .fillBackground = true
         };
     labelchart11.setup(configLabel0);
     myDisplay.setLabel(arrayLabel,qtdLabel);

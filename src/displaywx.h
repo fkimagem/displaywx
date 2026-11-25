@@ -419,6 +419,8 @@ public:
     void setFontNormal(const GFXfont *_font);
     void setFontBold(const GFXfont *_font);
     void printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font);
+    // Explicit editor rectangle; glyphs are drawn transparently over this fill.
+    void printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font, const TextBound_t &_background, bool _fillBackground = true);
 #endif
     /// enableWatchdog true liga o watchdog ocioso de todos os núcleos; false desliga todos. timeout_s vale quando liga.
     void createTask(bool enableWatchdog, uint16_t timeout_s = 3);
