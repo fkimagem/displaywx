@@ -46,13 +46,14 @@ public:
   void onClick();
   void setValue(double str);
   double getValue();
-  const char* getValueChar();
+  const char* getValueChar(); // Borrowed; caller must hold WidgetStateGuard while reading.
+  size_t copyValue(char *out, size_t capacity) const;
   void convertoToString(double f, char* buf, size_t bufSize);
   
   void show() override;
   void hide() override;
 
-  NumberBoxConfig getConfig() { return m_config; }
+  NumberBoxConfig getConfig() { WidgetStateGuard guard; return m_config; }
 
 private:
   static const char* TAG; ///< Tag estática para identificação em logs do ESP32.

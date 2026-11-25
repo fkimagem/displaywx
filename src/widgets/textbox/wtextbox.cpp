@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_TEXTBOX)
 #include "wtextbox.h"
 #include "../../displaywx.h"
 
@@ -44,6 +46,7 @@ TextBox::~TextBox() {
  *          Valida visibilidade, uso de teclado, tela atual, carregamento, debounce, habilitado e bloqueado.
  */
 bool TextBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -79,7 +82,8 @@ bool TextBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o TextBox for utilizado.
  */
-functionCB_t TextBox::getCallbackFunc() { return m_callback; }
+functionCB_t TextBox::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Redesenha o TextBox na tela, atualizando sua aparência.
@@ -92,6 +96,7 @@ functionCB_t TextBox::getCallbackFunc() { return m_callback; }
  *          - Exibe texto com formatação para caber no espaço disponível
  */
 void TextBox::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (!m_visible) {
     return;
@@ -141,6 +146,7 @@ void TextBox::redraw() {
  * @details Este método delega para o método setup() com parâmetros individuais.
  */
 void TextBox::setup(const TextBoxConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
 #if defined(USING_GRAPHIC_LIB)
   setup(config.width, config.height, config.letterColor, config.backgroundColor,
@@ -154,6 +160,7 @@ void TextBox::setup(const TextBoxConfig &config) {
  */
 void TextBox::onClick()
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "TextBox widget not loaded");
@@ -188,6 +195,7 @@ void TextBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
                     uint16_t _backgroundColor, const char *_startValue,
                     const GFXfont *_font, functionLoadScreen_t _funcPtr,
                     functionCB_t _cb) {
+  WidgetStateGuard widgetStateGuard;
   if (!WidgetBase::objTFT) {
     ESP_LOGE(TAG, "TFT not defined on WidgetBase");
     return;
@@ -224,6 +232,7 @@ void TextBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
  *          - Marca para redesenho usando forceUpdate()
  */
 void TextBox::setValue(const char *str) {
+  WidgetStateGuard widgetStateGuard;
   m_value.setString(str, true);
   ESP_LOGD(TAG, "Set value for textbox: %s", str);
   forceUpdate();
@@ -233,20 +242,22 @@ void TextBox::setValue(const char *str) {
  * @brief Força o TextBox a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void TextBox::forceUpdate() { m_shouldRedraw = true; }
+void TextBox::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
 
 /**
  * @brief Recupera o valor de texto atual do TextBox.
  * @return Ponteiro para a representação em string do valor atual.
  * @details Retorna ponteiro para a string interna que representa o valor.
  */
-const char *TextBox::getValue() { return m_value.getString(); }
+const char *TextBox::getValue() { WidgetStateGuard guard; return m_value.getString(); }
 
 /**
  * @brief Torna o TextBox visível na tela.
  * @details Define o widget como visível e marca para redesenho.
  */
 void TextBox::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -256,6 +267,15 @@ void TextBox::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void TextBox::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+size_t TextBox::copyValue(char *out, size_t capacity) const
+{
+    WidgetStateGuard guard;
+    if (!out || !capacity) return 0;
+    return strlcpy(out, m_value.getString(), capacity);
+}
+
+#endif // DFK_DISABLE_TEXTBOX

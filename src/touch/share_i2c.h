@@ -4,8 +4,9 @@
 #include "../../user_setup.h"
 #include "../check_camera.h"
 
-#if defined(HAS_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) || defined(TOUCH_GSL3680)
 #include <Arduino.h>
+#include <Wire.h>
 #include "driver/i2c_master.h"
 #include <freertos/semphr.h>
 
@@ -13,6 +14,12 @@ class TouchI2cMaster
 {
 public:
     TouchI2cMaster();
+    TouchI2cMaster(const TouchI2cMaster&) = delete;
+    TouchI2cMaster& operator=(const TouchI2cMaster&) = delete;
+    // Call only after all consumers (including the camera) have stopped.
+    bool end();
+    void endRead(); // Discard unread bytes and release the transaction lock.
+    i2c_master_bus_handle_t handle() const { return busHandle; }
     bool begin();
     bool begin(int sda, int scl, uint32_t frequency = 0);
     void beginTransmission(uint8_t address);
@@ -24,7 +31,7 @@ public:
     size_t requestFrom(uint8_t address, size_t len);
     int available();
     int read();
-    bool lock();
+    bool lock(uint32_t timeoutMs = 50);
     void unlock();
     bool usesPins(int8_t sda, int8_t scl) const;
 
@@ -35,6 +42,7 @@ private:
         i2c_master_dev_handle_t handle;
     };
 
+    bool ownsLock() const;
     bool acquireBus(int8_t sda, int8_t scl);
     i2c_master_dev_handle_t deviceFor(uint8_t address);
     uint8_t statusFromEsp(esp_err_t err);
@@ -42,6 +50,7 @@ private:
     static constexpr size_t kDeviceSlots = 4;
 
     i2c_master_bus_handle_t busHandle = nullptr;
+    TwoWire *ownedWire = nullptr;
     DeviceSlot deviceSlots[kDeviceSlots] = {};
     size_t deviceEvict = 0;
     uint8_t txAddress = 0;

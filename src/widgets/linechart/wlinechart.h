@@ -5,6 +5,7 @@
 #if defined(USING_GRAPHIC_LIB)
 #include "../../fonts/RobotoRegular/RobotoRegular10pt7b.h"
 #endif
+#include <atomic>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "../label/wlabel.h"
@@ -40,9 +41,11 @@ public:
 
   LineChart(uint16_t _x, uint16_t _y, uint8_t _screen);
   ~LineChart();
+  LineChart(const LineChart&) = delete;
+  LineChart& operator=(const LineChart&) = delete;
 
   bool detectTouch(uint16_t* _xTouch, uint16_t* _yTouch) override { return false; }
-  functionCB_t getCallbackFunc() override { return m_callback; }
+  functionCB_t getCallbackFunc() override { WidgetStateGuard guard; return m_callback; }
 
   void drawBackground();
   bool push(uint16_t serieIndex, int newValue);
@@ -59,11 +62,12 @@ private:
   // --- Ponteiros (4 bytes cada) ---
   int* m_pool;              ///< Buffer contíguo único: [ring | snapshot | lastDrawn] x [series x points]
   SemaphoreHandle_t m_mutex;
+  StaticSemaphore_t m_mutexStorage;
 
   // --- Layout derivado de m_pool ---
-  int** m_ringValues;
-  int** m_snapshotValues;
-  int** m_lastDrawnValues;
+  int* m_ringValues[MAX_SERIES];
+  int* m_snapshotValues[MAX_SERIES];
+  int* m_lastDrawnValues[MAX_SERIES];
 
   // --- Config e cores (copiadas internamente) ---
   LineChartConfig m_config;
@@ -85,19 +89,19 @@ private:
   uint8_t  m_topBottomPadding;
 
   // --- Estado ---
-  volatile uint32_t m_dataVersion;
+  uint32_t m_dataVersion;
   uint16_t m_headBySeries[MAX_SERIES];
-  volatile bool m_shouldRedraw;
+  std::atomic<bool> m_shouldRedraw;
 
   // Lifecycle
-  void initMutex();
+  bool initMutex();
   void destroyMutex();
-  void allocBuffers();
+  bool allocBuffers();
   void freeBuffers();
 
   // Setup
   bool validateConfig(const LineChartConfig& config);
-  void start();
+  bool start();
 
   // Draw helpers
   void drawGrid();

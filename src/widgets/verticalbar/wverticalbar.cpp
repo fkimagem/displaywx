@@ -1,4 +1,7 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_VBAR)
 #include "wverticalbar.h"
+#include "../../extras/dwx_safe.h"
 
 const char *VBar::TAG = "[VBar]";
 
@@ -19,6 +22,7 @@ VBar::VBar(uint16_t _x, uint16_t _y, uint8_t _screen) : WidgetBase(_x, _y, _scre
  */
 void VBar::cleanupMemory()
 {
+  WidgetStateGuard widgetStateGuard;
   // VBar não aloca memória dinâmica no momento
 }
 
@@ -40,6 +44,7 @@ VBar::~VBar()
  */
 bool VBar::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
   return false;
 }
 
@@ -50,6 +55,7 @@ bool VBar::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  */
 functionCB_t VBar::getCallbackFunc()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_callback;
 }
 
@@ -62,6 +68,7 @@ functionCB_t VBar::getCallbackFunc()
  */
 void VBar::setValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
   m_currentValue = constrain(newValue, m_config.minValue, m_config.maxValue);
   // Serial.println("ajusta currentValue: " + String(currentValue));
   m_shouldRedraw = true;
@@ -72,7 +79,7 @@ void VBar::setValue(int newValue)
  * @brief Redesenha o widget VBar.
  * @details Atualiza a exibição da barra:
  *          - Valida TFT, visibilidade, tela atual, uso de teclado, carregamento e flag de redesenho
- *          - Calcula altura/largura proporcional usando map() baseado no valor atual
+ *          - Calcula altura/largura proporcional usando dwx_map_clamped() baseado no valor atual
  *          - Atualiza área preenchida (limpando se valor diminuiu, preenchendo se aumentou)
  *          - Suporta orientação vertical e horizontal
  *          - Usa cantos arredondados conforme configurado
@@ -80,6 +87,7 @@ void VBar::setValue(int newValue)
  */
 void VBar::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -100,12 +108,12 @@ void VBar::redraw()
   if (m_config.orientation == Orientation::VERTICAL)
   {
     uint32_t clearArea = 0;
-    //uint32_t colorArea = map(m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
-    //uint32_t emptyArea = map(m_config.maxValue - m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
+    //uint32_t colorArea = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
+    //uint32_t emptyArea = dwx_map_clamped(m_config.maxValue - m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
 
     if (m_currentValue < m_lastValue)
     {
-      clearArea = map(m_config.maxValue - m_currentValue + m_config.minValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
+      clearArea = dwx_map_clamped(m_config.maxValue - m_currentValue + m_config.minValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
     }
     
     if(m_changedScale){
@@ -116,7 +124,7 @@ void VBar::redraw()
       WidgetBase::objTFT->fillRoundRect(innerX, innerY, innerWidth, clearArea, innerRound, CFK_GREY11); // fundo total
     }
 
-    uint32_t proportionalHeight = map(m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
+    uint32_t proportionalHeight = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
     WidgetBase::objTFT->fillRoundRect(innerX, innerY + (innerHeight - proportionalHeight), innerWidth, proportionalHeight, innerRound, m_config.filledColor); // cor fill
   }
   else if (m_config.orientation == Orientation::HORIZONTAL)
@@ -126,8 +134,8 @@ void VBar::redraw()
 
     if (m_currentValue < m_lastValue)
     {
-      clearArea = map(m_config.maxValue - m_currentValue + m_config.minValue, m_config.minValue, m_config.maxValue, minWidth, innerWidth);
-      xValue = map(m_currentValue, m_config.minValue, m_config.maxValue, innerX, innerX + innerWidth);
+      clearArea = dwx_map_clamped(m_config.maxValue - m_currentValue + m_config.minValue, m_config.minValue, m_config.maxValue, minWidth, innerWidth);
+      xValue = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, innerX, innerX + innerWidth);
     }
     
     if(m_changedScale){
@@ -139,7 +147,7 @@ void VBar::redraw()
       WidgetBase::objTFT->fillRoundRect(xValue, innerY, clearArea, innerHeight, innerRound, CFK_GREY11); // fundo total
     }
 
-    uint32_t proportionalWidth = map(m_currentValue, m_config.minValue, m_config.maxValue, minWidth, innerWidth);        // O +1 é para tirar a borda da contagem
+    uint32_t proportionalWidth = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, minWidth, innerWidth);        // O +1 é para tirar a borda da contagem
     WidgetBase::objTFT->fillRoundRect(innerX, innerY, proportionalWidth, innerHeight, innerRound, m_config.filledColor); // cor fill
   }
 
@@ -164,6 +172,8 @@ void VBar::redraw()
  */
 void VBar::setMinValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newValue == m_config.maxValue) return;
   m_config.minValue = newValue;
   sortValues();
   m_currentValue = constrain(m_currentValue, m_config.minValue, m_config.maxValue);
@@ -177,6 +187,8 @@ void VBar::setMinValue(int newValue)
  */
 void VBar::setMaxValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newValue == m_config.minValue) return;
   m_config.maxValue = newValue;
   sortValues();
   m_currentValue = constrain(m_currentValue, m_config.minValue, m_config.maxValue);
@@ -186,6 +198,7 @@ void VBar::setMaxValue(int newValue)
 
 void VBar::sortValues()
 {
+  WidgetStateGuard widgetStateGuard;
   if (m_config.minValue > m_config.maxValue)
   {
     int temp = m_config.minValue;
@@ -196,6 +209,8 @@ void VBar::sortValues()
 
 void VBar::setScale(int newMinValue, int newMaxValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newMinValue == newMaxValue) return;
   m_config.minValue = newMinValue;
   m_config.maxValue = newMaxValue;
   sortValues();
@@ -210,6 +225,7 @@ void VBar::setScale(int newMinValue, int newMaxValue)
  */
 int VBar::getMinValue()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.minValue;
 }
 
@@ -219,6 +235,7 @@ int VBar::getMinValue()
  */
 int VBar::getMaxValue()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.maxValue;
 }
 
@@ -230,6 +247,7 @@ int VBar::getMaxValue()
  */
 void VBar::start()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   m_config.height = constrain(m_config.height, 20, WidgetBase::objTFT->height());
   m_config.width = constrain(m_config.width, 20, WidgetBase::objTFT->width());
@@ -242,6 +260,7 @@ void VBar::start()
  */
 void VBar::forceUpdate()
 {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
 }
 
@@ -254,6 +273,7 @@ void VBar::forceUpdate()
  */
 void VBar::drawBackground()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -274,6 +294,7 @@ void VBar::drawBackground()
  */
 void VBar::setup(const VerticalBarConfig &config)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!WidgetBase::objTFT)
   {
     ESP_LOGE(TAG, "TFT not defined on WidgetBase");
@@ -284,6 +305,8 @@ void VBar::setup(const VerticalBarConfig &config)
     ESP_LOGD(TAG, "VBar widget already configured");
     return;
   }
+  if (config.minValue >= config.maxValue || config.width < 5 || config.height < 5 ||
+      uint32_t(m_xPos) + config.width > INT16_MAX || uint32_t(m_yPos) + config.height > INT16_MAX) return;
   m_config = config;
   start();
   m_loaded = true;
@@ -296,6 +319,7 @@ void VBar::setup(const VerticalBarConfig &config)
  */
 void VBar::show()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -306,6 +330,8 @@ void VBar::show()
  */
 void VBar::hide()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+#endif // DFK_DISABLE_VBAR

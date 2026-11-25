@@ -73,8 +73,8 @@ public:
   };
   
   // Public methods for external access
-  bool isKeyPressed() const { return m_pressedKey.isPressed; }
-  const KeyState& getPressedKey() const { return m_pressedKey; }
+  bool isKeyPressed() const { WidgetStateGuard guard; return m_pressedKey.isPressed; }
+  KeyState getPressedKey() const { WidgetStateGuard guard; return m_pressedKey; }
   bool isPointInKey(uint16_t xTouch, uint16_t yTouch, const KeyState& keyState);
   void releaseKey();
 

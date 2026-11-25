@@ -26,6 +26,9 @@ void TAMC_GT911::begin(uint8_t _addr) {
   reset();
 }
 void TAMC_GT911::reset() {
+  isTouched = false;
+  touches = 0;
+  m_savedX = m_savedY = 0;
   if(pinInt > 0){pinMode(pinInt, OUTPUT);}
   if(pinRst > 0){pinMode(pinRst, OUTPUT);}
   if(pinInt > 0){digitalWrite(pinInt, 0);}
@@ -58,7 +61,7 @@ void TAMC_GT911::reset() {
   setResolution(width, height);
 }
 void TAMC_GT911::calculateChecksum() {
-  uint8_t checksum;
+  uint8_t checksum = 0;
   for (uint8_t i=0; i<GT911_CONFIG_SIZE; i++) {
     checksum += configBuf[i];
   }
@@ -78,6 +81,7 @@ void TAMC_GT911::setRotation(uint8_t rot) {
   rotation = rot;
 }
 void TAMC_GT911::setResolution(uint16_t _width, uint16_t _height) {
+  if (!_width || !_height || !m_savedX || !m_savedY) return;
   Serial.printf("Update resolution: %i x %i\n", _width, _height);
   configBuf[GT911_X_OUTPUT_MAX_LOW - GT911_CONFIG_START] = lowByte(_width);
   configBuf[GT911_X_OUTPUT_MAX_HIGH - GT911_CONFIG_START] = highByte(_width);
@@ -108,6 +112,13 @@ void TAMC_GT911::read(void) {
   uint8_t haveKey = pointInfo >> 4 & 1;
   isLargeDetect = pointInfo >> 6 & 1;
   touches = pointInfo & 0xF;
+  if (!bufferStatus || touches > sizeof(points) / sizeof(points[0]) ||
+      m_savedX == 0 || m_savedY == 0 || width == 0 || height == 0) {
+    isTouched = false;
+    touches = 0;
+    if (bufferStatus) writeByteData(GT911_POINT_INFO, 0);
+    return;
+  }
   #if defined(LOG_GT911)
   //Serial.print("bufferStatus: ");Serial.println(bufferStatus);
   //Serial.print("largeDetect: ");Serial.println(isLargeDetect);

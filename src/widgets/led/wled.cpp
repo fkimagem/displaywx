@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_LED)
 #include "wled.h"
 
 const char* Led::TAG = "Led";
@@ -59,6 +61,7 @@ Led::~Led() {
  *          já que LEDs são elementos apenas visuais.
  */
 bool Led::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   // Early validation checks using macros
   CHECK_VISIBLE_BOOL
   CHECK_INITIALIZED_BOOL
@@ -87,7 +90,8 @@ bool Led::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @details Retorna o ponteiro para a função que será executada quando o LED for tocado.
  *          Note que LEDs não detectam toques por padrão.
  */
-functionCB_t Led::getCallbackFunc() { return m_callback; }
+functionCB_t Led::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Define o estado do LED (ligado ou desligado).
@@ -96,6 +100,7 @@ functionCB_t Led::getCallbackFunc() { return m_callback; }
  *          Se ligado, atualiza o gradiente de cor para efeito visual.
  */
 void Led::setState(bool newValue) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   CHECK_INITIALIZED_VOID
   
@@ -117,6 +122,7 @@ void Led::setState(bool newValue) {
  * @return Estado atual do LED (true = ligado, false = desligado).
  */
 bool Led::getState() const {
+  WidgetStateGuard widgetStateGuard;
   return m_status;
 }
 
@@ -129,6 +135,7 @@ bool Led::getState() const {
  *          - Adverte se raio é muito grande (pode impactar performance)
  */
 bool Led::validateConfig(const LedConfig& config) {
+  WidgetStateGuard widgetStateGuard;
   // Validate basic parameters
   if (config.radius <= 0) {
     ESP_LOGE(TAG, "Invalid radius: %d", config.radius);
@@ -148,6 +155,7 @@ bool Led::validateConfig(const LedConfig& config) {
  *          Calcula intensidade decrescente para cada anel usando mistura de cores.
  */
 void Led::updateGradient() {
+  WidgetStateGuard widgetStateGuard;
   // Create gradient from bright to dim
   uint16_t baseColor = m_config.colorOn;
   //uint16_t whiteColor = CFK_WHITE;
@@ -169,6 +177,7 @@ void Led::updateGradient() {
  *          Caso contrário, calcula automaticamente baseado no modo claro/escuro.
  */
 uint16_t Led::getOffColor() {
+  WidgetStateGuard widgetStateGuard;
   if (m_config.colorOff != 0) {
     return m_config.colorOff;
   }
@@ -182,6 +191,7 @@ uint16_t Led::getOffColor() {
  * @details Retorna a cor configurada em colorOff.
  */
 uint16_t Led::getBackgroundColor() {
+  WidgetStateGuard widgetStateGuard;
   return m_config.colorOff;
 }
 
@@ -191,6 +201,7 @@ uint16_t Led::getBackgroundColor() {
  *          Reseta array de gradiente para valores padrão.
  */
 void Led::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
   // Led doesn't use dynamic memory, but method is here for consistency
   // Reset gradient array to default values
   for (uint8_t i = 0; i < m_colorLightGradientSize; i++) {
@@ -204,6 +215,7 @@ void Led::cleanupMemory() {
  *          Usa cor de borda baseada no modo claro/escuro.
  */
 void Led::drawBackground() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -229,6 +241,7 @@ void Led::drawBackground() {
  *          e a flag m_shouldRedraw está configurada como true.
  */
 void Led::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -268,6 +281,7 @@ void Led::redraw() {
  */
 void Led::forceUpdate()
 {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
 }
 
@@ -283,6 +297,7 @@ void Led::forceUpdate()
  *          O LED não será exibido corretamente até que este método seja chamado.
  */
 void Led::setup(const LedConfig& config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGD(TAG, "Led widget already configured");
@@ -319,6 +334,7 @@ void Led::setup(const LedConfig& config) {
  * @details Define o widget como visível e marca para redesenho.
  */
 void Led::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "Led shown at (%d, %d)", m_xPos, m_yPos);
@@ -329,13 +345,17 @@ void Led::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void Led::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "Led hidden at (%d, %d)", m_xPos, m_yPos);
 }
 
 void Led::setColor(uint16_t color) {
+  WidgetStateGuard widgetStateGuard;
   m_config.colorOn = color;
   updateGradient();
   m_shouldRedraw = true;
 }
+
+#endif // DFK_DISABLE_LED

@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_NUMBERBOX)
 #include "wnumberbox.h"
 #include "../../check_touch.h"
 #include "../../displaywx.h"
@@ -12,6 +14,7 @@ const char* NumberBox::TAG = "NumberBox";
  *          apenas até a próxima chamada.
  */
 void NumberBox::convertoToString(double f, char* buf, size_t bufSize) {
+  WidgetStateGuard widgetStateGuard;
   //return String(f);
   if (buf && bufSize > 0) {
     snprintf(buf, bufSize, "%.*f", (int)m_config.decimalPlaces, f);
@@ -53,6 +56,7 @@ NumberBox::~NumberBox() {
  *          CharString gerencia sua própria memória.
  */
 void NumberBox::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
     ESP_LOGD(TAG, "NumberBox memory cleanup completed");
 }
 
@@ -65,6 +69,7 @@ void NumberBox::cleanupMemory() {
  *          Valida visibilidade, tela atual, carregamento, debounce e uso de teclado.
  */
 bool NumberBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_CURRENTSCREEN_BOOL
   CHECK_LOADED_BOOL
@@ -92,7 +97,8 @@ bool NumberBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o NumberBox for utilizado.
  */
-functionCB_t NumberBox::getCallbackFunc() { return m_callback; }
+functionCB_t NumberBox::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Redesenha o NumberBox na tela, atualizando sua aparência.
@@ -105,6 +111,7 @@ functionCB_t NumberBox::getCallbackFunc() { return m_callback; }
  *          - Exibe texto do valor com formatação para caber no espaço disponível
  */
 void NumberBox::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -156,7 +163,8 @@ void NumberBox::redraw() {
  * @brief Força o NumberBox a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void NumberBox::forceUpdate() { m_shouldRedraw = true; }
+void NumberBox::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
 
 #if defined(USING_GRAPHIC_LIB)
 /**
@@ -180,6 +188,7 @@ void NumberBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
                       uint16_t _backgroundColor, float _startValue,
                       const GFXfont *_font, functionLoadScreen_t _funcPtr,
                       functionCB_t _cb) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGE(TAG, "Numberbox already intialized");
@@ -224,6 +233,7 @@ void NumberBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
  *          O NumberBox não será exibido corretamente até que este método seja chamado.
  */
 void NumberBox::setup(const NumberBoxConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGW(TAG, "NumberBox already initialized");
@@ -266,6 +276,7 @@ void NumberBox::setup(const NumberBoxConfig &config) {
  */
 void NumberBox::onClick()
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "NumberBox widget not loaded");
@@ -290,6 +301,7 @@ void NumberBox::onClick()
  *          - Marca para redesenho usando forceUpdate()
  */
 void NumberBox::setValue(double str) {
+  WidgetStateGuard widgetStateGuard;
   m_value.setStringDouble(str, m_config.decimalPlaces);
   ESP_LOGD(TAG, "Set value for numberbox: %s", m_value.getString());
   forceUpdate();
@@ -300,20 +312,22 @@ void NumberBox::setValue(double str) {
  * @return Valor numérico atual como double.
  * @details Converte a string interna para valor double usando toDouble().
  */
-double NumberBox::getValue() { return m_value.toDouble(); }
+double NumberBox::getValue() {
+  WidgetStateGuard widgetStateGuard; return m_value.toDouble(); }
 
 /**
  * @brief Recupera o valor numérico atual como string.
  * @return Ponteiro para a representação em string do valor atual.
  * @details Retorna ponteiro para a string interna que representa o valor.
  */
-const char *NumberBox::getValueChar() { return m_value.getString(); }
+const char *NumberBox::getValueChar() { WidgetStateGuard guard; return m_value.getString(); }
 
 /**
  * @brief Torna o NumberBox visível na tela.
  * @details Define o widget como visível e marca para redesenho.
  */
 void NumberBox::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -323,6 +337,15 @@ void NumberBox::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void NumberBox::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+size_t NumberBox::copyValue(char *out, size_t capacity) const
+{
+    WidgetStateGuard guard;
+    if (!out || !capacity) return 0;
+    return strlcpy(out, m_value.getString(), capacity);
+}
+
+#endif // DFK_DISABLE_NUMBERBOX

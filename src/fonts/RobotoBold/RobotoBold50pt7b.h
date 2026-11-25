@@ -1,6 +1,6 @@
 #ifndef ROBOTO_BOL_50_H
 #define ROBOTO_BOL_50_H
-const uint8_t RobotoBold50pt7bBitmaps[] PROGMEM = {
+inline const uint8_t RobotoBold50pt7bBitmaps[] PROGMEM = {
   0x00, 0xFF, 0xFE, 0xFF, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F,
   0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F,
   0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F,
@@ -2841,7 +2841,7 @@ const uint8_t RobotoBold50pt7bBitmaps[] PROGMEM = {
   0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x07, 0xFF, 0xE0, 0x00, 0x00, 0x00,
   0x00, 0x07, 0xF8, 0x00, 0x00 };
 
-const GFXglyph RobotoBold50pt7bGlyphs[] PROGMEM = {
+inline const GFXglyph RobotoBold50pt7bGlyphs[] PROGMEM = {
   {     0,   1,   1,  24,    0,    0 },   // 0x20 ' '
   {     1,  16,  71,  27,    6,  -69 },   // 0x21 '!'
   {   143,  25,  26,  31,    3,  -73 },   // 0x22 '"'
@@ -2938,7 +2938,7 @@ const GFXglyph RobotoBold50pt7bGlyphs[] PROGMEM = {
   { 33583,  29,  93,  32,    1,  -75 },   // 0x7D '}'
   { 33921,  53,  21,  64,    5,  -39 } }; // 0x7E '~'
 
-const GFXfont RobotoBold50pt7b PROGMEM = {
+inline const GFXfont RobotoBold50pt7b PROGMEM = {
   (uint8_t  *)RobotoBold50pt7bBitmaps,
   (GFXglyph *)RobotoBold50pt7bGlyphs,
   0x20, 0x7E, 115 };

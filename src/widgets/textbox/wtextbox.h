@@ -44,7 +44,8 @@ public:
   void setup(const TextBoxConfig& config);
   void onClick();
   void setValue(const char* str);
-  const char* getValue();
+  const char* getValue(); // Borrowed; caller must hold WidgetStateGuard while reading.
+  size_t copyValue(char *out, size_t capacity) const;
   
   void show() override;
   void hide() override;

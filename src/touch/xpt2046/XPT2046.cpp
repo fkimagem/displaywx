@@ -1,4 +1,5 @@
 #include "XPT2046.h"
+#include <new>
 
 int XPT2046::XPT2046_SPISPEED = 2500000;
 int XPT2046::DEFAULT_SPISPEED = 2500000;
@@ -102,6 +103,12 @@ void XPT2046::endTouchCommunication()
 
 void XPT2046::begin(SPIClass* sharedSPI, int spispeed, int defaultspispeed)
 {
+    // An externally supplied bus is borrowed, including on repeated begin().
+    if (sharedSPI == touchspi && touchspi != nullptr) {
+        if (spispeed > 0) XPT2046_SPISPEED = spispeed;
+        return;
+    }
+    end();
     bool newSPI = (sharedSPI == nullptr);
     if(defaultspispeed > 0){
         XPT2046::DEFAULT_SPISPEED = defaultspispeed;
@@ -117,7 +124,9 @@ void XPT2046::begin(SPIClass* sharedSPI, int spispeed, int defaultspispeed)
     }
     else
     {
-        touchspi = new SPIClass();
+        touchspi = new (std::nothrow) SPIClass();
+        if (!touchspi) return;
+        m_ownsSpi = true;
 #if defined(LOGXPT)
         Serial.println("Using new SPI");
 #endif
@@ -176,6 +185,16 @@ XPT2046::XPT2046(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t cs)
 
 XPT2046::~XPT2046()
 {
-    delete touchspi;
+    end();
+}
+
+void XPT2046::end()
+{
+    configured = false;
+    if (m_ownsSpi && touchspi) {
+        touchspi->end();
+        delete touchspi;
+    }
     touchspi = nullptr;
+    m_ownsSpi = false;
 }

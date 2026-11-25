@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_CIRCLEBTN)
 #include "wcirclebutton.h"
 #include <esp_log.h>
 
@@ -44,6 +46,7 @@ CircleButton::~CircleButton() {
  *          o estado é alternado e o botão é marcado para redesenho.
  */
 bool CircleButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   // Early validation checks using macros
   CHECK_VISIBLE_BOOL
   CHECK_INITIALIZED_BOOL
@@ -80,7 +83,8 @@ bool CircleButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @details A função callback é executada quando o estado do botão muda.
  *          Para mais informações sobre callbacks, consulte @ref WidgetBase.
  */
-functionCB_t CircleButton::getCallbackFunc() { return m_config.callback; }
+functionCB_t CircleButton::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_config.callback; }
 
 /**
  * @brief Força uma atualização imediata do CircleButton.
@@ -88,7 +92,8 @@ functionCB_t CircleButton::getCallbackFunc() { return m_config.callback; }
  *          no próximo ciclo de atualização da tela. Útil para garantir que mudanças
  *          no estado ou configuração sejam visíveis imediatamente.
  */
-void CircleButton::forceUpdate() { 
+void CircleButton::forceUpdate() {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true; 
   ESP_LOGD(TAG, "CircleButton force update requested");
 }
@@ -99,7 +104,8 @@ void CircleButton::forceUpdate() {
  * @details Inverte o valor do atributo m_status. Este método é chamado internamente
  *          por detectTouch() quando o botão é tocado pelo usuário.
  */
-void CircleButton::changeState() { m_status = !m_status; }
+void CircleButton::changeState() {
+  WidgetStateGuard widgetStateGuard; m_status = !m_status; }
 
 /**
  * @brief Redesenha o CircleButton na tela, atualizando sua aparência baseada em seu estado.
@@ -113,6 +119,7 @@ void CircleButton::changeState() { m_status = !m_status; }
  *          e a flag m_shouldRedraw está configurada como true.
  */
 void CircleButton::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -149,6 +156,7 @@ void CircleButton::redraw() {
  *          Este método é chamado internamente por setup() após a configuração.
  */
 void CircleButton::start() {
+  WidgetStateGuard widgetStateGuard;
   m_config.radius =
       constrain(m_config.radius, 5, 200); // Limits the button radius between 5 and 200
 }
@@ -164,6 +172,7 @@ void CircleButton::start() {
  *          - O botão não será exibido corretamente até que este método seja chamado
  */
 void CircleButton::setup(const CircleButtonConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   // Validate TFT object
   CHECK_TFT_VOID
   
@@ -181,7 +190,8 @@ void CircleButton::setup(const CircleButtonConfig &config) {
  * @brief Recupera o status atual do CircleButton.
  * @return True se o botão está pressionado, False se está não pressionado.
  */
-bool CircleButton::getStatus() const { return m_status; }
+bool CircleButton::getStatus() const {
+  WidgetStateGuard widgetStateGuard; return m_status; }
 
 /**
  * @brief Simula um clique no CircleButton.
@@ -190,6 +200,7 @@ bool CircleButton::getStatus() const { return m_status; }
  */
 void CircleButton::onClick(bool triggerCallback)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "CircleButton widget not loaded");
@@ -219,6 +230,7 @@ void CircleButton::onClick(bool triggerCallback)
  *          Útil para sincronizar o estado visual com valores de variáveis ou configurações.
  */
 void CircleButton::setStatus(bool _status, bool triggerCallback) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   
   if (m_status == _status) {
@@ -241,6 +253,7 @@ void CircleButton::setStatus(bool _status, bool triggerCallback) {
  *          desenhado na próxima chamada de redraw() se estiver na tela atual.
  */
 void CircleButton::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "CircleButton shown at (%d, %d)", m_xPos, m_yPos);
@@ -252,7 +265,9 @@ void CircleButton::show() {
  *          mais desenhado até que show() seja chamado novamente.
  */
 void CircleButton::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "CircleButton hidden at (%d, %d)", m_xPos, m_yPos);
 }
+#endif // DFK_DISABLE_CIRCLEBTN

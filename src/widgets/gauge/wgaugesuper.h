@@ -44,6 +44,8 @@ class GaugeSuper : public WidgetBase
 public:
   GaugeSuper(uint16_t _x, uint16_t _y, uint8_t _screen);
   virtual ~GaugeSuper();
+  GaugeSuper(const GaugeSuper&) = delete;
+  GaugeSuper& operator=(const GaugeSuper&) = delete;
 
   bool detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) override;
   functionCB_t getCallbackFunc() override;

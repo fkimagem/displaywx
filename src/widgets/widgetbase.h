@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <esp32-hal.h>
 #include <stdint.h>
+#include <atomic>
+#include "widgetstate.h"
 
 #include "../../user_setup.h"
 #include "../extras/baseTypes.h"
@@ -31,6 +33,17 @@
 #error "Unsupported display type"
 #endif
 
+#if defined(USING_GRAPHIC_LIB)
+// Required internal fallback, independently of public font-family selection.
+#include "../fonts/RobotoBold/RobotoBold5pt7b.h"
+#include "../fonts/RobotoBold/RobotoBold8pt7b.h"
+#include "../fonts/RobotoBold/RobotoBold10pt7b.h"
+#include "../fonts/RobotoRegular/RobotoRegular5pt7b.h"
+#if defined(DFK_COMPACT_FONTS)
+#include "../fonts/RobotoBold/RobotoBold8pt7b.h"
+#include "../fonts/RobotoBold/RobotoBold12pt7b.h"
+#include "../fonts/RobotoBold/RobotoBold20pt7b.h"
+#else
 #if defined(FONT_ROBOTO)
 #include "../fonts/RobotoRegular/RobotoRegular2pt7b.h"
 #include "../fonts/RobotoRegular/RobotoRegular3pt7b.h"
@@ -283,6 +296,12 @@
 #include "../fonts/Vacation/Vacation50pt7b.h"
 
 #endif
+#endif
+#ifdef DFK_FONT_HEADER
+#include DFK_FONT_HEADER
+#endif
+#endif
+
 
 
 
@@ -410,8 +429,8 @@ public:
   };
 
   static QueueHandle_t xFilaCallback; ///< Fila de callbacks para processamento assíncrono.
-  static bool usingKeyboard;    ///< Indica se um teclado virtual está em uso.
-  static uint8_t currentScreen; ///< Número da tela atual.
+  static std::atomic<bool> usingKeyboard; ///< Also read by the camera task.
+  static std::atomic<uint8_t> currentScreen;
   static bool showingLog;       ///< Indica se o log está sendo exibido.
   #if defined(USING_GRAPHIC_LIB)
   static const GFXfont *fontNormal; ///< Ponteiro para a fonte normal.
@@ -421,7 +440,7 @@ public:
   static uint16_t screenWidth;             ///< Largura da tela.
   static uint16_t screenHeight;            ///< Altura da tela.
   static bool lightMode;                   ///< True para modo claro, False para modo escuro.
-  static functionLoadScreen_t loadScreen; ///< Ponteiro para a função que carrega a tela.
+  static std::atomic<functionLoadScreen_t> loadScreen; ///< Latest pending request wins.
   static uint16_t backgroundColor;         ///< Cor de fundo para os widgets.
   
 
@@ -475,7 +494,7 @@ public:
   
 #if defined(USING_GRAPHIC_LIB)
   static void recalculateTextPosition(const char* _texto, uint16_t *_x, uint16_t *_y, uint8_t _datum);
-  static void setFontNull() {if (WidgetBase::objTFT) WidgetBase::objTFT->setFont((GFXfont *)0);} ///< Sets the font to null.
+  static void setFontNull() {WidgetStateGuard guard; if (WidgetBase::objTFT) WidgetBase::objTFT->setFont((GFXfont *)0);} ///< Sets the font to null.
   #endif
 
 protected:
@@ -483,7 +502,7 @@ protected:
   int16_t m_xPos;              ///< Posição X do widget.
   int16_t m_yPos;              ///< Posição Y do widget.
   uint8_t m_screen;             ///< Índice da tela para o widget.
-  bool m_loaded;        ///< True se o widget foi inicializado.
+  std::atomic<bool> m_loaded;        ///< True se o widget foi inicializado.
   bool m_enabled;        ///< True se o widget está habilitado.
   bool m_initialized;   ///< True se o widget está propriamente inicializado.
   bool m_shouldRedraw;   ///< Flag indicando se o widget deve ser redesenhado.

@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_SPINBOX)
 #include "wspinbox.h"
 
 const char* SpinBox::TAG = "SpinBox";
@@ -11,6 +13,7 @@ const char* SpinBox::TAG = "SpinBox";
  *          - Restringe valor usando constrain() entre minValue e maxValue
  */
 void SpinBox::decreaseValue() {
+  WidgetStateGuard widgetStateGuard;
   int temp = m_currentValue - m_config.step;
   m_currentValue = constrain(temp, m_config.minValue, m_config.maxValue);
 }
@@ -22,6 +25,7 @@ void SpinBox::decreaseValue() {
  *          - Restringe valor usando constrain() entre minValue e maxValue
  */
 void SpinBox::increaseValue() {
+  WidgetStateGuard widgetStateGuard;
   int temp = m_currentValue + m_config.step;
   m_currentValue = constrain(temp, m_config.minValue, m_config.maxValue);
 }
@@ -55,6 +59,7 @@ SpinBox::~SpinBox() {
  * @details SpinBox não usa alocação dinâmica de memória.
  */
 void SpinBox::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
     ESP_LOGD(TAG, "SpinBox memory cleanup completed");
 }
 
@@ -71,6 +76,7 @@ void SpinBox::cleanupMemory() {
  *          - Detecta toque na área de incremento: chama increaseValue() e marca para redesenho
  */
 bool SpinBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -111,7 +117,8 @@ bool SpinBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o SpinBox for utilizado.
  */
-functionCB_t SpinBox::getCallbackFunc() { return m_callback; }
+functionCB_t SpinBox::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Redesenha o SpinBox na tela, atualizando sua aparência.
@@ -124,6 +131,7 @@ functionCB_t SpinBox::getCallbackFunc() { return m_callback; }
  *          - Exibe valor atual centralizado na área de texto
  */
 void SpinBox::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -150,7 +158,9 @@ void SpinBox::redraw() {
   //uint16_t offsetFont = 10;
   //WidgetBase::objTFT->setFont(getBestRobotoBold( availableW - offsetFont, availableH - offsetFont, String(m_currentValue).c_str()));
   WidgetBase::objTFT->setFont(m_font);
-  printText(String(m_currentValue).c_str(), m_xPos + m_config.width / 2,
+  char valueText[12];
+  snprintf(valueText, sizeof(valueText), "%d", m_currentValue);
+  printText(valueText, m_xPos + m_config.width / 2,
             m_yPos + (m_config.height / 2) - 3, MC_DATUM, m_lastArea, m_config.color);
   updateFont(FontType::UNLOAD);
 
@@ -169,6 +179,7 @@ void SpinBox::redraw() {
  *          - Desenha sinais de menos (-) no botão esquerdo e mais (+) no botão direito
  */
 void SpinBox::drawBackground() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -239,6 +250,7 @@ void SpinBox::drawBackground() {
  *          A caixa de spin não será exibida corretamente até que este método seja chamado.
  */
 void SpinBox::setup(const SpinBoxConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGW(TAG, "SpinBox already initialized");
@@ -270,14 +282,15 @@ void SpinBox::setup(const SpinBoxConfig &config) {
   m_textAreaSize.width = m_config.width - (2 * m_buttonSize.width) - (m_offset);
 
 
-  int charCountMinValue = String(m_config.minValue).length();
-  int charCountMaxValue = String(m_config.maxValue).length();
+  char minText[12], maxText[12];
+  int charCountMinValue = snprintf(minText, sizeof(minText), "%d", m_config.minValue);
+  int charCountMaxValue = snprintf(maxText, sizeof(maxText), "%d", m_config.maxValue);
   
   #if defined(USING_GRAPHIC_LIB)
   if (charCountMinValue > charCountMaxValue) {
-    m_font = getBestRobotoBold(m_textAreaSize.width, m_textAreaSize.height, String(m_config.minValue).c_str());
+    m_font = getBestRobotoBold(m_textAreaSize.width, m_textAreaSize.height, minText);
   } else {
-    m_font = getBestRobotoBold(m_textAreaSize.width, m_textAreaSize.height, String(m_config.maxValue).c_str());
+    m_font = getBestRobotoBold(m_textAreaSize.width, m_textAreaSize.height, maxText);
   }
   #endif
 
@@ -292,7 +305,8 @@ void SpinBox::setup(const SpinBoxConfig &config) {
  * @return Valor numérico atual.
  * @details Retorna o valor armazenado em m_currentValue.
  */
-int SpinBox::getValue() { return m_currentValue; }
+int SpinBox::getValue() {
+  WidgetStateGuard widgetStateGuard; return m_currentValue; }
 
 /**
  * @brief Define o valor atual do SpinBox.
@@ -306,6 +320,7 @@ int SpinBox::getValue() { return m_currentValue; }
  *          - Dispara callback se configurado e triggerCallback for true
  */
 void SpinBox::setValue(int _value, bool triggerCallback) {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded) {
     ESP_LOGE(TAG, "Spinbox widget not loaded");
     return;
@@ -324,6 +339,7 @@ void SpinBox::setValue(int _value, bool triggerCallback) {
  * @details Define o widget como visível e marca para redesenho.
  */
 void SpinBox::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -333,6 +349,7 @@ void SpinBox::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void SpinBox::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
@@ -341,4 +358,6 @@ void SpinBox::hide() {
  * @brief Força o SpinBox a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void SpinBox::forceUpdate() { m_shouldRedraw = true; }
+void SpinBox::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
+#endif // DFK_DISABLE_SPINBOX

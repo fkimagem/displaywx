@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_TEXTBOX)
 #include "wkeyboard.h"
 #include "../../check_touch.h"
 
@@ -107,6 +109,7 @@ WKeyboard::~WKeyboard()
  */
 bool WKeyboard::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
     return false;
 }
 
@@ -117,6 +120,7 @@ bool WKeyboard::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  */
 functionCB_t WKeyboard::getCallbackFunc()
 {
+  WidgetStateGuard widgetStateGuard;
     return m_callback;
 }
 
@@ -133,6 +137,7 @@ functionCB_t WKeyboard::getCallbackFunc()
  */
 bool WKeyboard::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch, PressedKeyType *pressedKey)
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(HAS_TOUCH)
     bool retorno = false;
     uint16_t xMax = m_xPos + m_availableWidth;
@@ -238,6 +243,7 @@ bool WKeyboard::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch, PressedKeyType
 
 void WKeyboard::drawBackKey(uint16_t x, uint16_t y)
 {
+  WidgetStateGuard widgetStateGuard;
     CHECK_TFT_VOID
     CHECK_LOADED_VOID
 
@@ -268,6 +274,7 @@ void WKeyboard::drawBackKey(uint16_t x, uint16_t y)
  */
 void WKeyboard::drawKeys(bool fullScreen, bool onlyContent)
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
     if (!m_loaded)
     {
@@ -351,6 +358,7 @@ void WKeyboard::drawKeys(bool fullScreen, bool onlyContent)
  */
 void WKeyboard::addLetter(char c)
 {
+  WidgetStateGuard widgetStateGuard;
 
     if (m_content.addChar(c))
     {
@@ -369,6 +377,7 @@ void WKeyboard::addLetter(char c)
  */
 void WKeyboard::removeLetter()
 {
+  WidgetStateGuard widgetStateGuard;
     // content.remove(content.length() - 1);
     m_content.removeLastChar();
     drawKeys(false, true);
@@ -382,6 +391,7 @@ void WKeyboard::removeLetter()
  */
 bool WKeyboard::setup()
 {
+  WidgetStateGuard widgetStateGuard;
     CHECK_TFT_BOOL
 #if defined(USING_GRAPHIC_LIB)
     if (!WidgetBase::objTFT)
@@ -442,6 +452,7 @@ bool WKeyboard::setup()
  */
 void WKeyboard::clear()
 {
+  WidgetStateGuard widgetStateGuard;
     m_content.setString("", true);
     drawKeys(false, true);
 }
@@ -454,6 +465,7 @@ void WKeyboard::clear()
  */
 void WKeyboard::open(TextBox *_field)
 {
+  WidgetStateGuard widgetStateGuard;
     CHECK_TFT_VOID
     m_myTime = millis() + (TIMEOUT_CLICK * 3); // Espera o tempo de 3 clicks para iniciar a detecção, evitando apertar tecla assim que abre.
     m_field = _field;
@@ -482,6 +494,7 @@ void WKeyboard::open(TextBox *_field)
  */
 void WKeyboard::close()
 {
+  WidgetStateGuard widgetStateGuard;
 
     updateFont(FontType::UNLOAD);
 
@@ -499,6 +512,7 @@ void WKeyboard::close()
  */
 void WKeyboard::insertChar(char c)
 {
+  WidgetStateGuard widgetStateGuard;
     if (WidgetBase::usingKeyboard)
     {
         addLetter(c);
@@ -515,6 +529,7 @@ void WKeyboard::insertChar(char c)
  */
 void WKeyboard::show()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = true;
     m_shouldRedraw = true;
 }
@@ -525,6 +540,7 @@ void WKeyboard::show()
  */
 void WKeyboard::hide()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = false;
     m_shouldRedraw = true;
 }
@@ -535,6 +551,7 @@ void WKeyboard::hide()
  */
 void WKeyboard::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
     drawKeys(false, false);
 }
 
@@ -542,4 +559,6 @@ void WKeyboard::redraw()
  * @brief Força o WKeyboard a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void WKeyboard::forceUpdate() { m_shouldRedraw = true; }
+void WKeyboard::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
+#endif // DFK_DISABLE_TEXTBOX

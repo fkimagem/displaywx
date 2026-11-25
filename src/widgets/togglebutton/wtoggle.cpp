@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_TOGGLE)
 #include "wtoggle.h"
 
 const char* ToggleButton::TAG = "[ToggleButton]";
@@ -19,6 +21,7 @@ ToggleButton::ToggleButton(uint16_t _x, uint16_t _y, uint8_t _screen)
  * @details Desaloca memória dinâmica e remove referências a objetos.
  */
 void ToggleButton::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
   
 }
 
@@ -45,6 +48,7 @@ ToggleButton::~ToggleButton()
  */
 bool ToggleButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -71,7 +75,8 @@ bool ToggleButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o ToggleButton for alternado.
  */
-functionCB_t ToggleButton::getCallbackFunc() { return m_callback; }
+functionCB_t ToggleButton::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Altera o estado atual do botão (ligado ou desligado).
@@ -81,6 +86,7 @@ functionCB_t ToggleButton::getCallbackFunc() { return m_callback; }
  */
 void ToggleButton::changeState()
 {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "Changing state from %d to %d", m_status, !m_status);
   m_status = !m_status;
 }
@@ -89,7 +95,8 @@ void ToggleButton::changeState()
  * @brief Força o ToggleButton a redesenhar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void ToggleButton::forceUpdate() { m_shouldRedraw = true; }
+void ToggleButton::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
 
 /**
  * @brief Redesenha o ToggleButton na tela, atualizando sua aparência baseada no estado.
@@ -104,6 +111,7 @@ void ToggleButton::forceUpdate() { m_shouldRedraw = true; }
  */
 void ToggleButton::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (!m_visible)
   {
@@ -165,6 +173,7 @@ void ToggleButton::redraw()
  */
 void ToggleButton::blitRowFromCanvas(int x, int y, int w)
 {
+  WidgetStateGuard widgetStateGuard;
   
 }
 
@@ -175,6 +184,7 @@ void ToggleButton::blitRowFromCanvas(int x, int y, int w)
  */
 void ToggleButton::start()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
 #if defined(USING_GRAPHIC_LIB)
   m_config.width = constrain(m_config.width, 30, WidgetBase::objTFT->width());
@@ -188,6 +198,7 @@ void ToggleButton::start()
  */
 void ToggleButton::setup(const ToggleButtonConfig &config)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!WidgetBase::objTFT)
   {
     ESP_LOGE(TAG, "TFT not defined on WidgetBase");
@@ -211,7 +222,8 @@ void ToggleButton::setup(const ToggleButtonConfig &config)
  * @return True se o botão está ligado, False caso contrário.
  * @details Consulta se o botão está no estado ligado ou desligado.
  */
-bool ToggleButton::getStatus() { return m_status; }
+bool ToggleButton::getStatus() {
+  WidgetStateGuard widgetStateGuard; return m_status; }
 
 /**
  * @brief Define o estado atual do botão toggle.
@@ -224,6 +236,7 @@ bool ToggleButton::getStatus() { return m_status; }
  */
 void ToggleButton::setStatus(bool status, bool triggerCallback)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "ToggleButton widget not loaded");
@@ -244,6 +257,7 @@ void ToggleButton::setStatus(bool status, bool triggerCallback)
  */
 void ToggleButton::show()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -254,6 +268,9 @@ void ToggleButton::show()
  */
 void ToggleButton::hide()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+
+#endif // DFK_DISABLE_TOGGLE

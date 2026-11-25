@@ -36,6 +36,8 @@ class RadioGroup : public WidgetBase
 public:
   RadioGroup(uint8_t _screen);
   ~RadioGroup();
+  RadioGroup(const RadioGroup&) = delete;
+  RadioGroup& operator=(const RadioGroup&) = delete;
   
   bool detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) override;
   functionCB_t getCallbackFunc() override;
@@ -53,7 +55,7 @@ public:
 private:
   static const char* TAG; ///< Tag estática para identificação em logs do ESP32.
   
-  radio_t *m_buttons; ///< Ponteiro para um array de definições de botões de rádio.
+  radio_t *m_buttons = nullptr; ///< Sole owner; m_config.buttons is a borrowed alias.
   uint8_t m_clickedId; ///< ID do botão de rádio atualmente selecionado.
   bool m_shouldRedraw; ///< Flag para indicar se os botões de rádio devem ser redesenhados.
   RadioGroupConfig m_config; ///< Estrutura contendo configuração do grupo de botões de rádio.

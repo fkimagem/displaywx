@@ -48,7 +48,9 @@
 #define DEBUG_DISPLAY
 
 // 4 = calibracao atual pelos cantos. 9 = grade 3x3.
+#ifndef CALIBRATE_POINTS
 #define CALIBRATE_POINTS 9
+#endif
 #if (CALIBRATE_POINTS != 4) && (CALIBRATE_POINTS != 9)
 #error "CALIBRATE_POINTS must be 4 or 9"
 #endif
@@ -384,6 +386,11 @@ public:
     // Métodos públicos
     DisplayWX();
     ~DisplayWX();
+    DisplayWX(const DisplayWX&) = delete;
+    DisplayWX& operator=(const DisplayWX&) = delete;
+    bool isValid() const { return m_ownsInstance; }
+    // A timeout leaves the object alive; retry end() before destroying it.
+    bool end(uint32_t timeoutMs = 500);
 
     void setup();
     void startKeyboards();
@@ -411,7 +418,7 @@ public:
     void setBackgroundColor(uint16_t color);
 
     /// Holds the draw mutex until finishCustomDraw(). Widget callbacks run outside this mutex, so a callback may call startCustomDraw().
-    void startCustomDraw();
+    bool startCustomDraw(uint32_t timeoutMs = 0xFFFFFFFFu);
     /// Releases the draw mutex taken by startCustomDraw().
     void finishCustomDraw();
     void drawWidgetsOnScreen(const uint8_t currentScreenIndex);
@@ -422,7 +429,7 @@ public:
     // Explicit editor rectangle; glyphs are drawn transparently over this fill.
     void printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font, const TextBound_t &_background, bool _fillBackground = true);
 #endif
-    /// enableWatchdog true liga o watchdog ocioso de todos os núcleos; false desliga todos. timeout_s vale quando liga.
+    /// Registers only the UI task with the existing WDT. Global policy belongs to the sketch; timeout_s is retained for compatibility.
     void createTask(bool enableWatchdog, uint16_t timeout_s = 3);
     void drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], const uint8_t _mask[], uint16_t _w, uint16_t _h);
     bool waveshareDsiAuxBegin(int sda, int scl);
@@ -430,6 +437,7 @@ public:
     void enableTouchLog();
     void disableTouchLog();
     void addLog(const char *data);
+    uint32_t droppedLogCount() const { return m_droppedLogs.load(); }
     void displaywxTask();
     void cameraTask();
     TaskHandle_t getTaskHandle() const;
@@ -466,7 +474,7 @@ public:
     bool validateInitialization() const;
     
     // Cleanup utilities
-    bool waitForUiTaskToStop();
+    bool waitForUiTaskToStop(uint32_t timeoutMs = 500);
     void stopUiTaskAndDelete();
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     void stopCameraTaskAndDelete();
@@ -507,7 +515,7 @@ public:
 #elif defined(TOUCH_FT6336)
     void startTouchFT6336(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST);
 #elif defined(TOUCH_CST816)
-    void startTouchCST816(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST);
+    void startTouchCST816(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST);
 #elif defined(TOUCH_GT911)
     void startTouchGT911(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST);
 #elif defined(TOUCH_GT911_WAVESHARE)
@@ -642,7 +650,7 @@ public:
     /// Append legado de log: acrescenta quebra de linha, recusa textos de até um caractere e respeita LOG_MAX_SIZE.
     /// Para conteúdo geral, usar appendSDFile().
     void appendFile(fs::FS *fs, const char *path, const char *message);
-    void appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile);
+    bool appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile);
     void writeFile(fs::FS *fs, const char *path, const char *message);
     const char *getLogFileName() const;
     const char *generateNameFile() const;
@@ -684,7 +692,8 @@ private:
     uint32_t m_frameCopyW = 0;
     uint32_t m_frameCopyH = 0;
     std::atomic<uint8_t> m_cameraCopyPhase{0};
-    TaskHandle_t m_frameCopyWaiter = nullptr;
+    CameraMipi *m_pendingCameraConfig = nullptr;
+    uint32_t m_cameraCopyStarted = 0;
     std::unique_ptr<CameraRoi> m_cameraRoi;
     bool m_cameraRoiActive = false;
     bool m_cameraRoiTouchWasDown = false;
@@ -697,16 +706,25 @@ private:
     std::atomic<bool> m_cameraTaskStopped{true};
 #endif
     TaskHandle_t m_hndTaskEventoTouch; ///< Handle for the touch event task.
-    TaskHandle_t m_stopWaiter = nullptr;
+#if defined(DFK_LOGGING)
+    static void TaskLog(void *context);
+    TaskHandle_t m_hndTaskLog = nullptr;
+    std::atomic<bool> m_logTaskStopped{true};
+#endif
+    std::atomic<uint32_t> m_droppedLogs{0};
+    uint32_t m_logLastFlushMs = 0;
+    bool m_ownsInstance = false;
+    std::atomic_flag m_lifecycleBusy = ATOMIC_FLAG_INIT;
+    std::atomic<bool> m_ending{false};
+    std::atomic<bool> m_ended{false};
     std::atomic<bool> m_stopTask{false};
     std::atomic<bool> m_taskStopped{false};
-    bool m_runningTransaction;
     Preferences m_configs; ///< Preferences for storing and accessing configuration data.
-    TimerHandle_t m_timer;
+    bool m_autoClickActive = false;
+    uint32_t m_autoClickStartedMs = 0;
     uint32_t m_intervalMs;
     uint16_t m_xAutoClick = 0;
     uint16_t m_yAutoClick = 0;
-    bool m_simulateAutoClick = false;
     bool m_ignoreOpeningTouch = false;
     bool m_debugTouch = false;
     int m_x0 = 0, m_y0 = 0, m_x1 = 0, m_y1 = 0;
@@ -716,8 +734,10 @@ private:
     int m_rotationScreen = 0;
     uint16_t m_timeoutWTD = 0;
     bool m_enableWTD = false;
-    bool m_watchdogInitialized = false;
+    std::atomic<bool> m_watchdogInitialized{false};
     SemaphoreHandle_t m_loopSemaphore;
+    StaticSemaphore_t m_loopSemaphoreStorage;
+    std::atomic<uint32_t> m_loopWaiters{0};
     SemaphoreHandle_t m_transactionSemaphore;
     TouchEventType m_lastTouchState = TouchEventType::NONE;
     TouchSwipeDirection m_lastTouchSwipeDirection = TouchSwipeDirection::NONE;
@@ -853,7 +873,7 @@ private:
     mutable char m_logNameStorage[64] = {};
     mutable const char *m_nameLogFile = nullptr;
     bool endSdWaiting(uint32_t timeoutMs);
-    void appendLogUnlocked(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile);
+    uint8_t appendLogUnlocked(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile);
     void syncSdFlag();
 #endif
 
@@ -883,14 +903,14 @@ private:
     functionLoadScreen_t m_lastScreen = nullptr;
 
     // Métodos privados estáticos
-    static void timerCallback(TimerHandle_t xTimer);
+
 
     // Métodos privados
     char randomHexChar();
 
     // Helper functions for displaywxTask
     void processLogQueue();
-    void processLogBuffer();
+    bool processLogBuffer();
     void processTouchEvent(uint16_t xTouch, uint16_t yTouch, int zPressure, uint8_t gesture);
     void processTouchStatus(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
     void processTouchableWidgets(uint16_t xTouch, uint16_t yTouch, bool collectMode = false);
@@ -957,6 +977,8 @@ private:
     void serviceCameraRoi(bool hasTouch, uint16_t xTouch, uint16_t yTouch);
     void finishCameraConfig(bool apply);
     bool requestCameraFrameCopy();
+    void serviceCameraConfig();
+    bool openCameraConfigReady(CameraMipi *widget);
     void releaseCameraFrameCopy();
     void publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint32_t height);
     bool clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t plotW, uint32_t plotH, int16_t *centerX, int16_t *centerY, uint8_t zoom, uint32_t *cropW, uint32_t *cropH) const;

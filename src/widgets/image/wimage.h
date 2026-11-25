@@ -137,6 +137,8 @@ public:
   Image(uint16_t _x, uint16_t _y, uint8_t _screen);
 
   ~Image();
+  Image(const Image&) = delete;
+  Image& operator=(const Image&) = delete;
 
   bool detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) override;
 
@@ -160,8 +162,8 @@ public:
   void setDrawBackground(bool value);
   
   // Performance metrics access
-  const PerformanceMetrics_t& getMetrics() const { return m_metrics; }
-  void resetMetrics() { m_metrics.reset(); }
+  PerformanceMetrics_t getMetrics() const { WidgetStateGuard guard; return m_metrics; }
+  void resetMetrics() { WidgetStateGuard guard; m_metrics.reset(); }
   void printMetrics() const;
 
 private:

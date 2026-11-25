@@ -17,6 +17,9 @@
 
 #include <cstdint>
 #include "../extras/baseTypes.h"
+#ifndef CALIBRATE_POINTS
+#define CALIBRATE_POINTS 9
+#endif
 
 #include "../check_touch.h"
 
@@ -108,7 +111,8 @@ static const char *TAG; ///< Tag estática para identificação em logs do ESP32
   uint8_t m_pinCS = 0;
   /// @brief Samples de calibracao. Com CALIBRATE_POINTS 4: cantos TL, TR, BR, BL.
   ///        Com CALIBRATE_POINTS 9: grade 3x3, linha a linha.
-  CalibrationPoint_t *m_calibMatrix = nullptr;
+  CalibrationPoint_t m_calibrationPoints[CALIBRATE_POINTS] = {};
+  CalibrationPoint_t *m_calibMatrix = nullptr; // Optional alias into fixed storage.
   #elif defined(TOUCH_FT6236U)
 
   bool m_touch_touched_flag = true;
@@ -171,6 +175,9 @@ int8_t m_pinSCL = 0, m_pinSDA = 0, m_pinINT = -1, m_pinRST = 0;
 public:
   TouchScreen();
   ~TouchScreen();
+  TouchScreen(const TouchScreen&) = delete;
+  TouchScreen& operator=(const TouchScreen&) = delete;
+  void end();
   uint16_t getWidthScreen();
   uint16_t getHeightScreen();
   void touch_init();

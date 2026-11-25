@@ -1,4 +1,7 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_RADIO)
 #include "wradiogroup.h"
+#include <new>
 
 const char* RadioGroup::TAG = "RadioGroup";
 
@@ -36,10 +39,8 @@ RadioGroup::~RadioGroup() {
  *          - Libera m_buttons se alocado
  */
 void RadioGroup::cleanupMemory() {
-  if (m_config.buttons) {
-    delete[] m_config.buttons;
-    m_config.buttons = nullptr;
-  }
+  WidgetStateGuard widgetStateGuard;
+  m_config.buttons = nullptr;
   if (m_buttons) {
     delete[] m_buttons;
     m_buttons = nullptr;
@@ -51,7 +52,8 @@ void RadioGroup::cleanupMemory() {
  * @brief Força o RadioGroup a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void RadioGroup::forceUpdate() { m_shouldRedraw = true; }
+void RadioGroup::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
 
 /**
  * @brief Detecta se algum botão de rádio dentro do grupo foi tocado.
@@ -65,6 +67,7 @@ void RadioGroup::forceUpdate() { m_shouldRedraw = true; }
  *          - Atualiza ID selecionado e marca para redesenho se toque for detectado
  */
 bool RadioGroup::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -93,7 +96,8 @@ bool RadioGroup::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o RadioGroup for utilizado.
  */
-functionCB_t RadioGroup::getCallbackFunc() { return m_callback; }
+functionCB_t RadioGroup::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Redesenha os botões de rádio na tela, atualizando sua aparência.
@@ -104,6 +108,7 @@ functionCB_t RadioGroup::getCallbackFunc() { return m_callback; }
  *          - Usa cores adaptadas ao modo claro/escuro
  */
 void RadioGroup::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -149,6 +154,7 @@ void RadioGroup::redraw() {
  *          - Dispara callback se configurado e triggerCallback for true
  */
 void RadioGroup::setSelected(uint16_t clickedId, bool triggerCallback) {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded) {
     ESP_LOGE(TAG, "RadioGroup widget not loaded");
     return;
@@ -183,6 +189,7 @@ void RadioGroup::setSelected(uint16_t clickedId, bool triggerCallback) {
  *          O RadioGroup não será exibido corretamente até que este método seja chamado.
  */
 void RadioGroup::setup(const RadioGroupConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGW(TAG, "RadioGroup already initialized");
@@ -190,7 +197,7 @@ void RadioGroup::setup(const RadioGroupConfig &config) {
   }
 
   // Validate config parameters
-  if (config.amount == 0) {
+  if (config.amount == 0 || config.buttons == nullptr) {
     ESP_LOGE(TAG, "Invalid config: amount cannot be 0");
     return;
   }
@@ -207,7 +214,7 @@ void RadioGroup::setup(const RadioGroupConfig &config) {
   
   // Deep copy buttons array
   if (config.buttons && config.amount > 0) {
-    m_buttons = new radio_t[config.amount];
+    m_buttons = new (std::nothrow) radio_t[config.amount];
     if (m_buttons == nullptr) {
       ESP_LOGE(TAG, "Failed to allocate memory for buttons array");
       return;
@@ -238,20 +245,23 @@ void RadioGroup::setup(const RadioGroupConfig &config) {
  * @return ID do botão de rádio selecionado.
  * @details Retorna o ID armazenado em m_clickedId.
  */
-uint16_t RadioGroup::getSelected() { return m_clickedId; }
+uint16_t RadioGroup::getSelected() {
+  WidgetStateGuard widgetStateGuard; return m_clickedId; }
 
 /**
  * @brief Recupera o ID do grupo do RadioGroup.
  * @return Identificador do grupo para o RadioGroup.
  * @details Retorna o ID do grupo armazenado em m_config.group.
  */
-uint16_t RadioGroup::getGroupId() { return m_config.group; }
+uint16_t RadioGroup::getGroupId() {
+  WidgetStateGuard widgetStateGuard; return m_config.group; }
 
 /**
  * @brief Torna o RadioGroup visível na tela.
  * @details Define o widget como visível e marca para redesenho.
  */
 void RadioGroup::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -261,6 +271,9 @@ void RadioGroup::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void RadioGroup::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+
+#endif // DFK_DISABLE_RADIO

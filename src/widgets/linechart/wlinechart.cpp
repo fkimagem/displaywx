@@ -1,4 +1,11 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_LINECHART)
 #include "wlinechart.h"
+#include "../../extras/dwx_safe.h"
+
+#ifndef DFK_LINECHART_MAX_BYTES
+#define DFK_LINECHART_MAX_BYTES (512U * 1024U)
+#endif
 
 #define CLAMP(x, lo, hi) ((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))
 
@@ -6,16 +13,19 @@ const char* LineChart::TAG = "LineChart";
 
 // ─── Mutex ────────────────────────────────────────────────────────────────────
 
-void LineChart::initMutex()
+bool LineChart::initMutex()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   if (!m_mutex)
-    m_mutex = xSemaphoreCreateMutex();
+    m_mutex = xSemaphoreCreateMutexStatic(&m_mutexStorage);
 #endif
+  return m_mutex != nullptr;
 }
 
 void LineChart::destroyMutex()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   if (m_mutex) {
     vSemaphoreDelete(m_mutex);
@@ -32,48 +42,33 @@ void LineChart::destroyMutex()
  *          Ponteiros m_ringValues[s], m_snapshotValues[s], m_lastDrawnValues[s]
  *          apontam para fatias desse bloco. Apenas 1 malloc + 3 mallocs de ponteiros.
  */
-void LineChart::allocBuffers()
+bool LineChart::allocBuffers()
 {
-  const uint16_t S = m_config.amountSeries;
-  const uint16_t P = m_amountPoints;
-
-  // 1 malloc para todos os dados
-  m_pool = (int*)malloc(sizeof(int) * 3 * S * P);
-  if (!m_pool) {
-    ESP_LOGE(TAG, "Failed to allocate pool (%u ints)", 3 * S * P);
-    return;
-  }
-
-  // 3 mallocs para arrays de ponteiros (pequenos)
-  m_ringValues      = (int**)malloc(sizeof(int*) * S);
-  m_snapshotValues  = (int**)malloc(sizeof(int*) * S);
-  m_lastDrawnValues = (int**)malloc(sizeof(int*) * S);
-
-  if (!m_ringValues || !m_snapshotValues || !m_lastDrawnValues) {
-    ESP_LOGE(TAG, "Failed to allocate pointer arrays");
-    freeBuffers();
-    return;
-  }
-
-  // Aponta cada série para sua fatia no pool
-  for (uint16_t s = 0; s < S; s++) {
-    m_ringValues[s]      = m_pool + (0 * S + s) * P;
-    m_snapshotValues[s]  = m_pool + (1 * S + s) * P;
+  WidgetStateGuard widgetStateGuard;
+  const size_t S = m_config.amountSeries;
+  const size_t P = m_amountPoints;
+  size_t count = 0, bytes = 0;
+  if (!dwx_size_mul(3 * S, P, &count) ||
+      !dwx_size_mul(count, sizeof(int), &bytes) || bytes > DFK_LINECHART_MAX_BYTES) return false;
+  m_pool = static_cast<int*>(malloc(bytes));
+  if (!m_pool) return false;
+  for (size_t s = 0; s < S; ++s) {
+    m_ringValues[s] = m_pool + s * P;
+    m_snapshotValues[s] = m_pool + (S + s) * P;
     m_lastDrawnValues[s] = m_pool + (2 * S + s) * P;
   }
-
-  // Inicializa tudo com minValue
-  const int fill = m_config.minValue;
-  for (uint16_t i = 0; i < 3 * S * P; i++)
-    m_pool[i] = fill;
+  for (size_t i = 0; i < count; ++i) m_pool[i] = m_config.minValue;
+  return true;
 }
 
 void LineChart::freeBuffers()
 {
-  free(m_pool);           m_pool = nullptr;
-  free(m_ringValues);     m_ringValues = nullptr;
-  free(m_snapshotValues); m_snapshotValues = nullptr;
-  free(m_lastDrawnValues);m_lastDrawnValues = nullptr;
+  WidgetStateGuard widgetStateGuard;
+  free(m_pool);
+  m_pool = nullptr;
+  memset(m_ringValues, 0, sizeof(m_ringValues));
+  memset(m_snapshotValues, 0, sizeof(m_snapshotValues));
+  memset(m_lastDrawnValues, 0, sizeof(m_lastDrawnValues));
 }
 
 // ─── Construtor / Destrutor ───────────────────────────────────────────────────
@@ -82,9 +77,9 @@ LineChart::LineChart(uint16_t _x, uint16_t _y, uint8_t _screen)
   : WidgetBase(_x, _y, _screen),
     m_pool(nullptr),
     m_mutex(nullptr),
-    m_ringValues(nullptr),
-    m_snapshotValues(nullptr),
-    m_lastDrawnValues(nullptr),
+    m_ringValues{},
+    m_snapshotValues{},
+    m_lastDrawnValues{},
     m_maxHeight(0), m_maxWidth(0),
     m_spaceBetweenPoints(0.0f),
     m_leftPadding(0),
@@ -120,6 +115,7 @@ LineChart::~LineChart()
 
 bool LineChart::validateConfig(const LineChartConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   if (config.width == 0 || config.height == 0) {
     ESP_LOGE(TAG, "Invalid dimensions: %dx%d", config.width, config.height);
     return false;
@@ -145,9 +141,10 @@ bool LineChart::validateConfig(const LineChartConfig& config)
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-void LineChart::start()
+bool LineChart::start()
 {
-  CHECK_TFT_VOID
+  WidgetStateGuard widgetStateGuard;
+  if (!WidgetBase::objTFT || !initMutex()) return false;
 #if defined(USING_GRAPHIC_LIB)
 
   if (m_config.maxValue < m_config.minValue) {
@@ -175,16 +172,20 @@ void LineChart::start()
   updateFont(FontType::UNLOAD);
   biggerText += 10;
 
-  m_maxAmountValues = m_config.width - (biggerText + 10) - (m_borderSize * 2);
-  m_amountPoints    = (uint16_t)CLAMP(m_config.maxPointsAmount, 2, m_maxAmountValues);
-
+  const int32_t plotWidth = (int32_t)m_config.width - (biggerText + 10) - 2 * m_borderSize;
+  const int32_t plotHeight = (int32_t)m_config.height - 2 * m_topBottomPadding - 2 * m_borderSize;
+  if (plotWidth < 2 || plotHeight < 1 || m_config.verticalDivision > plotHeight ||
+      (uint32_t)m_xPos + m_config.width > INT16_MAX ||
+      (uint32_t)m_yPos + m_config.height > INT16_MAX) return false;
+  m_maxAmountValues = (uint16_t)plotWidth;
+  m_amountPoints = (uint16_t)min((uint32_t)m_config.maxPointsAmount, (uint32_t)m_maxAmountValues);
   m_spaceBetweenPoints = m_maxAmountValues / (float)(m_amountPoints - 1);
-  m_maxWidth  = m_maxAmountValues;
-  m_maxHeight = m_config.height - (m_topBottomPadding * 2) - (m_borderSize * 2);
+  m_maxWidth = m_maxAmountValues;
+  m_maxHeight = (uint32_t)plotHeight;
 
   uint16_t restoAreaPlot = 0;
   if (m_config.verticalDivision > 0) {
-    uint16_t sizeVSpace = (uint16_t)round(m_maxHeight / m_config.verticalDivision);
+    uint32_t sizeVSpace = m_maxHeight / m_config.verticalDivision;
     restoAreaPlot = (uint16_t)(m_maxHeight - (sizeVSpace * m_config.verticalDivision));
     if (restoAreaPlot > 0) m_maxHeight -= restoAreaPlot;
   }
@@ -196,13 +197,17 @@ void LineChart::start()
   // Aloca buffers sob mutex
   if (m_mutex) xSemaphoreTake(m_mutex, portMAX_DELAY);
   freeBuffers();
-  allocBuffers();
+  const bool allocated = allocBuffers();
   m_dataVersion = 0;
-  m_shouldRedraw = true;
+  m_shouldRedraw = allocated;
   if (m_mutex) xSemaphoreGive(m_mutex);
+  if (!allocated) return false;
 
   ESP_LOGD(TAG, "LineChart started: %dx%d, %d series, %d points",
            m_config.width, m_config.height, m_config.amountSeries, m_amountPoints);
+  return true;
+#else
+  return false;
 #endif
 }
 
@@ -210,6 +215,7 @@ void LineChart::start()
 
 void LineChart::setup(const LineChartConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) { ESP_LOGW(TAG, "Already configured"); return; }
   if (!validateConfig(config)) return;
@@ -225,8 +231,8 @@ void LineChart::setup(const LineChartConfig& config)
   m_topBottomPadding = 5;
   m_shouldRedraw = true;
 
-  start();
-  m_loaded = true;
+  m_loaded = start();
+  if (!m_loaded) ESP_LOGE(TAG, "LineChart initialization failed");
 }
 
 // ─── Push ─────────────────────────────────────────────────────────────────────
@@ -234,7 +240,7 @@ void LineChart::setup(const LineChartConfig& config)
 bool LineChart::push(uint16_t serieIndex, int newValue)
 {
 #if defined(USING_GRAPHIC_LIB)
-  if (!m_loaded || !m_ringValues) return false;
+  if (!m_loaded || !m_pool || !m_mutex) return false;
   if (!m_config.workInBackground && WidgetBase::currentScreen != m_screen) return false;
   if (serieIndex >= m_config.amountSeries || m_amountPoints == 0) return false;
 
@@ -260,6 +266,7 @@ bool LineChart::push(uint16_t serieIndex, int newValue)
 
 uint32_t LineChart::snapshotUnderMutex()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   if (!m_mutex) return 0;
   xSemaphoreTake(m_mutex, portMAX_DELAY);
@@ -267,10 +274,7 @@ uint32_t LineChart::snapshotUnderMutex()
   uint32_t ver = m_dataVersion;
   for (uint16_t s = 0; s < m_config.amountSeries; s++) {
     uint16_t head = m_headBySeries[s];
-    for (uint16_t i = 0; i < m_amountPoints; i++) {
-      m_snapshotValues[s][i] =
-        m_ringValues[s][(head + i) % m_amountPoints];
-    }
+    dwx_copy_ring_int(m_snapshotValues[s], m_ringValues[s], m_amountPoints, head);
   }
 
   xSemaphoreGive(m_mutex);
@@ -284,6 +288,7 @@ uint32_t LineChart::snapshotUnderMutex()
 
 void LineChart::drawBackground()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_LOADED_VOID
@@ -318,7 +323,7 @@ void LineChart::drawBackground()
             m_yTovmin, BR_DATUM);
 
   if (m_config.showZeroLine && m_config.minValue <= 0 && m_config.maxValue >= 0) {
-    uint16_t yZero = (uint16_t)map(0, m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
+    uint16_t yZero = (uint16_t)dwx_map_clamped(0, m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
     if (abs((int)m_yTovmin - (int)yZero) >= 15 && abs((int)yZero - (int)m_yTovmax) >= 15) {
       printText("0", m_xPos + m_borderSize + m_leftPadding - 4, yZero, BR_DATUM);
     }
@@ -338,13 +343,15 @@ void LineChart::drawBackground()
 
 void LineChart::drawGrid()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
 #if defined(USING_GRAPHIC_LIB)
   if (m_config.verticalDivision == 0) return;
 
-  uint16_t sizeVSpace = (uint16_t)round(m_maxHeight / m_config.verticalDivision);
-  uint16_t xStart = m_xPos + m_leftPadding + 2;
-  uint16_t xEnd   = xStart + m_maxWidth;
+  uint32_t sizeVSpace = m_maxHeight / m_config.verticalDivision;
+  if (sizeVSpace == 0) return;
+  uint32_t xStart = m_xPos + m_leftPadding + 2;
+  uint32_t xEnd = xStart + m_maxWidth;
 
   for (uint16_t i = 0; i < m_config.verticalDivision; i++) {
     uint16_t yLine = m_yPos + m_topBottomPadding + (sizeVSpace * i);
@@ -353,7 +360,7 @@ void LineChart::drawGrid()
   }
   WidgetBase::objTFT->drawFastHLine(xStart, m_yPos + m_topBottomPadding, m_maxWidth, m_config.gridColor);
 
-  for (uint16_t x = xStart; x <= xEnd; x += sizeVSpace)
+  for (uint32_t x = xStart; x <= xEnd; x += sizeVSpace)
     WidgetBase::objTFT->drawFastVLine(x, m_yPos + m_topBottomPadding, m_maxHeight, m_config.gridColor);
   WidgetBase::objTFT->drawFastVLine(xEnd, m_yPos + m_topBottomPadding, m_maxHeight, m_config.gridColor);
 #endif
@@ -361,8 +368,9 @@ void LineChart::drawGrid()
 
 void LineChart::drawMarkLineAt(int value)
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
-  uint16_t y = (uint16_t)map(value, m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
+  uint16_t y = (uint16_t)dwx_map_clamped(value, m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
   WidgetBase::objTFT->drawFastHLine(
     m_xPos + m_leftPadding + m_borderSize, y, m_maxWidth, m_config.textColor);
 #endif
@@ -370,6 +378,7 @@ void LineChart::drawMarkLineAt(int value)
 
 void LineChart::eraseSerieFromBuffer(uint8_t serieIndex, const int* values)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
 #if defined(USING_GRAPHIC_LIB)
   const uint16_t startX = m_xPos + m_leftPadding + m_borderSize + 1;
@@ -378,8 +387,8 @@ void LineChart::eraseSerieFromBuffer(uint8_t serieIndex, const int* values)
   for (uint16_t i = 1; i < m_amountPoints; i++) {
     int16_t x0 = (int16_t)round(startX + (i - 1) * m_spaceBetweenPoints);
     int16_t x1 = (int16_t)round(startX +  i      * m_spaceBetweenPoints);
-    int16_t y0 = (int16_t)map(values[i-1], m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
-    int16_t y1 = (int16_t)map(values[i],   m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
+    int16_t y0 = (int16_t)dwx_map_clamped(values[i-1], m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
+    int16_t y1 = (int16_t)dwx_map_clamped(values[i],   m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
 
     WidgetBase::objTFT->drawLine(x0, y0, x1, y1, bg);
     if (m_config.boldLine) {
@@ -394,6 +403,7 @@ void LineChart::eraseSerieFromBuffer(uint8_t serieIndex, const int* values)
 
 void LineChart::drawSerieFromBuffer(uint8_t serieIndex, const int* values)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
 #if defined(USING_GRAPHIC_LIB)
   const uint16_t startX = m_xPos + m_leftPadding + m_borderSize + 1;
@@ -402,8 +412,8 @@ void LineChart::drawSerieFromBuffer(uint8_t serieIndex, const int* values)
   for (uint16_t i = 1; i < m_amountPoints; i++) {
     int16_t x0 = (int16_t)round(startX + (i - 1) * m_spaceBetweenPoints);
     int16_t x1 = (int16_t)round(startX +  i      * m_spaceBetweenPoints);
-    int16_t y0 = (int16_t)map(values[i-1], m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
-    int16_t y1 = (int16_t)map(values[i],   m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
+    int16_t y0 = (int16_t)dwx_map_clamped(values[i-1], m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
+    int16_t y1 = (int16_t)dwx_map_clamped(values[i],   m_config.minValue, m_config.maxValue, m_yTovmin, m_yTovmax);
 
     WidgetBase::objTFT->drawLine(x0, y0, x1, y1, color);
     if (m_config.boldLine) {
@@ -421,6 +431,7 @@ void LineChart::drawSerieFromBuffer(uint8_t serieIndex, const int* values)
 
 void LineChart::eraseAllFromLastDrawn()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   for (uint16_t s = 0; s < m_config.amountSeries; s++)
     eraseSerieFromBuffer((uint8_t)s, m_lastDrawnValues[s]);
@@ -429,6 +440,7 @@ void LineChart::eraseAllFromLastDrawn()
 
 void LineChart::drawAllFromSnapshot()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   for (uint16_t s = 0; s < m_config.amountSeries; s++)
     drawSerieFromBuffer((uint8_t)s, m_snapshotValues[s]);
@@ -439,6 +451,7 @@ void LineChart::drawAllFromSnapshot()
 
 void LineChart::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_LOADED_VOID
@@ -446,7 +459,7 @@ void LineChart::redraw()
   CHECK_USINGKEYBOARD_VOID
   CHECK_DEBOUNCE_REDRAW_VOID
 #if defined(USING_GRAPHIC_LIB)
-  if (!m_shouldRedraw) return;
+  if (!m_shouldRedraw.exchange(false)) return;
 
   uint32_t capturedVer = snapshotUnderMutex();
 
@@ -468,7 +481,7 @@ void LineChart::redraw()
     nowVer = m_dataVersion;
     xSemaphoreGive(m_mutex);
   }
-  m_shouldRedraw = (nowVer != capturedVer);
+  if (nowVer != capturedVer) m_shouldRedraw.store(true);
 #endif
 }
 
@@ -476,12 +489,15 @@ void LineChart::redraw()
 
 void LineChart::show()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
 
 void LineChart::hide()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = false;
 }
+#endif // DFK_DISABLE_LINECHART

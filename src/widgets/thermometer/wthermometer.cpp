@@ -1,4 +1,7 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_THERMOMETER)
 #include "wthermometer.h"
+#include "../../extras/dwx_safe.h"
 
 const char* Thermometer::TAG = "Thermometer";
 
@@ -29,6 +32,7 @@ Thermometer::~Thermometer() {
  *          m_config.subtitle é um ponteiro para objeto Label externo.
  */
 void Thermometer::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
     ESP_LOGD(TAG, "Thermometer memory cleanup completed");
 }
 
@@ -39,6 +43,7 @@ void Thermometer::cleanupMemory() {
  */
 void Thermometer::sortValues()
 {
+  WidgetStateGuard widgetStateGuard;
   if (m_config.minValue > m_config.maxValue)
   {
     int temp = m_config.minValue;
@@ -56,6 +61,8 @@ void Thermometer::sortValues()
  */
 void Thermometer::setScale(int newMinValue, int newMaxValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newMinValue == newMaxValue) return;
   m_config.minValue = newMinValue;
   m_config.maxValue = newMaxValue;
   sortValues();
@@ -72,6 +79,8 @@ void Thermometer::setScale(int newMinValue, int newMaxValue)
  */
 void Thermometer::setMinValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newValue == m_config.maxValue) return;
   m_config.minValue = newValue;
   sortValues();
   m_currentValue = constrain(m_currentValue, m_config.minValue, m_config.maxValue);
@@ -87,6 +96,8 @@ void Thermometer::setMinValue(int newValue)
  */
 void Thermometer::setMaxValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newValue == m_config.minValue) return;
   m_config.maxValue = newValue;
   sortValues();
   m_currentValue = constrain(m_currentValue, m_config.minValue, m_config.maxValue);
@@ -101,6 +112,7 @@ void Thermometer::setMaxValue(int newValue)
  */
 int Thermometer::getMinValue()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.minValue;
 }
 
@@ -111,6 +123,7 @@ int Thermometer::getMinValue()
  */
 int Thermometer::getMaxValue()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.maxValue;
 }
 
@@ -124,6 +137,7 @@ int Thermometer::getMaxValue()
  */
 bool Thermometer::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
   return false;
 }
 
@@ -134,6 +148,7 @@ bool Thermometer::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  */
 functionCB_t Thermometer::getCallbackFunc()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_callback;
 }
 
@@ -146,6 +161,7 @@ functionCB_t Thermometer::getCallbackFunc()
  */
 void Thermometer::setValue(float newValue)
 {
+  WidgetStateGuard widgetStateGuard;
   m_currentValue = constrain(newValue, m_config.minValue, m_config.maxValue);
   // Serial.println("ajusta currentValue: " + String(currentValue));
   m_shouldRedraw = true;
@@ -156,13 +172,14 @@ void Thermometer::setValue(float newValue)
  * @brief Redesenha o widget Thermometer.
  * @details Atualiza a exibição do termômetro:
  *          - Valida visibilidade, TFT, tela atual, uso de teclado, carregamento e flag de redesenho
- *          - Calcula altura do preenchimento usando map() baseado no valor atual
+ *          - Calcula altura do preenchimento usando dwx_map_clamped() baseado no valor atual
  *          - Atualiza área preenchida (limpando se valor diminuiu, preenchendo se aumentou)
  *          - Atualiza Label com valor formatado se subtitle estiver configurado
  *          - Armazena último valor e reseta flag de redesenho
  */
 void Thermometer::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -172,7 +189,7 @@ void Thermometer::redraw()
   
   #if defined(USING_GRAPHIC_LIB)
 
-  uint32_t heightFill = map(m_currentValue, m_config.minValue, m_config.maxValue, 0, m_fillArea.height);
+  uint32_t heightFill = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, 0, m_fillArea.height);
   uint32_t heightErase = m_fillArea.height - heightFill;
 
   int startY = m_fillArea.y + heightErase;
@@ -209,6 +226,7 @@ void Thermometer::redraw()
  */
 void Thermometer::start()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   m_config.height = constrain(m_config.height, 20, WidgetBase::objTFT->height());
 #endif
@@ -220,6 +238,7 @@ void Thermometer::start()
  */
 void Thermometer::forceUpdate()
 {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
 }
 
@@ -235,6 +254,7 @@ void Thermometer::forceUpdate()
  */
 void Thermometer::drawBackground()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -310,6 +330,18 @@ void Thermometer::drawBackground()
  */
 void Thermometer::setup(uint16_t _width, uint16_t _height, uint16_t _filledColor, int _vmin, int _vmax)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (m_loaded || _vmin >= _vmax || _width < 12 || _height < 24 ||
+      _height <= _width + _width / 6u ||
+      uint32_t(m_xPos) + _width > INT16_MAX || uint32_t(m_yPos) + _height > INT16_MAX) return;
+#if defined(USING_GRAPHIC_LIB)
+  if (!WidgetBase::objTFT || _height > WidgetBase::objTFT->height()) return;
+#endif
+  m_config.width = _width;
+  m_config.height = _height;
+  m_config.filledColor = _filledColor;
+  m_config.minValue = _vmin;
+  m_config.maxValue = _vmax;
   CHECK_TFT_VOID
   if (m_loaded)
   {
@@ -345,6 +377,7 @@ void Thermometer::setup(uint16_t _width, uint16_t _height, uint16_t _filledColor
  */
 void Thermometer::setup(const ThermometerConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGW(TAG, "Thermometer already initialized");
@@ -355,6 +388,7 @@ void Thermometer::setup(const ThermometerConfig& config)
   cleanupMemory();
   
   // Deep copy configuration
+  if (config.minValue >= config.maxValue || config.width < 12 || config.height < 24) return;
   m_config = config;
   
   // Set up subtitle if provided
@@ -375,6 +409,7 @@ void Thermometer::setup(const ThermometerConfig& config)
  */
 void Thermometer::show()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = true;
     m_shouldRedraw = true;
 }
@@ -385,6 +420,9 @@ void Thermometer::show()
  */
 void Thermometer::hide()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = false;
     m_shouldRedraw = true;
 }
+
+#endif // DFK_DISABLE_THERMOMETER

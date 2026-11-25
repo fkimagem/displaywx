@@ -1,6 +1,7 @@
 #include "../displaywx.h"
 #include <math.h>
 #include <stdio.h>
+#include <new>
 
 #if defined(TOUCH_FT6236U)
 // TouchScreen *TouchScreen::m_instance = nullptr;
@@ -33,6 +34,12 @@ int8_t TouchScreen::interruptPin() const
 
 void TouchScreen::armInterruptNotify(TaskHandle_t task)
 {
+#if defined(TOUCH_CST816)
+    // CST816S owns its ISR and available() consumes that ISR flag.
+    // Replacing it with our notification ISR would stop touch detection.
+    (void)task;
+    return;
+#endif
     const int8_t pin = interruptPin();
     if (pin < 0 || task == nullptr || s_touchIsrArmed) {
         return;
@@ -63,7 +70,9 @@ void TouchScreen::startAsXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, uint
   m_displayPinCS = displayPinCS;
   m_touchFrequency = touchFrequency;
   m_displayFrequency = displayFrequency;
-  m_ts = new XPT2046(pinSclk, pinMiso, pinMosi, pinCS);
+  end();
+  m_ts = new (std::nothrow) XPT2046(pinSclk, pinMiso, pinMosi, pinCS);
+  if (!m_ts) return;
   this->setDimension(w, h, _rotation);
   m_objTFT = _objTFT;
   m_spitoque = _sharedSPI;
@@ -79,7 +88,9 @@ void TouchScreen::startAsXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, uint
 #elif defined(TOUCH_FT6236U)
 void TouchScreen::startAsFT6236U(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
-  m_ts = new FT6236();
+  end();
+  m_ts = new (std::nothrow) FT6236();
+  if (!m_ts) return;
   this->setDimension(w, h, _rotation);
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
@@ -91,7 +102,9 @@ void TouchScreen::startAsFT6236U(uint16_t w, uint16_t h, uint8_t _rotation, uint
 #elif defined(TOUCH_FT6336)
 void TouchScreen::startAsFT6336(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
-  m_ts = new FT6336U(pinSDA, pinSCL, pinRST, pinINT);
+  end();
+  m_ts = new (std::nothrow) FT6336U(pinSDA, pinSCL, pinRST, pinINT);
+  if (!m_ts) return;
   this->setDimension(w, h, _rotation);
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
@@ -103,7 +116,9 @@ void TouchScreen::startAsFT6336(uint16_t w, uint16_t h, uint8_t _rotation, uint8
 #elif defined(TOUCH_CST816)
 void TouchScreen::startAsCST816(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
-  m_ts = new CST816S(pinSDA, pinSCL, pinRST, pinINT);
+  end();
+  m_ts = new (std::nothrow) CST816S(pinSDA, pinSCL, pinRST, pinINT);
+  if (!m_ts) return;
   this->setDimension(w, h, _rotation);
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
@@ -116,8 +131,10 @@ void TouchScreen::startAsCST816(uint16_t w, uint16_t h, uint8_t _rotation, uint8
 void TouchScreen::startAsGT911(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
   // m_ts = new TAMC_GT911(pinSDA, pinSCL, pinINT, pinRST, max(m_x0, m_x1), max(m_y0, m_y1));
+  end();
   this->setDimension(w, h, _rotation);
-  m_ts = new TAMC_GT911(pinSDA, pinSCL, pinINT, pinRST, m_widthScreen, m_heightScreen);
+  m_ts = new (std::nothrow) TAMC_GT911(pinSDA, pinSCL, pinINT, pinRST, m_widthScreen, m_heightScreen);
+  if (!m_ts) return;
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
   m_pinINT = pinINT;
@@ -128,8 +145,10 @@ void TouchScreen::startAsGT911(uint16_t w, uint16_t h, uint8_t _rotation, uint8_
 #elif defined(TOUCH_GT911_WAVESHARE)
 void TouchScreen::startAsGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL)
 {
+  end();
   this->setDimension(w, h, _rotation);
-  m_ts = new Gt911Waveshare();
+  m_ts = new (std::nothrow) Gt911Waveshare();
+  if (!m_ts) return;
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
   touch_init();
@@ -139,8 +158,10 @@ void TouchScreen::startAsGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotatio
 void TouchScreen::startAsGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
   // m_ts = new gsl3680_touch(TP_I2C_SDA, TP_I2C_SCL, TP_RST, TP_INT);
+  end();
   this->setDimension(w, h, _rotation);
-  m_ts = new GSL3680_touch(pinSDA, pinSCL, pinRST, pinINT);
+  m_ts = new (std::nothrow) GSL3680_touch(pinSDA, pinSCL, pinRST, pinINT);
+  if (!m_ts) return;
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
   m_pinINT = pinINT;
@@ -152,7 +173,9 @@ void TouchScreen::startAsGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, uint
 #elif defined(TOUCH_CST820)
 void TouchScreen::startAsCST820(uint16_t w, uint16_t h, uint8_t _rotation, uint8_t pinSDA, uint8_t pinSCL, uint8_t pinINT, uint8_t pinRST)
 {
-  m_ts = new CST820(pinSDA, pinSCL, pinRST, pinINT);
+  end();
+  m_ts = new (std::nothrow) CST820(pinSDA, pinSCL, pinRST, pinINT);
+  if (!m_ts) return;
   this->setDimension(w, h, _rotation);
   m_pinSCL = pinSCL;
   m_pinSDA = pinSDA;
@@ -186,11 +209,19 @@ uint16_t TouchScreen::getHeightScreen()
  */
 TouchScreen::~TouchScreen()
 {
+  end();
+}
+
+void TouchScreen::end()
+{
+  disarmInterruptNotify();
+  m_startedTouch = false;
+#if defined(TOUCH_CST816)
+  if (m_ts && m_pinINT >= 0) detachInterrupt(digitalPinToInterrupt(m_pinINT));
+#endif
 #if defined(HAS_TOUCH)
-  if (m_ts)
-  {
-    delete m_ts;
-  }
+  delete m_ts;
+  m_ts = nullptr;
 #endif
 }
 
@@ -279,6 +310,7 @@ void TouchScreen::touch(TPoint p, TEvent e)
 void TouchScreen::touch_init()
 {
   ESP_LOGD(TAG, "touch_init");
+  if (!m_ts) { m_startedTouch = false; return; }
 #if defined(TOUCH_GT911)
   m_ts->begin();
   m_ts->setRotation(m_rotation);
@@ -286,6 +318,7 @@ void TouchScreen::touch_init()
 #elif defined(TOUCH_GT911_WAVESHARE)
   if (!m_ts->begin(m_pinSDA, m_pinSCL, m_widthScreen, m_heightScreen)) {
     Serial.println("GT911 Waveshare nao iniciado");
+    end(); return;
   }
 
 #elif defined(DFK_TOUCH_XPT2046)
@@ -302,6 +335,7 @@ void TouchScreen::touch_init()
   if (!m_ts->begin(40, m_pinSDA, m_pinSCL)) // 40 in this case represents the sensitivity. Try higer or lower for better response.
   {
     ESP_LOGD(TAG, "Unable to start the capacitive touchscreen.");
+    end(); return;
   }
   else
   {
@@ -313,12 +347,13 @@ void TouchScreen::touch_init()
   m_ts->begin();
   showSetup();
 #elif defined(TOUCH_GSL3680)
-  m_ts->begin();
+  if (!m_ts->begin()) { end(); return; }
   m_ts->set_rotation(m_rotation);
 
   #elif defined(TOUCH_CST820)
   m_ts->begin();
 #endif
+  m_startedTouch = true;
 }
 
 #if defined(TOUCH_FT6336)
@@ -363,7 +398,7 @@ void TouchScreen::setDimension(uint16_t _widthScreen, uint16_t _heightScreen, ui
   m_widthScreen = _widthScreen;
   m_heightScreen = _heightScreen;
   m_rotation = _rotation;
-  m_startedTouch = true;
+  // Initialization status is set only after touch_init succeeds.
   // log dimension of touch
   ESP_LOGD(TAG, "Touch screen dimension: %d x %d", m_widthScreen, m_heightScreen);
 }
@@ -1198,34 +1233,13 @@ ScreenPoint_t TouchScreen::touchToScreenNinePoints(int16_t xTouch, int16_t yTouc
 #if defined(HAS_TOUCH) && defined(DFK_TOUCH_XPT2046)
 void TouchScreen::setCalibration(CalibrationPoint_t *array)
 {
-#if CALIBRATE_POINTS == 9
-  delete[] m_calibMatrix;
-  m_calibMatrix = nullptr;
-  if (!array)
-  {
+  static_assert(CALIBRATE_POINTS == 4 || CALIBRATE_POINTS == 9, "Unsupported calibration size");
+  if (!array) {
+    m_calibMatrix = nullptr;
     return;
   }
-  m_calibMatrix = new CalibrationPoint_t[9];
-  if (!m_calibMatrix)
-  {
-    return;
-  }
-  memcpy(m_calibMatrix, array, 9 * sizeof(CalibrationPoint_t));
-#else
-  delete[] m_calibMatrix;
-  if (m_calibMatrix)
-  {
-    delete m_calibMatrix;
-  }
-  m_calibMatrix = new CalibrationPoint_t[4];
-  memcpy(m_calibMatrix, array, sizeof(array) * sizeof(CalibrationPoint_t));
-  // ESP_LOGD(TAG, "Tamanho array %u", sizeof(array) * sizeof(CalibrationPoint_t));
-
-  for (size_t i = 0; i < 5; i++)
-  {
-    // calibMatrix[i] = array[i];
-  }
-#endif
+  memmove(m_calibrationPoints, array, sizeof(m_calibrationPoints));
+  m_calibMatrix = m_calibrationPoints;
 }
 #endif
 
@@ -1847,7 +1861,7 @@ uint8_t TouchScreen::getGesture()
 bool TouchScreen::getTouch(uint16_t *xTouch, uint16_t *yTouch, int *zPressure)
 {
 
-  if (!m_startedTouch)
+  if (!m_startedTouch || !xTouch || !yTouch || !zPressure)
   {
     return false;
   }

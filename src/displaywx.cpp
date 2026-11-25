@@ -1,4 +1,7 @@
 #include "displaywx.h"
+#include <new>
+#include "extras/dwx_safe.h"
+#include "touch/share_i2c.h"
 #include "freertos_stats.h"
 #include <memory>
 #if defined(DFK_SD)
@@ -15,6 +18,9 @@
 #endif
 
 #define MIN_LOOPTASK_TIME_LOG 20
+#ifndef DFK_CALLBACK_BUDGET_US
+#define DFK_CALLBACK_BUDGET_US 2000U
+#endif
 
 static constexpr uint32_t DFK_UI_STACK_BYTES = 8192;
 static constexpr uint32_t DFK_UI_STACK_CAMERA_BYTES = 12288;
@@ -31,6 +37,10 @@ static_assert(sizeof(StackType_t) == 1, "IDF stack depth is in bytes because Sta
 
 alignas(16) static StackType_t s_uiTaskStack[kUiTaskStackBytes];
 static StaticTask_t s_uiTaskTcb;
+#if defined(DFK_LOGGING)
+alignas(16) static StackType_t s_logTaskStack[4096];
+static StaticTask_t s_logTaskTcb;
+#endif
 
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
 static constexpr uint32_t kCameraFramePeriodMs = 33;
@@ -38,6 +48,18 @@ alignas(16) static StackType_t s_cameraTaskStack[DFK_UI_STACK_CAMERA_BYTES];
 static StaticTask_t s_cameraTaskTcb;
 #endif
 
+namespace {
+class LifecycleGuard {
+public:
+    explicit LifecycleGuard(std::atomic_flag &busy) : m_busy(busy), m_locked(!busy.test_and_set()) {}
+    ~LifecycleGuard() { if (m_locked) m_busy.clear(); }
+    explicit operator bool() const { return m_locked; }
+private:
+    std::atomic_flag &m_busy;
+    bool m_locked;
+};
+}
+static portMUX_TYPE s_instanceMux = portMUX_INITIALIZER_UNLOCKED;
 DisplayWX *DisplayWX::instance = nullptr;
 bool DisplayWX::sdcardOK = false;
 QueueHandle_t DisplayWX::xFilaLog;
@@ -86,62 +108,24 @@ void DisplayWX::logMemoriaSistema()
     );
 }
 
-namespace
-{
 
-uint32_t mascaraDeTodosOsNucleos()
-{
-    uint32_t mascara = 0;
-    for (int nucleo = 0; nucleo < portNUM_PROCESSORS; ++nucleo)
-    {
-        mascara |= (1u << nucleo);
-    }
-    return mascara;
-}
-
-} // namespace
 
 /**
- * @brief Liga ou desliga o watchdog das tarefas ociosas de todos os núcleos.
- *        true observa cada núcleo; false tira todos da máscara do TWDT.
+ * @brief Registers/unregisters the UI task without changing global watchdog policy.
  */
 void DisplayWX::changeWTD()
 {
-#if defined(CONFIG_ESP_TASK_WDT_TIMEOUT_S)
-    uint32_t timeoutMs = static_cast<uint32_t>(CONFIG_ESP_TASK_WDT_TIMEOUT_S) * 1000u;
-#else
-    uint32_t timeoutMs = 5000u;
-#endif
-    if (m_enableWTD && m_timeoutWTD > 0)
-    {
-        timeoutMs = static_cast<uint32_t>(m_timeoutWTD) * 1000u;
+    WidgetStateGuard state;
+    if (m_ending.load()) return;
+    if (!m_ownsInstance || !m_hndTaskEventoTouch) return;
+    if (m_enableWTD) {
+        esp_err_t status = esp_task_wdt_status(m_hndTaskEventoTouch);
+        if (status != ESP_OK) status = esp_task_wdt_add(m_hndTaskEventoTouch);
+        m_watchdogInitialized.store(status == ESP_OK);
+        if (status != ESP_OK) ESP_LOGW(TAG, "UI watchdog registration failed; configure TWDT in the application");
+    } else if (m_watchdogInitialized.exchange(false)) {
+        esp_task_wdt_delete(m_hndTaskEventoTouch);
     }
-    const uint32_t mascara = m_enableWTD ? mascaraDeTodosOsNucleos() : 0u;
-
-    esp_task_wdt_config_t config = {};
-    config.timeout_ms = timeoutMs;
-    config.idle_core_mask = mascara;
-    config.trigger_panic = true;
-
-    esp_err_t resultado = esp_task_wdt_reconfigure(&config);
-    if (resultado == ESP_ERR_INVALID_STATE)
-    {
-        resultado = esp_task_wdt_init(&config);
-    }
-    if (resultado != ESP_OK)
-    {
-        m_watchdogInitialized = false;
-        ESP_LOGE(TAG, "Failed to update watchdog on all cores: %s", esp_err_to_name(resultado));
-        return;
-    }
-
-    m_watchdogInitialized = m_enableWTD;
-    if (m_enableWTD)
-    {
-        ESP_LOGI(TAG, "Watchdog enabled on %d cores, timeout %u ms", portNUM_PROCESSORS, static_cast<unsigned>(timeoutMs));
-        return;
-    }
-    ESP_LOGI(TAG, "Watchdog disabled on all cores");
 }
 
 #ifdef DFK_SD
@@ -194,6 +178,8 @@ const char *DisplayWX::getLogFileName() const
  */
 void DisplayWX::setCheckbox(CheckBox *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_checkboxConfigured)
     {
         ESP_LOGW(TAG, "Checkbox already configured");
@@ -224,6 +210,8 @@ void DisplayWX::setCheckbox(CheckBox *array[], uint8_t amount)
  */
 void DisplayWX::setCircleButton(CircleButton *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_circleButtonConfigured)
     {
         ESP_LOGW(TAG, "CircleButton already configured");
@@ -254,6 +242,8 @@ void DisplayWX::setCircleButton(CircleButton *array[], uint8_t amount)
  */
 void DisplayWX::setGauge(GaugeSuper *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_gaugeConfigured)
     {
         ESP_LOGW(TAG, "Gauge already configured");
@@ -283,6 +273,8 @@ void DisplayWX::setGauge(GaugeSuper *array[], uint8_t amount)
  */
 void DisplayWX::setCircularBar(CircularBar *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_circularBarConfigured)
     {
         ESP_LOGW(TAG, "CircularBar already configured");
@@ -312,6 +304,8 @@ void DisplayWX::setCircularBar(CircularBar *array[], uint8_t amount)
  */
 void DisplayWX::setHSlider(HSlider *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_hSliderConfigured)
     {
         ESP_LOGW(TAG, "HSlider already configured");
@@ -341,6 +335,8 @@ void DisplayWX::setHSlider(HSlider *array[], uint8_t amount)
  */
 void DisplayWX::setLabel(Label *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_labelConfigured)
     {
         ESP_LOGW(TAG, "Label already configured");
@@ -368,6 +364,8 @@ void DisplayWX::setLabel(Label *array[], uint8_t amount)
  */
 void DisplayWX::setLed(Led *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_ledConfigured)
     {
         ESP_LOGW(TAG, "Led already configured");
@@ -397,6 +395,8 @@ void DisplayWX::setLed(Led *array[], uint8_t amount)
  */
 void DisplayWX::setLineChart(LineChart *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_lineChartConfigured)
     {
         ESP_LOGW(TAG, "LineChart already configured");
@@ -423,6 +423,8 @@ void DisplayWX::setLineChart(LineChart *array[], uint8_t amount)
  */
 void DisplayWX::setNumberbox(NumberBox *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_numberboxConfigured)
     {
         ESP_LOGW(TAG, "Numberbox already configured");
@@ -447,6 +449,8 @@ void DisplayWX::setNumberbox(NumberBox *array[], uint8_t amount)
  */
 void DisplayWX::openNumberBox(NumberBox *field)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (field == nullptr)
     {
         return;
@@ -459,6 +463,8 @@ void DisplayWX::openNumberBox(NumberBox *field)
  */
 void DisplayWX::setupNumpad()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     // m_pNumpad.setup();
     // DisplayWX::numpad = &m_pNumpad;
 }
@@ -469,6 +475,8 @@ void DisplayWX::setupNumpad()
  */
 void DisplayWX::insertCharNumpad(char c)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (DisplayWX::numpad)
     {
         DisplayWX::numpad->insertChar(c);
@@ -489,6 +497,8 @@ void DisplayWX::insertCharNumpad(char c)
  */
 void DisplayWX::setRadioGroup(RadioGroup *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_radioGroupConfigured)
     {
         ESP_LOGW(TAG, "RadioGroup already configured");
@@ -515,6 +525,8 @@ void DisplayWX::setRadioGroup(RadioGroup *array[], uint8_t amount)
  */
 void DisplayWX::setRectButton(RectButton *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_rectButtonConfigured)
     {
         ESP_LOGW(TAG, "RectButton already configured");
@@ -541,6 +553,8 @@ void DisplayWX::setRectButton(RectButton *array[], uint8_t amount)
  */
 void DisplayWX::setTextButton(TextButton *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_textButtonConfigured)
     {
         ESP_LOGW(TAG, "TextButton already configured");
@@ -567,6 +581,8 @@ void DisplayWX::setTextButton(TextButton *array[], uint8_t amount)
  */
 void DisplayWX::setSpinbox(SpinBox *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_spinboxConfigured)
     {
         ESP_LOGW(TAG, "SpinBox already configured");
@@ -593,6 +609,8 @@ void DisplayWX::setSpinbox(SpinBox *array[], uint8_t amount)
  */
 void DisplayWX::setTextbox(TextBox *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_textboxConfigured)
     {
         ESP_LOGW(TAG, "Textbox already configured");
@@ -617,6 +635,8 @@ void DisplayWX::setTextbox(TextBox *array[], uint8_t amount)
  */
 void DisplayWX::openTextBox(TextBox *field)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (field == nullptr)
     {
         return;
@@ -629,6 +649,8 @@ void DisplayWX::openTextBox(TextBox *field)
  */
 void DisplayWX::setupKeyboard()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     // m_pKeyboard.setup();
     // DisplayWX::keyboard = &m_pKeyboard;
 }
@@ -639,6 +661,8 @@ void DisplayWX::setupKeyboard()
  */
 void DisplayWX::insertCharTextbox(char c)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (DisplayWX::keyboard)
     {
         keyboard->insertChar(c);
@@ -659,6 +683,8 @@ void DisplayWX::insertCharTextbox(char c)
  */
 void DisplayWX::setThermometer(Thermometer *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_thermometerConfigured)
     {
         ESP_LOGW(TAG, "Thermometer already configured");
@@ -685,6 +711,8 @@ void DisplayWX::setThermometer(Thermometer *array[], uint8_t amount)
  */
 void DisplayWX::setToggle(ToggleButton *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_toggleConfigured)
     {
         ESP_LOGW(TAG, "Toggle already configured");
@@ -711,6 +739,8 @@ void DisplayWX::setToggle(ToggleButton *array[], uint8_t amount)
  */
 void DisplayWX::setTouchArea(TouchArea *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_touchAreaConfigured)
     {
         ESP_LOGW(TAG, "TouchArea already configured");
@@ -737,6 +767,8 @@ void DisplayWX::setTouchArea(TouchArea *array[], uint8_t amount)
  */
 void DisplayWX::setVAnalog(VAnalog *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_vAnalogConfigured)
     {
         ESP_LOGW(TAG, "VAnalog already configured");
@@ -763,6 +795,8 @@ void DisplayWX::setVAnalog(VAnalog *array[], uint8_t amount)
  */
 void DisplayWX::setVBar(VBar *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_vBarConfigured)
     {
         ESP_LOGW(TAG, "VBar already configured");
@@ -789,6 +823,8 @@ void DisplayWX::setVBar(VBar *array[], uint8_t amount)
  */
 void DisplayWX::setImage(Image *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_imageConfigured)
     {
         ESP_LOGW(TAG, "Image already configured");
@@ -811,6 +847,8 @@ void DisplayWX::setImage(Image *array[], uint8_t amount)
 
 void DisplayWX::setCameraMipi(CameraMipi *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_cameraMipiConfigured)
     {
         ESP_LOGW(TAG, "CameraMipi already configured");
@@ -877,6 +915,7 @@ bool DisplayWX::startSD(const SDConfig &config)
         ESP_LOGE(TAG, "startSD lock timeout");
         return false;
     }
+    if (!m_ownsInstance || m_ending.load()) return false;
     const bool mounted = displaywx::storage::SdSession::shared().mount(config, this);
     syncSdFlag();
     return mounted;
@@ -1054,6 +1093,8 @@ void DisplayWX::listFiles(fs::FS *fs, const char *dirname, uint8_t levels)
         {
             return;
         }
+        displaywx::storage::legacyList(fs, dirname, levels);
+        return;
     }
     displaywx::storage::legacyList(fs, dirname, levels);
 }
@@ -1067,6 +1108,8 @@ void DisplayWX::createDir(fs::FS *fs, const char *path)
         {
             return;
         }
+        displaywx::storage::legacyCreateDir(fs, path);
+        return;
     }
     displaywx::storage::legacyCreateDir(fs, path);
 }
@@ -1080,6 +1123,8 @@ void DisplayWX::readFile(fs::FS *fs, const char *path)
         {
             return;
         }
+        displaywx::storage::legacyReadToSerial(fs, path);
+        return;
     }
     displaywx::storage::legacyReadToSerial(fs, path);
 }
@@ -1093,6 +1138,8 @@ void DisplayWX::appendFile(fs::FS *fs, const char *path, const char *message)
         {
             return;
         }
+        displaywx::storage::legacyAppendLine(fs, path, message);
+        return;
     }
     displaywx::storage::legacyAppendLine(fs, path, message);
 }
@@ -1106,46 +1153,45 @@ void DisplayWX::writeFile(fs::FS *fs, const char *path, const char *message)
         {
             return;
         }
+        displaywx::storage::legacyWriteText(fs, path, message);
+        return;
     }
     displaywx::storage::legacyWriteText(fs, path, message);
 }
 
-void DisplayWX::appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
+bool DisplayWX::appendLog(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
 {
-    if (managedCard(fs))
-    {
+    if (managedCard(fs)) {
         displaywx::storage::SdGuard guard;
-        if (!lockMountedCard(guard))
-        {
-            return;
-        }
+        if (!lockMountedCard(guard)) return false;
+        return appendLogUnlocked(fs, path, lines, amount, createNewFile) == amount;
     }
-    appendLogUnlocked(fs, path, lines, amount, createNewFile);
+    return appendLogUnlocked(fs, path, lines, amount, createNewFile) == amount;
 }
 
-void DisplayWX::appendLogUnlocked(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
+uint8_t DisplayWX::appendLogUnlocked(fs::FS *fs, const char *path, const logMessage_t *lines, uint8_t amount, bool createNewFile)
 {
     if (fs == nullptr || path == nullptr || lines == nullptr)
     {
         ESP_LOGE(TAG, "appendLog invalid arguments");
-        return;
+        return 0;
     }
     if (amount == 0)
     {
-        return;
+        return 0;
     }
 
     fs::File file = fs->open(path, FILE_APPEND);
     if (!file)
     {
         ESP_LOGE(TAG, "appendLog failed to open %s", path);
-        return;
+        return 0;
     }
     if (file.isDirectory())
     {
         ESP_LOGE(TAG, "appendLog path is a directory: %s", path);
         file.close();
-        return;
+        return 0;
     }
 
     if (file.size() > LOG_MAX_SIZE)
@@ -1154,41 +1200,38 @@ void DisplayWX::appendLogUnlocked(fs::FS *fs, const char *path, const logMessage
         file.close();
         if (!createNewFile)
         {
-            return;
+            return 0;
         }
         if (generateNameFile() == nullptr)
         {
             ESP_LOGE(TAG, "Failed to rotate log file name");
-            return;
+            return 0;
         }
         const char header[] = "Start Log";
         if (!displaywx::storage::writeBytes(*fs, m_nameLogFile, reinterpret_cast<const uint8_t *>(header), strlen(header), false))
         {
-            return;
+            return 0;
         }
         file = fs->open(m_nameLogFile, FILE_APPEND);
         if (!file)
         {
             ESP_LOGE(TAG, "appendLog failed to open rotated file");
-            return;
+            return 0;
         }
     }
 
     uint8_t success = 0;
-    for (uint8_t i = 0; i < amount; ++i)
-    {
-        if (file.println(lines[i].line))
-        {
-            ++success;
-        }
-        else
-        {
-            ESP_LOGE(TAG, "appendLog failed");
-        }
+    for (uint8_t i = 0; i < amount; ++i) {
+        const size_t length = strnlen(lines[i].line, sizeof(lines[i].line));
+        if (length == sizeof(lines[i].line) ||
+            file.write(reinterpret_cast<const uint8_t*>(lines[i].line), length) != length ||
+            file.write(reinterpret_cast<const uint8_t*>("\r\n"), 2) != 2) break;
+        ++success;
     }
     file.flush();
+    if (file.getWriteError()) success = 0;
     file.close();
-    ESP_LOGD(TAG, "%u/%u lines appended", success, amount);
+    return success;
 }
 
 #endif
@@ -1210,53 +1253,14 @@ char DisplayWX::randomHexChar()
  */
 void DisplayWX::addLog(const char *data)
 {
-    // Robust input validation
-    if (!data)
-    {
-        ESP_LOGE(TAG, "Null data pointer");
-        return;
-    }
-
-    if (!validateInput(data, MAX_LINE_LENGTH - 1))
-    {
-        ESP_LOGE(TAG, "Invalid log data");
-        return;
-    }
-
-    if (DisplayWX::xFilaLog == NULL)
-    {
-        ESP_LOGE(TAG, "Log queue not initialized");
-        return;
-    }
-
-    if (uxQueueSpacesAvailable(DisplayWX::xFilaLog) <= 0)
-    {
-        ESP_LOGE(TAG, "Log queue is full");
-        return;
-    }
-
-    // Process log with safety
-    const size_t lengthLine = strlen(data) + 1;
-    const size_t max_length = std::min(lengthLine, static_cast<size_t>(MAX_LINE_LENGTH));
-
-    logMessage_t message;
-    strncpy(message.line, data, max_length - 1);
-    message.line[max_length - 1] = '\0'; // Ensure null termination
-    message.line_length = max_length;
-
-    BaseType_t ret = xQueueSend(DisplayWX::xFilaLog, &message, 0);
-    if (ret == pdTRUE)
-    {
-        ESP_LOGD(TAG, "Log message queued: %s", message.line);
-    }
-    else if (ret == errQUEUE_FULL)
-    {
-        ESP_LOGE(TAG, "Unable to send log data into the Queue");
-    }
-    else
-    {
-        ESP_LOGE(TAG, "Failed to queue log message: %d", ret);
-    }
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load() || !data) return;
+    logMessage_t message = {};
+    const size_t length = strnlen(data, sizeof(message.line));
+    if (length >= sizeof(message.line) || !xFilaLog) { ++m_droppedLogs; return; }
+    memcpy(message.line, data, length + 1);
+    message.line_length = static_cast<uint8_t>(length + 1);
+    if (xQueueSend(xFilaLog, &message, 0) != pdPASS) ++m_droppedLogs;
 }
 
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -1267,6 +1271,8 @@ CameraController &DisplayWX::getCamera()
 
 void DisplayWX::setRotationCamera(uint8_t rotation, bool mirrorX, bool mirrorY)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (rotation > 3)
     {
         ESP_LOGE(TAG, "Camera rotation must be 0..3");
@@ -1279,16 +1285,21 @@ void DisplayWX::setRotationCamera(uint8_t rotation, bool mirrorX, bool mirrorY)
 
 bool DisplayWX::startCamera(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load() || m_hndTaskCamera) return false;
     return m_camera.begin(sccbPort, sclPin, sdaPin, i2cFreq, resetPin, pwdnPin, sensorWidth, sensorHeight);
 }
 
 bool DisplayWX::isCameraReady() const
 {
+    WidgetStateGuard state;
     return m_camera.isReady();
 }
 
 void DisplayWX::setCameraPreviewFps(uint8_t fps)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (fps < 5 || fps > 24)
     {
         ESP_LOGW(TAG, "camera preview fps %u clamped to 5..24", (unsigned)fps);
@@ -1306,6 +1317,7 @@ void DisplayWX::setCameraPreviewFps(uint8_t fps)
 
 uint8_t DisplayWX::cameraPreviewFps() const
 {
+    WidgetStateGuard state;
     return m_cameraPreviewFps;
 }
 #endif
@@ -1314,10 +1326,19 @@ uint8_t DisplayWX::cameraPreviewFps() const
  * @brief Constructor of the DisplayWX class
  */
 DisplayWX::DisplayWX()
-    : m_hndTaskEventoTouch(nullptr), m_runningTransaction(false), m_configs(), m_timer(nullptr), m_intervalMs(0), m_xAutoClick(0), m_yAutoClick(0), m_simulateAutoClick(false), m_debugTouch(false), m_x0(0), m_y0(0), m_x1(0), m_y1(0), m_invertXAxis(false), m_invertYAxis(false), m_swapAxis(false), m_widthScreen(0), m_heightScreen(0), m_rotationScreen(0), m_timeoutWTD(0), m_enableWTD(false), m_watchdogInitialized(false), m_loopSemaphore(nullptr), m_transactionSemaphore(nullptr), m_lastTouchState(TouchEventType::NONE), m_lastTouchSwipeDirection(TouchSwipeDirection::NONE)
+    : m_hndTaskEventoTouch(nullptr), m_configs(), m_intervalMs(0), m_xAutoClick(0), m_yAutoClick(0), m_debugTouch(false), m_x0(0), m_y0(0), m_x1(0), m_y1(0), m_invertXAxis(false), m_invertYAxis(false), m_swapAxis(false), m_widthScreen(0), m_heightScreen(0), m_rotationScreen(0), m_timeoutWTD(0), m_enableWTD(false), m_watchdogInitialized(false), m_loopSemaphore(nullptr), m_transactionSemaphore(nullptr), m_lastTouchState(TouchEventType::NONE), m_lastTouchSwipeDirection(TouchSwipeDirection::NONE)
 {
     // Set instance pointer (must be done first)
-    DisplayWX::instance = this;
+    portENTER_CRITICAL(&s_instanceMux);
+    if (DisplayWX::instance == nullptr) {
+        DisplayWX::instance = this;
+        m_ownsInstance = true;
+    }
+    portEXIT_CRITICAL(&s_instanceMux);
+    if (!m_ownsInstance) {
+        ESP_LOGE(TAG, "Only one live DisplayWX instance is supported");
+        return;
+    }
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     m_cameraRotation = 0;
     m_cameraMirrorX = false;
@@ -1526,60 +1547,68 @@ bool DisplayWX::validateInitialization() const
     return true;
 }
 
-bool DisplayWX::waitForUiTaskToStop()
+static bool workerHasStopped(TaskHandle_t handle, bool acknowledged)
 {
-    const bool waitUi = m_hndTaskEventoTouch != nullptr;
-#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-    const bool waitCamera = m_hndTaskCamera != nullptr;
-#else
-    const bool waitCamera = false;
-#endif
-    if (!waitUi && !waitCamera)
-    {
-        m_taskStopped.store(true);
-        return true;
-    }
+    if (!handle) return true;
+    if (!acknowledged || eTaskGetState(handle) != eSuspended) return false;
+    // A remote core can mark itself suspended just before switching stacks.
+    // Do not recycle its static TCB/stack until it has actually switched out.
+    for (BaseType_t core = 0; core < portNUM_PROCESSORS; ++core)
+        if (xTaskGetCurrentTaskHandleForCore(core) == handle) return false;
+    return true;
+}
 
-    m_stopWaiter = xTaskGetCurrentTaskHandle();
+bool DisplayWX::waitForUiTaskToStop(uint32_t timeoutMs)
+{
     m_stopTask.store(true);
-    if (waitUi)
-    {
-        xTaskNotifyGive(m_hndTaskEventoTouch);
-    }
-#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-    if (waitCamera)
-    {
-        xTaskNotifyGive(m_hndTaskCamera);
-    }
+    const TaskHandle_t caller = xTaskGetCurrentTaskHandle();
+    if (caller == m_hndTaskEventoTouch) return false;
+#if defined(DFK_LOGGING)
+    if (caller == m_hndTaskLog) return false;
+    if (m_hndTaskLog) xTaskNotifyGive(m_hndTaskLog);
 #endif
-
-    const uint32_t startMs = millis();
-    while ((millis() - startMs) < 500)
-    {
-        const bool uiDone = !waitUi || m_taskStopped.load();
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-        const bool cameraDone = !waitCamera || m_cameraTaskStopped.load();
+    if (caller == m_hndTaskCamera) return false;
+#endif
+    if (m_hndTaskEventoTouch) xTaskNotifyGive(m_hndTaskEventoTouch);
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    if (m_hndTaskCamera) xTaskNotifyGive(m_hndTaskCamera);
+#endif
+    const uint32_t started = millis();
+    for (;;) {
+        const bool uiDone = workerHasStopped(m_hndTaskEventoTouch, m_taskStopped.load());
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+        const bool cameraDone = workerHasStopped(m_hndTaskCamera, m_cameraTaskStopped.load());
 #else
         const bool cameraDone = true;
 #endif
-        if (uiDone && cameraDone)
-        {
-            break;
-        }
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50));
+#if defined(DFK_LOGGING)
+        const bool logDone = workerHasStopped(m_hndTaskLog, m_logTaskStopped.load());
+#else
+        const bool logDone = true;
+#endif
+        if (uiDone && cameraDone && logDone && m_loopWaiters.load() == 0) break;
+        if (timeoutMs != UINT32_MAX && millis() - started >= timeoutMs) return false;
+        vTaskDelay(1);
     }
-    m_stopWaiter = nullptr;
-
-    if (waitUi && !m_taskStopped.load())
-    {
-        ESP_LOGE(TAG, "UI task stop timed out");
-        return false;
+    const uint32_t elapsed = millis() - started;
+    const TickType_t lockWait = timeoutMs == UINT32_MAX ? portMAX_DELAY :
+        pdMS_TO_TICKS(elapsed >= timeoutMs ? 0 : timeoutMs - elapsed);
+    WidgetStateGuard state(lockWait);
+    if (!state) return false;
+#if defined(DFK_LOGGING)
+    if (m_hndTaskLog) { vTaskDelete(m_hndTaskLog); m_hndTaskLog = nullptr; }
+#endif
+    // Suspended workers no longer touch this object. Deletion completes before
+    // reusing the static stacks/TCBs; workers never delete themselves.
+    if (m_hndTaskEventoTouch) {
+        vTaskDelete(m_hndTaskEventoTouch);
+        m_hndTaskEventoTouch = nullptr;
     }
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-    if (waitCamera && !m_cameraTaskStopped.load())
-    {
-        ESP_LOGE(TAG, "Camera task stop timed out");
-        return false;
+    if (m_hndTaskCamera) {
+        vTaskDelete(m_hndTaskCamera);
+        m_hndTaskCamera = nullptr;
     }
 #endif
     return true;
@@ -1587,51 +1616,25 @@ bool DisplayWX::waitForUiTaskToStop()
 
 void DisplayWX::stopUiTaskAndDelete()
 {
-    if (m_transactionSemaphore != nullptr && xSemaphoreGetMutexHolder(m_transactionSemaphore) == xTaskGetCurrentTaskHandle())
-    {
-        xSemaphoreGive(m_transactionSemaphore);
-    }
-
 #if defined(HAS_TOUCH)
-    if (touchExterno)
     {
-        touchExterno->disarmInterruptNotify();
+        WidgetStateGuard state;
+        if (touchExterno) touchExterno->disarmInterruptNotify();
     }
 #endif
-
-    WidgetBase::usingKeyboard = false;
-    m_ignoreOpeningTouch = false;
-#if defined(DFK_NUMBERBOX)
-    m_numpadActive = false;
-    m_numpadTouchWasDown = false;
-#endif
-
-    TaskHandle_t waiter = m_stopWaiter;
-    m_hndTaskEventoTouch = nullptr;
+    if (m_watchdogInitialized.exchange(false)) esp_task_wdt_delete(nullptr);
     m_taskStopped.store(true);
-    if (waiter != nullptr)
-    {
-        xTaskNotifyGive(waiter);
-    }
-    vTaskDelete(nullptr);
+    // The owner observes eSuspended and deletes this task. No more object access.
+    for (;;) vTaskSuspend(nullptr);
 }
 
 void DisplayWX::cleanupFreeRTOSResources()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_hndTaskEventoTouch || m_loopWaiters.load()) return;
     ESP_LOGD(TAG, "Cleaning up FreeRTOS resources");
 
-    // Stop and delete auto-click timer
-    if (m_timer != nullptr)
-    {
-        if (xTimerIsTimerActive(m_timer))
-        {
-            xTimerStop(m_timer, 0);
-            ESP_LOGD(TAG, "Auto-click timer stopped");
-        }
-        xTimerDelete(m_timer, 0);
-        m_timer = nullptr;
-        ESP_LOGD(TAG, "Auto-click timer deleted");
-    }
+    m_autoClickActive = false;
 
     // Delete loop semaphore
     if (m_loopSemaphore != nullptr)
@@ -1644,8 +1647,7 @@ void DisplayWX::cleanupFreeRTOSResources()
     // Delete transaction semaphore
     if (m_transactionSemaphore != nullptr)
     {
-        vSemaphoreDelete(m_transactionSemaphore);
-        m_transactionSemaphore = nullptr;
+        m_transactionSemaphore = nullptr; // Shared static widget mutex remains alive.
         ESP_LOGD(TAG, "Transaction semaphore deleted");
     }
 
@@ -1672,6 +1674,8 @@ void DisplayWX::cleanupFreeRTOSResources()
  */
 void DisplayWX::cleanupDynamicMemory()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_hndTaskEventoTouch || m_loopWaiters.load()) return;
     ESP_LOGD(TAG, "Cleaning up dynamic memory");
 
 #ifdef DFK_SD
@@ -1697,6 +1701,8 @@ void DisplayWX::cleanupDynamicMemory()
  */
 void DisplayWX::cleanupWidgets()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_hndTaskEventoTouch || m_loopWaiters.load()) return;
     ESP_LOGD(TAG, "Cleaning up widget resources");
 
 // Clean up smart pointers (automatic cleanup)
@@ -1739,7 +1745,7 @@ bool DisplayWX::validateCleanup() const
     ESP_LOGD(TAG, "Validating cleanup");
 
     // Check FreeRTOS resources
-    if (m_timer != nullptr)
+    if (m_autoClickActive)
     {
         ESP_LOGE(TAG, "Timer not properly cleaned up");
         return false;
@@ -1818,31 +1824,72 @@ bool DisplayWX::validateCleanup() const
  */
 void DisplayWX::cleanup()
 {
-    ESP_LOGD(TAG, "Manual cleanup started");
+    if (!end()) ESP_LOGW(TAG, "Cleanup pending: stop callers and retry end() before destroying DisplayWX");
+}
 
-    // Clean up resources in proper order
-    cleanupFreeRTOSResources();
-    cleanupDynamicMemory();
-    cleanupWidgets();
-    cleanupStringPool();
-
-#ifdef DFK_SD
-    endSD();
-#else
-    sdcardOK = false;
+bool DisplayWX::end(uint32_t timeoutMs)
+{
+    LifecycleGuard lifecycle(m_lifecycleBusy);
+    if (!lifecycle) return false;
+    if (!m_ownsInstance) return false;
+    bool expected = false;
+    if (!m_ending.compare_exchange_strong(expected, true)) return false;
+    const uint32_t shutdownStarted = millis();
+    const auto remaining = [&]() -> uint32_t {
+        if (timeoutMs == UINT32_MAX) return UINT32_MAX;
+        const uint32_t elapsed = millis() - shutdownStarted;
+        return elapsed >= timeoutMs ? 0 : timeoutMs - elapsed;
+    };
+    if (!waitForUiTaskToStop(remaining())) {
+        m_ending.store(false);
+        return false;
+    }
+    {
+        const uint32_t left = remaining();
+        WidgetStateGuard state(left == UINT32_MAX ? portMAX_DELAY : pdMS_TO_TICKS(left));
+        if (!state) { m_ending.store(false); return false; }
+#if defined(HAS_CAMERA_MIPI) || defined(TOUCH_GSL3680)
+        struct ShutdownBusGuard {
+            bool held;
+            explicit ShutdownBusGuard(uint32_t timeout) : held(TouchI2c.lock(timeout)) {}
+            ~ShutdownBusGuard() { if (held) TouchI2c.unlock(); }
+        } bus(remaining());
+        if (!bus.held) { m_ending.store(false); return false; }
 #endif
-    logIndex = 0;
-    logFileCount = 1;
-
-    // Validate cleanup
-    if (!validateCleanup())
-    {
-        ESP_LOGE(TAG, "Manual cleanup validation failed");
+#ifdef DFK_SD
+        if (!endSdWaiting(remaining())) {
+            m_ending.store(false);
+            return false;
+        }
+#endif
+        m_autoClickActive = false;
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+        m_camera.end();
+        releaseCameraFrameCopy();
+        m_pendingCameraConfig = nullptr;
+        heap_caps_free(m_cameraPreviewFb);
+        m_cameraPreviewFb = nullptr;
+        m_cameraPreviewFbBytes = 0;
+        m_cameraRoi.reset();
+        m_cameraRoiActive = false;
+#endif
+        m_droppedLogs.fetch_add(logIndex + (xFilaLog ? uxQueueMessagesWaiting(xFilaLog) : 0));
+        logIndex = 0;
+        cleanupFreeRTOSResources();
+        cleanupDynamicMemory();
+        cleanupWidgets();
+        cleanupStringPool();
+#if defined(HAS_CAMERA_MIPI) || defined(TOUCH_GSL3680)
+        if (!TouchI2c.end()) { m_ending.store(false); return false; }
+#endif
+        WidgetBase::usingKeyboard = false;
+        WidgetBase::loadScreen.store(nullptr);
+        logIndex = 0;
+        logFileCount = 1;
+        m_ended = true;
     }
-    else
-    {
-        ESP_LOGD(TAG, "Manual cleanup completed successfully");
-    }
+    m_ending.store(false);
+    return true;
 }
 
 /**
@@ -1850,9 +1897,18 @@ void DisplayWX::cleanup()
  */
 void DisplayWX::blockLoopTask()
 {
-    // Tenta pegar o semáforo (sem timeout, bloqueia até conseguir)
-    if (m_loopSemaphore != nullptr && WidgetBase::usingKeyboard == false)
-        xSemaphoreTake(m_loopSemaphore, portMAX_DELAY);
+    SemaphoreHandle_t semaphore = nullptr;
+    {
+        WidgetStateGuard state;
+        if (!m_ownsInstance || m_ending.load() || m_ended.load() ||
+            !m_loopSemaphore || WidgetBase::usingKeyboard) return;
+        semaphore = m_loopSemaphore;
+        m_loopWaiters.fetch_add(1);
+    }
+    while (!m_stopTask.load()) {
+        if (xSemaphoreTake(semaphore, pdMS_TO_TICKS(30)) == pdTRUE) break;
+    }
+    m_loopWaiters.fetch_sub(1); // Last object access: end() can now release it.
 }
 
 /**
@@ -1860,41 +1916,16 @@ void DisplayWX::blockLoopTask()
  */
 void DisplayWX::freeLoopTask()
 {
-    // Libera o semáforo para permitir que a Task continue
-    if (m_loopSemaphore != nullptr && WidgetBase::usingKeyboard == false)
+    WidgetStateGuard state;
+    if (m_ownsInstance && !m_ending.load() && m_loopSemaphore && !WidgetBase::usingKeyboard)
         xSemaphoreGive(m_loopSemaphore);
 }
 
 void DisplayWX::startKeyboards()
 {
-#ifdef DFK_TEXTBOX
-    if (!keyboard)
-    {
-        keyboard = std::unique_ptr<WKeyboard>(new WKeyboard());
-        if (keyboard)
-        {
-            keyboard->setup();
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for keyboard");
-        }
-    }
-#endif
-#ifdef DFK_NUMBERBOX
-    if (!numpad)
-    {
-        numpad = std::unique_ptr<Numpad>(new Numpad());
-        if (numpad)
-        {
-            numpad->setup();
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for numpad");
-        }
-    }
-#endif
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
+    if (!m_ownsInstance || !startKeyboardsSafe()) ESP_LOGE(TAG, "Keyboard initialization failed");
 }
 
 /**
@@ -1902,45 +1933,16 @@ void DisplayWX::startKeyboards()
  */
 DisplayWX::~DisplayWX()
 {
-    ESP_LOGD(TAG, "DisplayWX destructor started");
-
-    if (!waitForUiTaskToStop())
-    {
-        ESP_LOGE(TAG, "UI task still running; destructor left shared resources in place");
-        return;
+    if (!m_ownsInstance) return;
+    // Returning from a destructor cannot preserve the object's lifetime.
+    // Destruction from the object's own worker/callback is a programming error.
+    if (!end(UINT32_MAX)) {
+        ESP_LOGE(TAG, "DisplayWX must be destroyed by its owner after end(), never from its callback");
+        abort();
     }
-
-#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
-    if (m_cameraPreviewFb)
-    {
-        heap_caps_free(m_cameraPreviewFb);
-        m_cameraPreviewFb = nullptr;
-        m_cameraPreviewFbBytes = 0;
-    }
-    releaseCameraFrameCopy();
-#endif
-
-    // Clean up resources in proper order
-    cleanupFreeRTOSResources();
-    cleanupDynamicMemory();
-    cleanupWidgets();
-    cleanupStringPool();
-
-#ifdef DFK_SD
-    endSdWaiting(displaywx::storage::SdGuard::kWaitForever);
-#else
-    sdcardOK = false;
-#endif
-    logIndex = 0;
-    logFileCount = 1;
-
-    // Validate cleanup
-    if (!validateCleanup())
-    {
-        ESP_LOGE(TAG, "Cleanup validation failed");
-    }
-
-    ESP_LOGD(TAG, "DisplayWX destructor completed");
+    portENTER_CRITICAL(&s_instanceMux);
+    if (DisplayWX::instance == this) DisplayWX::instance = nullptr;
+    portEXIT_CRITICAL(&s_instanceMux);
 }
 
 /**
@@ -1948,53 +1950,37 @@ DisplayWX::~DisplayWX()
  */
 void DisplayWX::setup()
 {
-    ESP_LOGD(TAG, "Initializing queues");
-    DisplayWX::xFilaLog = xQueueCreate(LOG_LENGTH, sizeof(logMessage_t));
-    if (WidgetBase::xFilaCallback == nullptr)
-    {
-        WidgetBase::xFilaCallback = xQueueCreate(16, sizeof(functionCB_t));
-        if (WidgetBase::xFilaCallback == nullptr)
-        {
-            ESP_LOGE(TAG, "Fail while creating callback queue");
-        }
-        else
-        {
-            ESP_LOGD(TAG, "Callback queue created");
-        }
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
+    if (!createSemaphoreSafe()) return;
+    bool newLogQueue = false;
+#if defined(DFK_LOGGING)
+    newLogQueue = xFilaLog == nullptr;
+    if (newLogQueue) xFilaLog = xQueueCreate(LOG_LENGTH, sizeof(logMessage_t));
+    if (!xFilaLog) return;
+#endif
+    if (!WidgetBase::xFilaCallback) WidgetBase::xFilaCallback = xQueueCreate(16, sizeof(functionCB_t));
+    if (!WidgetBase::xFilaCallback) {
+        if (newLogQueue) { vQueueDelete(xFilaLog); xFilaLog = nullptr; }
+        return;
     }
-    if (DisplayWX::xFilaLog == NULL)
-    {
-        ESP_LOGE(TAG, "Fail while creating log queue");
-    }
-    else
-    {
-        ESP_LOGD(TAG, "Log queue created");
-    }
+    m_ended = false;
 }
 
 /**
  * @brief Starts a drawing transaction
  */
-void DisplayWX::startCustomDraw()
+bool DisplayWX::startCustomDraw(uint32_t timeoutMs)
 {
-    if (!m_transactionSemaphore)
-    {
-        ESP_LOGE(TAG, "Transaction semaphore not initialized");
-        return;
+    if (!m_ownsInstance) return false;
+    const TickType_t wait = timeoutMs == UINT32_MAX ? portMAX_DELAY : pdMS_TO_TICKS(timeoutMs);
+    SemaphoreHandle_t mutex = dwx_widget_mutex(); // Static lifetime; shutdown cannot invalidate it.
+    if (xSemaphoreTakeRecursive(mutex, wait) != pdTRUE) return false;
+    if (m_ending.load() || m_ended.load()) {
+        xSemaphoreGiveRecursive(mutex);
+        return false;
     }
-
-    if (m_runningTransaction)
-    {
-        return;
-    }
-
-    if (xSemaphoreTake(m_transactionSemaphore, pdMS_TO_TICKS(100)) != pdTRUE)
-    {
-        ESP_LOGE(TAG, "startCustomDraw timed out");
-        return;
-    }
-
-    m_runningTransaction = true;
+    return true;
 }
 
 /**
@@ -2002,19 +1988,9 @@ void DisplayWX::startCustomDraw()
  */
 void DisplayWX::finishCustomDraw()
 {
-    if (!m_transactionSemaphore)
-    {
-        ESP_LOGE(TAG, "Transaction semaphore not initialized");
-        return;
-    }
-
-    if (!m_runningTransaction)
-    {
-        return;
-    }
-
-    m_runningTransaction = false;
-    xSemaphoreGive(m_transactionSemaphore);
+    SemaphoreHandle_t mutex = dwx_widget_mutex();
+    if (m_ownsInstance && xSemaphoreGetMutexHolder(mutex) == xTaskGetCurrentTaskHandle())
+        xSemaphoreGiveRecursive(mutex);
 }
 
 #if defined(USING_GRAPHIC_LIB)
@@ -2024,6 +2000,8 @@ void DisplayWX::finishCustomDraw()
  */
 void DisplayWX::setFontNormal(const GFXfont *_font)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::fontNormal = _font;
 }
 
@@ -2033,6 +2011,8 @@ void DisplayWX::setFontNormal(const GFXfont *_font)
  */
 void DisplayWX::setFontBold(const GFXfont *_font)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::fontBold = _font;
 }
 #endif
@@ -2048,8 +2028,10 @@ void DisplayWX::setFontBold(const GFXfont *_font)
  */
 void DisplayWX::startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *_sharedSPI = nullptr)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     ESP_LOGE(TAG, "startTouch not implemented.");
-    /*touchExterno = new TouchScreen();
+    /*touchExterno = new (std::nothrow) TouchScreen();
 
     if (touchExterno)
     {
@@ -2059,6 +2041,8 @@ void DisplayWX::startTouch(uint16_t w, uint16_t h, uint8_t _rotation, SPIClass *
 
 void DisplayWX::setTouchCorners(int x0, int x1, int y0, int y1)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_x0 = x0;
     m_x1 = x1;
     m_y0 = y0;
@@ -2070,18 +2054,24 @@ void DisplayWX::setTouchCorners(int x0, int x1, int y0, int y1)
 
 void DisplayWX::setInvertAxis(bool invertX, bool invertY)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_invertXAxis = invertX;
     m_invertYAxis = invertY;
 }
 
 void DisplayWX::setSwapAxis(bool swap)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_swapAxis = swap;
 }
 
 #if defined(DFK_TOUCH_XPT2046)
 void DisplayWX::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinCS, SPIClass *_sharedSPI, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     // Robust input validation
     if (!validateDimensions(w, h))
     {
@@ -2121,196 +2111,140 @@ void DisplayWX::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsXPT2046(w, h, _rotation, -1, -1, -1, pinCS, _sharedSPI, _objTFT, touchFrequency, displayFrequency, displayPinCS);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsXPT2046(w, h, _rotation, -1, -1, -1, pinCS, _sharedSPI, _objTFT, touchFrequency, displayFrequency, displayPinCS);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 void DisplayWX::startTouchXPT2046(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSclk, int8_t pinMosi, int8_t pinMiso, int8_t pinCS, Arduino_GFX *_objTFT, int touchFrequency, int displayFrequency, int displayPinCS)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsXPT2046(w, h, _rotation, pinSclk, pinMosi, pinMiso, pinCS, nullptr, _objTFT, touchFrequency, displayFrequency, displayPinCS);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsXPT2046(w, h, _rotation, pinSclk, pinMosi, pinMiso, pinCS, nullptr, _objTFT, touchFrequency, displayFrequency, displayPinCS);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_FT6236U)
 void DisplayWX::startTouchFT6236U(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, uint8_t pinINT, int8_t pinRST)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsFT6236U(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsFT6236U(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_FT6336)
 void DisplayWX::startTouchFT6336(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsFT6336(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsFT6336(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_CST816)
 void DisplayWX::startTouchCST816(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::make_unique<TouchScreen>();
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsCST816(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsCST816(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_GT911)
 void DisplayWX::startTouchGT911(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsGT911(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsGT911(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_GT911_WAVESHARE)
 void DisplayWX::startTouchGT911Waveshare(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsGT911Waveshare(w, h, _rotation, pinSDA, pinSCL);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsGT911Waveshare(w, h, _rotation, pinSDA, pinSCL);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_GSL3680)
 void DisplayWX::startTouchGSL3680(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsGSL3680(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsGSL3680(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #elif defined(TOUCH_CST820)
 void DisplayWX::startTouchCST820(uint16_t w, uint16_t h, uint8_t _rotation, int8_t pinSDA, int8_t pinSCL, int8_t pinINT, int8_t pinRST)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_widthScreen = w;
     m_rotationScreen = _rotation;
     m_heightScreen = h;
-    if (!touchExterno)
-    {
-        touchExterno = std::unique_ptr<TouchScreen>(new TouchScreen());
-        if (touchExterno)
-        {
-            touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
-            touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
-            touchExterno->setSwapAxis(m_swapAxis);
-            touchExterno->startAsCST820(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen");
-        }
-    }
+    if (!touchExterno) touchExterno.reset(new (std::nothrow) TouchScreen());
+    if (!touchExterno) { ESP_LOGE(TAG, "Failed to allocate memory for TouchScreen"); return; }
+    touchExterno->setTouchCorners(m_x0, m_x1, m_y0, m_y1);
+    touchExterno->setInvertAxis(m_invertXAxis, m_invertYAxis);
+    touchExterno->setSwapAxis(m_swapAxis);
+    touchExterno->startAsCST820(w, h, _rotation, pinSDA, pinSCL, pinINT, pinRST);
+    if (m_hndTaskEventoTouch) touchExterno->armInterruptNotify(m_hndTaskEventoTouch);
 }
 #endif
 
@@ -2322,11 +2256,13 @@ void DisplayWX::startTouchCST820(uint16_t w, uint16_t h, uint8_t _rotation, int8
  */
 void DisplayWX::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     CHECK_TFT_VOID
     uint32_t startMillis = millis();
 
     WidgetBase::currentScreen = currentScreenIndex;
-    ESP_LOGD(TAG, "Drawing widgets of screen:%i", WidgetBase::currentScreen);
+    ESP_LOGD(TAG, "Drawing widgets of screen:%i", WidgetBase::currentScreen.load());
 
 #if defined(DFK_TOUCHAREA)
     if (m_touchAreaConfigured)
@@ -2641,12 +2577,14 @@ void DisplayWX::drawWidgetsOnScreen(const uint8_t currentScreenIndex)
 
 /**
  * @brief Creates the event processing task.
- *        enableWatchdog true liga o watchdog ocioso de todos os núcleos;
- *        false desliga o watchdog ocioso de todos os núcleos.
- *        timeout_s é o tempo, em segundos, usado quando o watchdog é ligado.
+ *        enableWatchdog registers only the UI task with the existing task WDT.
+ *        The application owns global WDT configuration; timeout_s is retained for compatibility.
  */
 void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
 {
+    LifecycleGuard lifecycle(m_lifecycleBusy);
+    if (!lifecycle) return;
+    WidgetStateGuard state;
     if (m_hndTaskEventoTouch != nullptr)
     {
         ESP_LOGW(TAG, "UI task already exists, skipping createTask");
@@ -2658,8 +2596,14 @@ void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
     m_timeoutWTD = timeout_s;
     m_enableWTD = enableWatchdog;
 
+    if (!m_ownsInstance || m_ending.load()) return;
     this->setup();
-    this->startKeyboards();
+    if (!WidgetBase::xFilaCallback || !m_transactionSemaphore || !startKeyboardsSafe()) return;
+#if defined(DFK_LOGGING)
+    if (!xFilaLog) return;
+#endif
+    m_stopTask.store(false);
+    m_taskStopped.store(false);
 
     /*
     ESP_ARDUINO_VERSION;
@@ -2706,10 +2650,17 @@ void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
     if (m_hndTaskEventoTouch == nullptr)
     {
         ESP_LOGE(TAG, "Cant create task to read touch or draw widgets");
-        changeWTD();
+        m_taskStopped.store(true);
         return;
     }
 
+#if defined(DFK_LOGGING)
+    if (!m_hndTaskLog) {
+        m_logTaskStopped.store(false);
+        m_hndTaskLog = xTaskCreateStatic(DisplayWX::TaskLog, "DisplayWXLog", sizeof(s_logTaskStack), this, 1, s_logTaskStack, &s_logTaskTcb);
+        if (!m_hndTaskLog) { m_logTaskStopped.store(true); ESP_LOGE(TAG, "Log worker creation failed"); }
+    }
+#endif
     if (portNUM_PROCESSORS > 1)
     {
         ESP_LOGD(TAG, "UI task pinned to core %d with priority %u, stack %u bytes", static_cast<int>(kUiTaskCore), static_cast<unsigned>(kUiTaskPriority), static_cast<unsigned>(kUiTaskStackBytes));
@@ -2763,6 +2714,8 @@ void DisplayWX::createTask(bool enableWatchdog, uint16_t timeout_s)
  */
 void DisplayWX::drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], const uint8_t _mask[], uint16_t _w, uint16_t _h)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     for (auto i = 0; i < _w; ++i)
     {
         for (auto j = 0; j < _h; ++j)
@@ -2788,22 +2741,15 @@ void DisplayWX::drawPng(uint16_t _x, uint16_t _y, const uint16_t _colors[], cons
  */
 void DisplayWX::processCallback()
 {
-    if (!WidgetBase::xFilaCallback)
-    {
-        return;
-    }
-
-    functionCB_t cb = nullptr;
-    for (uint8_t ran = 0; ran < 8; ran++)
-    {
-        if (xQueueReceive(WidgetBase::xFilaCallback, &cb, 0) != pdPASS)
+    const uint32_t started = micros();
+    for (uint8_t ran = 0; ran < 8 && !m_stopTask.load(); ++ran) {
+        functionCB_t callback = nullptr;
         {
-            return;
+            WidgetStateGuard state;
+            if (!WidgetBase::xFilaCallback || xQueueReceive(WidgetBase::xFilaCallback, &callback, 0) != pdPASS) return;
         }
-        if (cb != nullptr)
-        {
-            cb();
-        }
+        if (callback) callback();
+        if (micros() - started >= DFK_CALLBACK_BUDGET_US) break;
     }
 }
 
@@ -2812,63 +2758,34 @@ void DisplayWX::processCallback()
  */
 void DisplayWX::processLogQueue()
 {
-
-    if (!xFilaLog)
-        return;
-
-    logMessage_t messageInLog;
-    int retornoLog = xQueueReceive(xFilaLog, &messageInLog, 0);
-
-    if (retornoLog == pdPASS)
-    {
-        Serial.printf("ADD LOG FILE\t-->\t%i\t%s\n", messageInLog.line_length, messageInLog.line);
-
-        if (logIndex >= LOG_LENGTH)
-        {
-            ESP_LOGE(TAG, "Log buffer overflow");
-            return;
-        }
-
-        memcpy(&bufferLog[logIndex], &messageInLog, sizeof(messageInLog));
-        logIndex++;
-
-        if (logIndex >= (LOG_LENGTH * 0.8))
-        {
-            processLogBuffer();
-        }
-    }
+    if (!xFilaLog) return;
+    // A full pending batch is retried even when no further messages arrive.
+    if (logIndex && millis() - m_logLastFlushMs >= 1000) processLogBuffer();
+    while (logIndex < LOG_LENGTH &&
+           xQueueReceive(xFilaLog, &bufferLog[logIndex], 0) == pdPASS) ++logIndex;
+    if (logIndex && millis() - m_logLastFlushMs >= 1000) processLogBuffer();
 }
 
 /**
  * @brief Processes the log buffer
  */
-void DisplayWX::processLogBuffer()
+bool DisplayWX::processLogBuffer()
 {
-#ifndef DFK_SD
-    logIndex = 0;
-    return;
+    m_logLastFlushMs = millis();
+    if (!logIndex) return true;
+#ifdef DFK_SD
+    displaywx::storage::SdGuard guard;
+    if (!lockMountedCard(guard)) return false;
+    if (!m_nameLogFile && !generateNameFile()) return false;
+    const uint8_t written = appendLogUnlocked(displaywx::storage::SdSession::shared().filesystem(),
+                                              m_nameLogFile, bufferLog, logIndex, true);
+    if (written) {
+        logIndex -= written;
+        memmove(bufferLog, bufferLog + written, logIndex * sizeof(bufferLog[0]));
+    }
+    return logIndex == 0;
 #else
-    Serial.printf("Write log file %i lines\n", logIndex);
-
-    if (!isSDReady())
-    {
-        ESP_LOGE(TAG, "SD card not available for log writing");
-        return;
-    }
-    if (m_nameLogFile == nullptr && generateNameFile() == nullptr)
-    {
-        ESP_LOGE(TAG, "Log file name unavailable");
-        return;
-    }
-
-    appendLog(WidgetBase::mySD, m_nameLogFile, static_cast<const logMessage_t *>(bufferLog), logIndex, true);
-
-    for (size_t i = 0; i < logIndex; i++)
-    {
-        Serial.printf("WRITE LOG FILE LINE:%i\t-->\t%i\t%s\n", i, bufferLog[i].line_length, bufferLog[i].line);
-    }
-
-    logIndex = 0;
+    return false;
 #endif
 }
 
@@ -3916,8 +3833,6 @@ void DisplayWX::serviceNumpad(bool hasTouch, uint16_t xTouch, uint16_t yTouch)
  */
 void DisplayWX::updateWidgets()
 {
-    if (m_runningTransaction)
-        return;
 
     #if defined(DFK_CAMERA_MIPI) && defined(HAS_CAMERA_MIPI)
     if(CameraMipi::hasFullScreen())
@@ -3952,6 +3867,8 @@ void DisplayWX::updateWidgets()
 
 void DisplayWX::refreshScreen()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     if (m_lastScreen)
     {
         Serial.println("Reloading screen");
@@ -3961,12 +3878,16 @@ void DisplayWX::refreshScreen()
 
 void DisplayWX::loadScreen(functionLoadScreen_t screen)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::loadScreen = screen;
 }
 
 #if defined(DISP_DEFAULT)
 void DisplayWX::setDrawObject(Arduino_GFX *objTFT)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::objTFT = objTFT;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI) && defined(CONFIG_IDF_TARGET_ESP32P4)
     m_cameraDsiDisplay = nullptr;
@@ -3976,6 +3897,8 @@ void DisplayWX::setDrawObject(Arduino_GFX *objTFT)
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 void DisplayWX::setDrawObject(Arduino_DSI_Display *objTFT)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::objTFT = objTFT;
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
     m_cameraDsiDisplay = objTFT;
@@ -3985,27 +3908,37 @@ void DisplayWX::setDrawObject(Arduino_DSI_Display *objTFT)
 #elif defined(DISP_PCD8544)
 void DisplayWX::setDrawObject(Adafruit_PCD8544 *objTFT)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::objTFT = objTFT;
 }
 #elif defined(DISP_SSD1306)
 void DisplayWX::setDrawObject(Adafruit_SSD1306 *objTFT)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::objTFT = objTFT;
 }
 #elif defined(DISP_ST7565)
 void DisplayWX::setDrawObject(ST7565_LCD *objTFT)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::objTFT = objTFT;
 }
 #elif defined(DISP_U8G2)
 void DisplayWX::setDrawObject(U8G2 *objTFT)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::objTFT = objTFT;
 }
 #endif
 
 void DisplayWX::setBackgroundColor(uint16_t color)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     WidgetBase::backgroundColor = color;
     if (!WidgetBase::objTFT)
     {
@@ -4029,9 +3962,9 @@ void DisplayWX::cameraTask()
         return;
     }
 
-    if (!m_cameraMipiConfigured || qtdCameraMipi == 0)
     {
-        return;
+        WidgetStateGuard state(0);
+        if (!state || !m_cameraMipiConfigured || qtdCameraMipi == 0) return;
     }
 
     if (!m_camera.isOpened() || !m_camera.isCaptureStarted())
@@ -4056,13 +3989,13 @@ void DisplayWX::cameraTask()
         publishCameraFrameCopy((const uint16_t *)buffer->data(), buffer->getWidth(), buffer->getHeight());
     }
     const bool configOpen = WidgetBase::usingKeyboard;
-    if (!configOpen && m_transactionSemaphore != nullptr && xSemaphoreTake(m_transactionSemaphore, 0) == pdTRUE)
+    if (!configOpen && m_transactionSemaphore != nullptr && xSemaphoreTakeRecursive(m_transactionSemaphore, 0) == pdTRUE)
     {
         if (!WidgetBase::usingKeyboard)
         {
             updateCameraMipi(buffer);
         }
-        xSemaphoreGive(m_transactionSemaphore);
+        xSemaphoreGiveRecursive(m_transactionSemaphore);
     }
     m_camera.releaseFrame();
 #endif
@@ -4073,6 +4006,9 @@ void DisplayWX::cameraTask()
  */
 void DisplayWX::serviceRequestedInputs()
 {
+#if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
+    serviceCameraConfig();
+#endif
     if (WidgetBase::usingKeyboard)
     {
 #if defined(DFK_NUMBERBOX)
@@ -4131,12 +4067,14 @@ void DisplayWX::displaywxTask()
     }
 
     // Callbacks stay outside the draw mutex so they can call startCustomDraw().
-    processLogQueue();
     processCallback();
+    if (m_stopTask.load()) return;
+    WidgetStateGuard state(0);
+    if (!state) return;
 
     // Process touch events
 #if defined(HAS_TOUCH)
-    uint16_t xTouch, yTouch;
+    uint16_t xTouch = 0, yTouch = 0;
     int zPressure;
     bool hasTouch = false;
     uint8_t gesture = 0;
@@ -4153,9 +4091,9 @@ void DisplayWX::displaywxTask()
     gesture = 0;
 #endif
 
-    if (m_simulateAutoClick)
+    if (m_autoClickActive && millis() - m_autoClickStartedMs >= m_intervalMs)
     {
-        m_simulateAutoClick = false;
+        m_autoClickActive = false;
         hasTouch = true;
         xTouch = m_xAutoClick;
         yTouch = m_yAutoClick;
@@ -4184,17 +4122,14 @@ void DisplayWX::displaywxTask()
 
     if (!WidgetBase::usingKeyboard)
     {
-        if (xSemaphoreTake(m_transactionSemaphore, 0) != pdTRUE)
+        if (xSemaphoreTakeRecursive(m_transactionSemaphore, 0) != pdTRUE)
         {
             return;
         }
 
-        if (WidgetBase::loadScreen)
-        {
-            m_lastScreen = WidgetBase::loadScreen;
-            ESP_LOGD(TAG, "Loading screen on taskloop");
-            WidgetBase::loadScreen();
-            WidgetBase::loadScreen = nullptr;
+        if (functionLoadScreen_t requested = WidgetBase::loadScreen.exchange(nullptr)) {
+            m_lastScreen = requested;
+            requested();
         }
 
         updateWidgets();
@@ -4206,7 +4141,7 @@ void DisplayWX::displaywxTask()
         }
 #endif
 
-        xSemaphoreGive(m_transactionSemaphore);
+        xSemaphoreGiveRecursive(m_transactionSemaphore);
     }
 
     // Calculate and log execution time
@@ -4226,37 +4161,40 @@ void DisplayWX::displaywxTask()
  */
 void DisplayWX::TaskEventoTouch(void *pvParameters)
 {
+    auto *self = static_cast<DisplayWX*>(pvParameters);
+    if (!self) { vTaskDelete(nullptr); return; }
     //(void)pvParameters;
 
     // vTaskDelay(pdMS_TO_TICKS(3000));
     ESP_LOGD(TAG, "TaskEventoTouch created");
 
 #if defined(HAS_TOUCH)
-    if (DisplayWX::instance && DisplayWX::instance->touchExterno)
     {
-        DisplayWX::instance->touchExterno->armInterruptNotify(xTaskGetCurrentTaskHandle());
+        WidgetStateGuard state;
+        if (self->touchExterno) self->touchExterno->armInterruptNotify(xTaskGetCurrentTaskHandle());
     }
 #endif
 
     for (;;)
     {
-        if (DisplayWX::instance && DisplayWX::instance->m_stopTask.load())
+        if (self && self->m_stopTask.load())
         {
-            DisplayWX::instance->stopUiTaskAndDelete();
+            self->stopUiTaskAndDelete();
         }
 
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30));
 
-        if (DisplayWX::instance && DisplayWX::instance->m_stopTask.load())
+        if (self && self->m_stopTask.load())
         {
-            DisplayWX::instance->stopUiTaskAndDelete();
+            self->stopUiTaskAndDelete();
         }
 
-        if (DisplayWX::instance)
+        if (self)
         {
-            DisplayWX::instance->displaywxTask();
+            self->displaywxTask();
         }
 
+#if defined(DFK_ENABLE_DIAGNOSTICS)
         static uint32_t lastStackCheckMs = 0;
         static bool warnedLowStack = false;
         const uint32_t nowMs = millis();
@@ -4276,6 +4214,8 @@ void DisplayWX::TaskEventoTouch(void *pvParameters)
             // Estatisticas de execucao e de pilha das tarefas.
             printRunningTasks(Serial);
         }
+#endif
+        if (self->m_watchdogInitialized.load()) esp_task_wdt_reset();
     }
 }
 
@@ -4289,50 +4229,34 @@ void DisplayWX::TaskEventoTouch(void *pvParameters)
 void DisplayWX::stopCameraTaskAndDelete()
 {
     m_camera.releaseFrame();
-
-    TaskHandle_t waiter = m_stopWaiter;
-    m_hndTaskCamera = nullptr;
     m_cameraTaskStopped.store(true);
-    if (waiter != nullptr)
-    {
-        xTaskNotifyGive(waiter);
-    }
-    vTaskDelete(nullptr);
+    for (;;) vTaskSuspend(nullptr);
 }
 
 void DisplayWX::TaskCamera(void *pvParameters)
 {
-    (void)pvParameters;
-    ESP_LOGD(TAG, "Camera task created");
-
-    for (;;)
-    {
-        if (DisplayWX::instance == nullptr)
-        {
-            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kCameraFramePeriodMs));
-            continue;
-        }
-
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(DisplayWX::instance->cameraPreviewWaitMs()));
-
-        if (DisplayWX::instance->m_stopTask.load())
-        {
-            DisplayWX::instance->stopCameraTaskAndDelete();
-        }
-
-        DisplayWX::instance->cameraTask();
+    auto *self = static_cast<DisplayWX*>(pvParameters);
+    if (!self) { vTaskDelete(nullptr); return; }
+    for (;;) {
+        if (self->m_stopTask.load()) self->stopCameraTaskAndDelete();
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(self->cameraPreviewWaitMs()));
+        if (self->m_stopTask.load()) self->stopCameraTaskAndDelete();
+        self->cameraTask();
     }
 }
 #endif
 
 TaskHandle_t DisplayWX::getTaskHandle() const
 {
+    WidgetStateGuard state;
     return m_hndTaskEventoTouch;
 }
 
 /** @brief Enables touch log */
 void DisplayWX::enableTouchLog()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_debugTouch = true;
 #if defined(HAS_TOUCH)
     if (touchExterno)
@@ -4345,6 +4269,8 @@ void DisplayWX::enableTouchLog()
 /** @brief Disables touch log */
 void DisplayWX::disableTouchLog()
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     m_debugTouch = false;
 #if defined(HAS_TOUCH)
     if (touchExterno)
@@ -4587,11 +4513,15 @@ void DisplayWX::recalibrate()
 #if defined(USING_GRAPHIC_LIB)
 void DisplayWX::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     printText(_texto, _x, _y, _datum, _colorText, _colorPadding, _font, {0, 0, 0, 0});
 }
 
 void DisplayWX::printText(const char *_texto, uint16_t _x, uint16_t _y, uint8_t _datum, uint16_t _colorText, uint16_t _colorPadding, const GFXfont *_font, const TextBound_t &_background, bool _fillBackground)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return;
     CHECK_TFT_VOID
     if (!_texto) return;
     if (_font)
@@ -5132,115 +5062,31 @@ static void cameraNativeOffset(uint8_t rotation, int native_w, int native_h, int
 
 static void syncCameraFramebufferCache(uint16_t *fb, size_t fb_bytes)
 {
-    const uintptr_t cache_line = 128;
-    uintptr_t start = (uintptr_t)fb & ~(cache_line - 1);
-    uintptr_t end = ((uintptr_t)fb + fb_bytes + cache_line - 1) & ~(cache_line - 1);
-    esp_cache_msync((void *)start, (size_t)(end - start), ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    // Acquire DMA output; writing stale cache back would erase the image.
+    esp_cache_msync(fb, fb_bytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
 }
 
 bool DisplayWX::blitCameraDmaFullScreen(const uint16_t *src, uint32_t cam_w, uint32_t cam_h)
 {
-    ppa_client_handle_t ppa_srm = m_camera.ppaClient();
-    if (!WidgetBase::objTFT || !ppa_srm || !src || cam_w == 0 || cam_h == 0)
-    {
-        return false;
-    }
-
-    Arduino_DSI_Display *dsi = static_cast<Arduino_DSI_Display *>(WidgetBase::objTFT);
-    uint16_t *fb = dsi->getFramebuffer();
-    if (!fb)
-    {
-        return false;
-    }
-
-    uint32_t display_w = (uint32_t)WidgetBase::objTFT->width();
-    uint32_t display_h = (uint32_t)WidgetBase::objTFT->height();
-    uint32_t native_w = display_w;
-    uint32_t native_h = display_h;
-    if ((m_cameraRotation % 2) != 0)
-    {
-        native_w = display_h;
-        native_h = display_w;
-    }
-
-    uint32_t crop_w = cam_w;
-    uint32_t crop_h = cam_h;
-    if (crop_w > display_w)
-    {
-        crop_w = display_w;
-    }
-    if (crop_h > display_h)
-    {
-        crop_h = display_h;
-    }
-    crop_w &= ~1u;
-    crop_h &= ~1u;
-    if (crop_w == 0 || crop_h == 0)
-    {
-        return false;
-    }
-
-    uint32_t native_x = 0;
-    uint32_t native_y = 0;
-    cameraNativeOffset(m_cameraRotation, (int)native_w, (int)native_h, 0, 0, crop_w, crop_h, &native_x, &native_y);
-
-    size_t src_bytes = (size_t)cam_w * cam_h * sizeof(uint16_t);
-    size_t fb_bytes = (size_t)native_w * native_h * sizeof(uint16_t);
-    esp_cache_msync((void *)src, src_bytes, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
-
-    ppa_srm_oper_config_t op = {};
-    op.in.buffer = src;
-    op.in.pic_w = cam_w;
-    op.in.pic_h = cam_h;
-    op.in.block_w = crop_w;
-    op.in.block_h = crop_h;
-    op.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-    op.out.buffer = fb;
-    op.out.buffer_size = fb_bytes;
-    op.out.pic_w = native_w;
-    op.out.pic_h = native_h;
-    op.out.block_offset_x = native_x;
-    op.out.block_offset_y = native_y;
-    op.out.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
-    op.rotation_angle = cameraPpaAngle(m_cameraRotation);
-    applyCameraMirrors(&op, m_cameraMirrorX, m_cameraMirrorY);
-    op.scale_x = 1.0f;
-    op.scale_y = 1.0f;
-    op.mode = PPA_TRANS_MODE_BLOCKING;
-
-    if (ppa_do_scale_rotate_mirror(ppa_srm, &op) != ESP_OK)
-    {
-        return false;
-    }
-
-    syncCameraFramebufferCache(fb, fb_bytes);
-    return true;
+    if (!WidgetBase::objTFT) return false;
+    return blitCameraDmaCropped(src, cam_w, cam_h, 0, 0,
+        WidgetBase::objTFT->width(), WidgetBase::objTFT->height(),
+        0, 0, cam_w & ~1u, cam_h & ~1u, ppaScaleDenom());
 }
 
 bool DisplayWX::ensureCameraPreview(uint32_t w, uint32_t h)
 {
-    size_t bytes = (size_t)w * h * sizeof(uint16_t);
-    if (m_cameraPreviewFb && m_cameraPreviewFbBytes >= bytes)
-    {
-        return true;
-    }
-    if (m_cameraPreviewFb)
-    {
-        heap_caps_free(m_cameraPreviewFb);
-        m_cameraPreviewFb = nullptr;
-        m_cameraPreviewFbBytes = 0;
-    }
-
-    m_cameraPreviewFb = (uint16_t *)heap_caps_aligned_alloc(128, bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    if (!m_cameraPreviewFb)
-    {
-        m_cameraPreviewFb = (uint16_t *)heap_caps_aligned_alloc(128, bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    }
-    if (!m_cameraPreviewFb)
-    {
-        return false;
-    }
-    m_cameraPreviewFbBytes = bytes;
+    size_t pixels = 0, bytes = 0, capacity = 0;
+    if (!w || !h || !dwx_size_mul(w, h, &pixels) ||
+        !dwx_size_mul(pixels, sizeof(uint16_t), &bytes) ||
+        !dwx_align_up(bytes, 128, &capacity) || capacity > DFK_CAMERA_MAX_BYTES) return false;
+    if (m_cameraPreviewFb && m_cameraPreviewFbBytes >= capacity) return true;
+    uint16_t *replacement = (uint16_t *)heap_caps_aligned_alloc(128, capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!replacement) replacement = (uint16_t *)heap_caps_aligned_alloc(128, capacity, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    if (!replacement) return false;
+    heap_caps_free(m_cameraPreviewFb);
+    m_cameraPreviewFb = replacement;
+    m_cameraPreviewFbBytes = capacity;
     return true;
 }
 
@@ -5329,7 +5175,7 @@ bool DisplayWX::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
         return false;
     }
 
-    if (scale_num == 0 || crop_w < 2 || crop_h < 2 || crop_x + crop_w > cam_w || crop_y + crop_h > cam_h)
+    if (scale_num == 0 || crop_w < 2 || crop_h < 2 || crop_w > cam_w || crop_h > cam_h || crop_x > cam_w - crop_w || crop_y > cam_h - crop_h)
     {
         return false;
     }
@@ -5349,7 +5195,7 @@ bool DisplayWX::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
     if (m_cameraDsiDisplay)
     {
         fb = m_cameraDsiDisplay->getFramebuffer();
-        if (fb)
+        if (fb && ((uintptr_t)fb % 128u == 0) && (((size_t)native_w * native_h * 2u) % 128u == 0))
         {
             spi_preview = false;
             cameraNativeOffset(m_cameraRotation, (int)native_w, (int)native_h, x, y, dest_w, dest_h, &out_x, &out_y);
@@ -5369,11 +5215,12 @@ bool DisplayWX::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
         out_pic_h = dest_h;
         out_x = 0;
         out_y = 0;
-        fb_bytes = (size_t)dest_w * dest_h * sizeof(uint16_t);
+        fb_bytes = m_cameraPreviewFbBytes;
     }
 
-    size_t src_bytes = (size_t)cam_w * cam_h * sizeof(uint16_t);
-    esp_cache_msync((void *)src, src_bytes, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+    // Source is already DMA-visible (capture DMA or snapshot flush).
+    // Preserve CPU-written pixels outside this PPA rectangle.
+    if (!spi_preview) esp_cache_msync(fb, fb_bytes, ESP_CACHE_MSYNC_FLAG_DIR_C2M);
 
     ppa_srm_oper_config_t op = {};
     op.in.buffer = src;
@@ -5409,7 +5256,6 @@ bool DisplayWX::blitCameraDmaCropped(const uint16_t *src, uint32_t cam_w, uint32
         uintptr_t end = ((uintptr_t)fb + fb_bytes + cache_line - 1) & ~(cache_line - 1);
         size_t aligned = (size_t)(end - start);
         esp_cache_msync((void *)start, aligned, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
-        esp_cache_msync((void *)start, aligned, ESP_CACHE_MSYNC_FLAG_DIR_C2M);
         WidgetBase::objTFT->draw16bitRGBBitmap(x, y, fb, (int16_t)dest_w, (int16_t)dest_h);
         return true;
     }
@@ -5557,6 +5403,7 @@ void DisplayWX::updateCameraMipi(ESPVideoBufferClass *buffer)
 
 uint32_t DisplayWX::cameraPreviewWaitMs() const
 {
+    WidgetStateGuard state;
     if (CameraMipi::hasFullScreen())
     {
         return 1;
@@ -5600,88 +5447,38 @@ void DisplayWX::releaseCameraFrameCopy()
 
 bool DisplayWX::requestCameraFrameCopy()
 {
-    if (m_cameraCopyPhase.load() == 3 && m_frameCopy != nullptr)
-    {
-        return true;
-    }
-    releaseCameraFrameCopy();
-    m_frameCopyWaiter = xTaskGetCurrentTaskHandle();
-    m_cameraCopyPhase.store(1);
-    const uint32_t start = millis();
-    while ((millis() - start) < 500)
-    {
-        const uint32_t elapsed = millis() - start;
-        const uint32_t left = elapsed >= 500 ? 1 : (500 - elapsed);
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(left));
-        const uint8_t phase = m_cameraCopyPhase.load();
-        if (phase == 3)
-        {
-            return true;
-        }
-        if (phase == 4)
-        {
-            releaseCameraFrameCopy();
-            return false;
-        }
-    }
-    uint8_t expected = 1;
-    if (!m_cameraCopyPhase.compare_exchange_strong(expected, (uint8_t)0) && expected == 2)
-    {
-        const uint32_t extra = millis();
-        while ((millis() - extra) < 100 && m_cameraCopyPhase.load() == 2)
-        {
-            ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
-        }
-    }
-    if (m_cameraCopyPhase.load() == 3)
-    {
-        releaseCameraFrameCopy();
-    }
-    ESP_LOGW(TAG, "camera frame copy timed out");
-    m_cameraCopyPhase.store(0);
-    return false;
+    uint8_t expected = 0;
+    if (!m_cameraCopyPhase.compare_exchange_strong(expected, uint8_t(1))) return false;
+    m_cameraCopyStarted = millis();
+    return true;
 }
 
 void DisplayWX::publishCameraFrameCopy(const uint16_t *src, uint32_t width, uint32_t height)
 {
     uint8_t expected = 1;
-    if (!m_cameraCopyPhase.compare_exchange_strong(expected, (uint8_t)2))
-    {
-        return;
-    }
-    if (src == nullptr || width < 2 || height < 2)
-    {
-        ESP_LOGE(TAG, "camera frame copy has no image");
+    if (!m_cameraCopyPhase.compare_exchange_strong(expected, uint8_t(2))) return;
+    size_t pixels = 0, bytes = 0, capacity = 0;
+    if (!src || width < 2 || height < 2 ||
+        !dwx_size_mul(width, height, &pixels) ||
+        !dwx_size_mul(pixels, sizeof(uint16_t), &bytes) ||
+        !dwx_align_up(bytes, 128, &capacity) || capacity > DFK_CAMERA_MAX_BYTES) {
         m_cameraCopyPhase.store(4);
-        if (m_frameCopyWaiter != nullptr)
-        {
-            xTaskNotifyGive(m_frameCopyWaiter);
-        }
         return;
     }
-    const size_t bytes = (size_t)width * height * sizeof(uint16_t);
-    uint16_t *copied = (uint16_t *)heap_caps_aligned_alloc(128, bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    if (copied == nullptr)
-    {
-        ESP_LOGE(TAG, "camera frame copy alloc failed");
-        m_cameraCopyPhase.store(4);
-        if (m_frameCopyWaiter != nullptr)
-        {
-            xTaskNotifyGive(m_frameCopyWaiter);
-        }
-        return;
+    if (m_frameCopyBytes < capacity) {
+        uint16_t *replacement = (uint16_t *)heap_caps_aligned_alloc(128, capacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (!replacement) { m_cameraCopyPhase.store(4); return; }
+        heap_caps_free(m_frameCopy);
+        m_frameCopy = replacement;
+        m_frameCopyBytes = capacity;
     }
-    esp_cache_msync((void *)src, bytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
-    memcpy(copied, src, bytes);
-    m_frameCopy = copied;
-    m_frameCopyBytes = bytes;
+    // The producer exclusively owns this buffer in phase 2. Cancellation
+    // never resets that phase; the UI acknowledges completion before reuse.
+    memcpy(m_frameCopy, src, bytes);
+    esp_cache_msync(m_frameCopy, m_frameCopyBytes, ESP_CACHE_MSYNC_FLAG_DIR_C2M);
     m_frameCopyW = width;
     m_frameCopyH = height;
-    m_cameraCopyPhase.store(3);
-    if (m_frameCopyWaiter != nullptr)
-    {
-        xTaskNotifyGive(m_frameCopyWaiter);
-    }
+    m_cameraCopyPhase.store(3, std::memory_order_release);
 }
 
 bool DisplayWX::clampCameraRoiCenter(uint32_t frameW, uint32_t frameH, uint32_t plotW, uint32_t plotH, int16_t *centerX, int16_t *centerY, uint8_t zoom, uint32_t *cropW, uint32_t *cropH) const
@@ -5786,28 +5583,41 @@ bool DisplayWX::drawFrozenCamera(CameraMipi *widget, int16_t centerX, int16_t ce
 
 bool DisplayWX::beginCameraConfig(CameraMipi *widget)
 {
-    if (widget == nullptr)
-    {
-        return false;
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load() || !widget || WidgetBase::usingKeyboard ||
+        !m_hndTaskCamera || m_pendingCameraConfig) return false;
+    if (CameraMipi::hasFullScreen()) exitCameraFullScreen();
+    if (!requestCameraFrameCopy()) return false;
+    m_pendingCameraConfig = widget;
+    return true; // Accepted; the UI opens the editor when the copy is ready.
+}
+
+void DisplayWX::serviceCameraConfig()
+{
+    const uint8_t phase = m_cameraCopyPhase.load(std::memory_order_acquire);
+    if (!m_pendingCameraConfig) {
+        if (m_cameraRoiActive) return;
+        if (phase == 3 || phase == 4) m_cameraCopyPhase.store(0);
+        return;
     }
-    if (WidgetBase::usingKeyboard)
-    {
-        ESP_LOGW(TAG, "camera config blocked while another keyboard is open");
-        return false;
+    if (phase == 3) {
+        CameraMipi *widget = m_pendingCameraConfig;
+        m_pendingCameraConfig = nullptr;
+        if (!WidgetBase::usingKeyboard && openCameraConfigReady(widget)) return;
+        m_cameraCopyPhase.store(0);
+        return;
     }
-    if (CameraMipi::hasFullScreen())
-    {
-        exitCameraFullScreen();
+    if (phase == 4 || millis() - m_cameraCopyStarted >= 500u) {
+        m_pendingCameraConfig = nullptr;
+        uint8_t requested = 1;
+        m_cameraCopyPhase.compare_exchange_strong(requested, uint8_t(0));
+        if (phase == 4) m_cameraCopyPhase.store(0);
+        ESP_LOGW(TAG, "Camera editor request failed or timed out");
     }
-    if (m_hndTaskCamera == nullptr)
-    {
-        ESP_LOGW(TAG, "camera task is not running");
-        return false;
-    }
-    if (!requestCameraFrameCopy())
-    {
-        return false;
-    }
+}
+
+bool DisplayWX::openCameraConfigReady(CameraMipi *widget)
+{
     if (widget->centerPointX() < 0 || widget->centerPointY() < 0)
     {
         int16_t centerX = widget->centerPointX();
@@ -5824,14 +5634,14 @@ bool DisplayWX::beginCameraConfig(CameraMipi *widget)
     }
     if (!m_cameraRoi)
     {
-        m_cameraRoi = std::unique_ptr<CameraRoi>(new CameraRoi());
+        m_cameraRoi = std::unique_ptr<CameraRoi>(new (std::nothrow) CameraRoi());
     }
     if (!m_cameraRoi)
     {
         releaseCameraFrameCopy();
         return false;
     }
-    const bool locked = m_transactionSemaphore != nullptr && xSemaphoreTake(m_transactionSemaphore, pdMS_TO_TICKS(200)) == pdTRUE;
+    const bool locked = m_transactionSemaphore != nullptr && xSemaphoreTakeRecursive(m_transactionSemaphore, pdMS_TO_TICKS(200)) == pdTRUE;
     WidgetBase::usingKeyboard = true;
     m_cameraRoiActive = true;
     m_ignoreOpeningTouch = true;
@@ -5839,7 +5649,7 @@ bool DisplayWX::beginCameraConfig(CameraMipi *widget)
     m_cameraRoi->open(widget, m_frameCopyW, m_frameCopyH);
     if (locked)
     {
-        xSemaphoreGive(m_transactionSemaphore);
+        xSemaphoreGiveRecursive(m_transactionSemaphore);
     }
     return true;
 }
@@ -5861,7 +5671,7 @@ void DisplayWX::finishCameraConfig(bool apply)
     m_cameraRoiActive = false;
     m_ignoreOpeningTouch = false;
     m_cameraRoiTouchWasDown = false;
-    releaseCameraFrameCopy();
+    m_cameraCopyPhase.store(0);
     refreshScreen();
 }
 
@@ -6157,78 +5967,34 @@ void DisplayWX::updateNumberBox()
 
 void DisplayWX::setupAutoClick(uint32_t intervalMs, uint16_t x, uint16_t y)
 {
-    // Robust input validation
-    if (intervalMs == 0)
-    {
-        ESP_LOGE(TAG, "Invalid interval: %d ms (must be > 0)", intervalMs);
-        return;
-    }
-
-    if (intervalMs > 86400000)
-    { // 24 hours max
-        ESP_LOGW(TAG, "Interval too large: %d ms (max 24h), limiting to 24h", intervalMs);
-        intervalMs = 86400000;
-    }
-
-    if (intervalMs < 10)
-    { // 10ms min for reasonable performance
-        ESP_LOGW(TAG, "Interval too small: %d ms (min 10ms), setting to 10ms", intervalMs);
-        intervalMs = 10;
-    }
-
-    m_intervalMs = intervalMs;
+    WidgetStateGuard state;
+    if (!m_ownsInstance) return;
+    m_autoClickActive = false;
+    m_intervalMs = constrain(intervalMs, 10u, 86400000u);
     m_xAutoClick = x;
     m_yAutoClick = y;
-
-    // Clean up existing timer
-    if (m_timer != nullptr)
-    {
-        xTimerDelete(m_timer, 0);
-        m_timer = nullptr;
-    }
-
-    // Create timer with exception safety
-    if (!createTimerSafe())
-    {
-        ESP_LOGE(TAG, "Failed to create auto-click timer safely");
-        return;
-    }
-
-    ESP_LOGD(TAG, "Auto-click timer configured: %d ms at (%d, %d)", intervalMs, x, y);
 }
 
 void DisplayWX::startAutoClick()
 {
-    if (m_timer != nullptr)
-    {
-        xTimerStart(m_timer, 0);
-    }
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load() || !createTimerSafe()) return;
+    m_autoClickStartedMs = millis();
+    m_autoClickActive = true;
 }
 
 void DisplayWX::stopAutoClick()
 {
-    if (m_timer != nullptr)
-    {
-        m_simulateAutoClick = false; // Para simular o clique
-        xTimerStop(m_timer, 0);
-    }
+    WidgetStateGuard state;
+    m_autoClickActive = false;
 }
 
-void DisplayWX::timerCallback(TimerHandle_t xTimer)
-{
-    // Recupera a instância da classe
-    DisplayWX *instance = reinterpret_cast<DisplayWX *>(pvTimerGetTimerID(xTimer));
-    if (instance)
-    {
-        instance->m_simulateAutoClick = true;
-    }
-}
+
 
 bool DisplayWX::isRunningAutoClick() const
 {
-    if (m_timer == nullptr)
-        return false;
-    return (xTimerIsTimerActive(m_timer) == pdTRUE);
+    WidgetStateGuard state;
+    return m_autoClickActive;
 }
 
 /**
@@ -6307,7 +6073,7 @@ bool DisplayWX::startKeyboardsSafe()
     if (!keyboard)
     {
         // Use nothrow allocation
-        keyboard = std::unique_ptr<WKeyboard>(new WKeyboard());
+        keyboard = std::unique_ptr<WKeyboard>(new (std::nothrow) WKeyboard());
         if (!keyboard)
         {
             ESP_LOGE(TAG, "Memory allocation failed for keyboard");
@@ -6322,7 +6088,8 @@ bool DisplayWX::startKeyboardsSafe()
             }
             else
             {
-                ESP_LOGW(TAG, "Keyboard setup method not available");
+                ESP_LOGW(TAG, "Keyboard setup failed");
+                success = false;
             }
         }
     }
@@ -6347,7 +6114,8 @@ bool DisplayWX::startKeyboardsSafe()
             }
             else
             {
-                ESP_LOGW(TAG, "Numpad setup method not available");
+                ESP_LOGW(TAG, "Numpad setup failed");
+                success = false;
             }
         }
     }
@@ -6374,34 +6142,8 @@ bool DisplayWX::startKeyboardsSafe()
  */
 bool DisplayWX::createTimerSafe()
 {
-    // Validate parameters before creation
-    if (m_intervalMs == 0)
-    {
-        ESP_LOGE(TAG, "Invalid timer interval: %d ms", m_intervalMs);
-        return false;
-    }
-
-    if (m_intervalMs > 86400000)
-    { // 24 hours max
-        ESP_LOGW(TAG, "Timer interval too large: %d ms, limiting to 24h", m_intervalMs);
-        m_intervalMs = 86400000;
-    }
-
-    // Create timer with validation
-    m_timer = xTimerCreate("AutoClick",
-                           pdMS_TO_TICKS(m_intervalMs),
-                           pdFALSE,
-                           DisplayWX::instance,
-                           DisplayWX::timerCallback);
-
-    if (!m_timer)
-    {
-        ESP_LOGE(TAG, "Failed to create timer - insufficient memory");
-        return false;
-    }
-
-    ESP_LOGD(TAG, "Timer created safely with interval: %d ms", m_intervalMs);
-    return true;
+    // Compatibility API: auto-click no longer allocates a FreeRTOS timer.
+    return m_ownsInstance && m_intervalMs >= 10 && m_intervalMs <= 86400000u;
 }
 
 /**
@@ -6410,42 +6152,10 @@ bool DisplayWX::createTimerSafe()
  */
 bool DisplayWX::createSemaphoreSafe()
 {
-    // Check if semaphore already exists
-    if (m_loopSemaphore != nullptr)
-    {
-        ESP_LOGW(TAG, "Semaphore already exists, cleaning up first");
-        vSemaphoreDelete(m_loopSemaphore);
-        m_loopSemaphore = nullptr;
-    }
-
-    // Create loop semaphore with validation
-    m_loopSemaphore = xSemaphoreCreateBinary();
-    if (!m_loopSemaphore)
-    {
-        ESP_LOGE(TAG, "Failed to create loop semaphore - insufficient memory");
-        return false;
-    }
-
-    // Check if transaction semaphore already exists
-    if (m_transactionSemaphore != nullptr)
-    {
-        ESP_LOGW(TAG, "Transaction semaphore already exists, cleaning up first");
-        vSemaphoreDelete(m_transactionSemaphore);
-        m_transactionSemaphore = nullptr;
-    }
-
-    // Create transaction mutex with validation (using mutex for shared resource protection)
-    m_transactionSemaphore = xSemaphoreCreateMutex();
-    if (!m_transactionSemaphore)
-    {
-        ESP_LOGE(TAG, "Failed to create transaction semaphore - insufficient memory");
-        vSemaphoreDelete(m_loopSemaphore);
-        m_loopSemaphore = nullptr;
-        return false;
-    }
-
-    ESP_LOGD(TAG, "Semaphores created safely");
-    return true;
+    if (!m_ownsInstance) return false;
+    if (!m_loopSemaphore) m_loopSemaphore = xSemaphoreCreateBinaryStatic(&m_loopSemaphoreStorage);
+    m_transactionSemaphore = dwx_widget_mutex();
+    return m_loopSemaphore && m_transactionSemaphore;
 }
 
 /**
@@ -6457,6 +6167,8 @@ bool DisplayWX::createSemaphoreSafe()
 #if defined(DFK_CHECKBOX)
 bool DisplayWX::setCheckboxSafe(CheckBox *array[], uint8_t amount)
 {
+    WidgetStateGuard state;
+    if (!m_ownsInstance || m_ending.load()) return false;
     if (m_checkboxConfigured)
     {
         ESP_LOGW(TAG, "Checkbox already configured");
@@ -6756,3 +6468,19 @@ bool DisplayWX::validateString(const char *str, size_t maxLength) const
 
     return true;
 }
+
+#if defined(DFK_LOGGING)
+void DisplayWX::TaskLog(void *context)
+{
+    auto *self = static_cast<DisplayWX*>(context);
+    for (;;) {
+        self->processLogQueue();
+        if (self->m_stopTask.load()) {
+            self->processLogBuffer(); // One best-effort flush; end(timeout) preserves resources if storage stalls.
+            self->m_logTaskStopped.store(true);
+            for (;;) vTaskSuspend(nullptr);
+        }
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
+    }
+}
+#endif

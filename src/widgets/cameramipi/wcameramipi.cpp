@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_CAMERA_MIPI)
 #include "wcameramipi.h"
 #include "../../check_camera.h"
 #include "../../displaywx.h"
@@ -17,10 +19,12 @@ CameraMipi::~CameraMipi() {
 }
 
 void CameraMipi::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "CameraMipi memory cleanup completed");
 }
 
 void CameraMipi::setup(const CameraMipiConfig& config) {
+  WidgetStateGuard widgetStateGuard;
   m_config = config;
   if (m_config.fps < 5 || m_config.fps > 24)
   {
@@ -51,6 +55,7 @@ void CameraMipi::setup(const CameraMipiConfig& config) {
 }
 
 void CameraMipi::changeState() {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "CameraMipi changeState completed");
 }
 
@@ -61,6 +66,7 @@ void CameraMipi::changeState() {
  */
 void CameraMipi::onClick(bool triggerCallback)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "CameraMipi widget not loaded");
@@ -92,32 +98,39 @@ void CameraMipi::onClick(bool triggerCallback)
 }
 
 bool CameraMipi::getStatus() {
+  WidgetStateGuard widgetStateGuard;
   return m_status;
 }
 
 void CameraMipi::setStatus(bool _status) {
+  WidgetStateGuard widgetStateGuard;
   m_status = _status;
   ESP_LOGD(TAG, "CameraMipi setStatus completed");
 }
 
 bool CameraMipi::getEnabled() {
+  WidgetStateGuard widgetStateGuard;
   return m_enabled;
 }
 
 void CameraMipi::setEnabled(bool newState) {
+  WidgetStateGuard widgetStateGuard;
   m_enabled = newState;
   ESP_LOGD(TAG, "CameraMipi setEnabled completed");
 }
 
 void CameraMipi::show() {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "CameraMipi show completed");
 }
 
 void CameraMipi::hide() {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "CameraMipi hide completed");
 }
 
 bool CameraMipi::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_INITIALIZED_BOOL
   CHECK_LOADED_BOOL
@@ -154,6 +167,7 @@ bool CameraMipi::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
 }
 
 void CameraMipi::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -169,11 +183,13 @@ void CameraMipi::redraw() {
 }
 
 void CameraMipi::forceUpdate() {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "CameraMipi forceUpdate completed");
   m_shouldRedraw = true;
 }
 
 void CameraMipi::drawBackground() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(DISP_DEFAULT) && defined(DFK_CAMERA_MIPI)
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
@@ -191,50 +207,60 @@ void CameraMipi::drawBackground() {
 #endif
 }
 
-functionCB_t CameraMipi::getCallbackFunc() { return m_callback; }
+functionCB_t CameraMipi::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 int16_t CameraMipi::getXPos() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_xPos;
 }
 
 int16_t CameraMipi::getYPos() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_yPos;
 }
 
 uint16_t CameraMipi::getWidth() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.width;
 }
 
 uint16_t CameraMipi::getHeight() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.height;
 }
 
 bool CameraMipi::isFullScreen() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_fullScreen;
 }
 
 bool CameraMipi::hasFullScreen()
 {
+  WidgetStateGuard widgetStateGuard;
   return s_hasFullScreen;
 }
 
 void CameraMipi::exitFullScreen()
 {
+  WidgetStateGuard widgetStateGuard;
   s_hasFullScreen = false;
 }
 
 void CameraMipi::leaveFullScreen()
 {
+  WidgetStateGuard widgetStateGuard;
   m_fullScreen = false;
 }
 
 void CameraMipi::setZoomLevel(uint8_t level)
 {
+  WidgetStateGuard widgetStateGuard;
   if (level == 0)
   {
     ESP_LOGW(TAG, "CameraMipi zoom must be >= 1");
@@ -249,26 +275,31 @@ void CameraMipi::setZoomLevel(uint8_t level)
 
 uint8_t CameraMipi::getZoomLevel() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_zoomLevel;
 }
 
 bool CameraMipi::showZoomLevel() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.showZoomLevel;
 }
 
 bool CameraMipi::showFps() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.showFps;
 }
 
 uint8_t CameraMipi::fps() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.fps;
 }
 
 bool CameraMipi::isRedrawDue(uint32_t nowMs) const
 {
+  WidgetStateGuard widgetStateGuard;
   if (m_lastRedrawMs == 0)
   {
     return true;
@@ -279,6 +310,7 @@ bool CameraMipi::isRedrawDue(uint32_t nowMs) const
 
 void CameraMipi::noteRedraw(uint32_t nowMs)
 {
+  WidgetStateGuard widgetStateGuard;
   m_lastRedrawMs = nowMs;
 }
 
@@ -290,32 +322,38 @@ const char *CameraMipi::zoomLabel() const
 
 int16_t CameraMipi::centerPointX() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_centerX;
 }
 
 int16_t CameraMipi::centerPointY() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_centerY;
 }
 
 void CameraMipi::setCenterPoint(int16_t x, int16_t y)
 {
+  WidgetStateGuard widgetStateGuard;
   m_centerX = x;
   m_centerY = y;
 }
 
 bool CameraMipi::keepZoomOnMaximized() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_keepZoomOnMaximized;
 }
 
 void CameraMipi::setKeepZoomOnMaximized(bool keep)
 {
+  WidgetStateGuard widgetStateGuard;
   m_keepZoomOnMaximized = keep;
 }
 
 void CameraMipi::noteZoomClamped(uint8_t used)
 {
+  WidgetStateGuard widgetStateGuard;
   if (m_zoomClampNoted || used == m_zoomLevel)
   {
     return;
@@ -327,6 +365,7 @@ void CameraMipi::noteZoomClamped(uint8_t used)
 #if !defined(HAS_CAMERA_MIPI) || !defined(DFK_CAMERA_MIPI)
 bool CameraMipi::openConfig()
 {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGW(TAG, "camera config needs a MIPI sensor");
   return false;
 }
@@ -334,20 +373,26 @@ bool CameraMipi::openConfig()
 
 uint16_t CameraMipi::getXPlot() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_xPos + m_margin;
 }
 
 uint16_t CameraMipi::getYPlot() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_yPos + m_margin;
 }
 
 uint16_t CameraMipi::getWidthPlot() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.width - 2 * m_margin;
 }
 
 uint16_t CameraMipi::getHeightPlot() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.height - 2 * m_margin;
 }
+
+#endif // DFK_DISABLE_CAMERA_MIPI
