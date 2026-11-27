@@ -321,6 +321,7 @@ void HSlider::setup(const HSliderConfig &config) {
 
   m_loaded = true;
   m_initialized = true;
+  setValue(m_config.startValue, false);
 
   ESP_LOGD(TAG, "HSlider setup completed at (%d, %d)", m_xPos, m_yPos);
 }

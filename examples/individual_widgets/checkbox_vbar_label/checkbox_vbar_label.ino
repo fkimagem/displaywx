@@ -145,7 +145,7 @@ void loadWidgets(){
     CheckBoxConfig configCheckbox0 = {
             .callback = checkbox1_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR30,
             .uncheckedColor = CFK_GREY10
         };
@@ -179,6 +179,8 @@ void loadWidgets(){
             .orientation = Orientation::VERTICAL,
             .width = 21,
             .height = 130,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
     vertbar1.setup(configVBar0);

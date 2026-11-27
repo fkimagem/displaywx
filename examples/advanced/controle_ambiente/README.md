@@ -192,6 +192,7 @@ HSliderConfig configHSlider0 = {
     .radius = SLIDER_RAIO,       // Raio; a altura sera o dobro.
     .width = SLIDER_LARGURA,
     .pressedColor = COR_VENTILACAO,
+    .startValue = 0,
     .backgroundColor = COR_TRILHA
 };
 slider1.setup(configHSlider0);         // Entrega a ficha ao widget.
@@ -1266,7 +1267,8 @@ void loadWidgets() {
         .callback = slider1_cb, .subtitle = nullptr,
         .minValue = 0, .maxValue = VENT_ESCALA_MAX,
         .radius = SLIDER_RAIO, .width = SLIDER_LARGURA,
-        .pressedColor = COR_VENTILACAO, .backgroundColor = COR_TRILHA
+        .pressedColor = COR_VENTILACAO, .startValue = 0,
+        .backgroundColor = COR_TRILHA
     };
     slider1.setup(configHSlider0);
     myDisplay.setHSlider(arrayHslider, 1);
@@ -1278,7 +1280,8 @@ void loadWidgets() {
     SpinBoxConfig configSpinBox0 = {
         .callback = spinbox1_cb, .minValue = AJUSTE_MIN, .maxValue = AJUSTE_MAX,
         .startValue = META_CONFORTO, .width = 112, .height = 40, .step = AJUSTE_PASSO,
-        .color = COR_ANEL_VAZIO, .textColor = COR_ANEL
+        .color = COR_ANEL_VAZIO, .textColor = COR_ANEL,
+        .font = &RobotoBold8pt7b
     };
     spinbox1.setup(configSpinBox0);
     myDisplay.setSpinbox(arraySpinbox, 1);
@@ -1311,7 +1314,8 @@ void loadWidgets() {
         .radius = ANEL_RAIO, .startAngle = 0, .endAngle = 360,
         .color = COR_ANEL, .backgroundColor = COR_ANEL_VAZIO,
         .textColor = COR_TEXTO, .backgroundText = COR_FUNDO,
-        .thickness = ANEL_ESPESSURA, .showValue = true, .inverted = false
+        .thickness = ANEL_ESPESSURA, .showValue = true, .inverted = false,
+        .font = &RobotoBold10pt7b
     };
     circload1.setup(configCirculaBar0);
     myDisplay.setCircularBar(arrayCircularbar, 1);

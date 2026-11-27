@@ -13,7 +13,7 @@ enum class CheckBoxWeight {
 struct CheckBoxConfig {
   functionCB_t callback;  ///< Callback function to execute when the CheckBox state changes
   CheckBoxWeight weight; ///< Weight of the checkbox (LIGHT, MEDIUM, HEAVY)
-  uint16_t size;          ///< Size of the CheckBox (width and height will be equal)
+  uint16_t size;          ///< Side in pixels: editor presets 24, 32, 40 (small, medium, large)
   uint16_t checkedColor;  ///< Color displayed when the checkbox is checked
   uint16_t uncheckedColor; ///< Color displayed when the checkbox is unchecked (optional, 0 = auto)
 };

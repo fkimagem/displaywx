@@ -116,7 +116,7 @@ LineChart::~LineChart()
 bool LineChart::validateConfig(const LineChartConfig& config)
 {
   WidgetStateGuard widgetStateGuard;
-  if (config.width == 0 || config.height == 0) {
+  if (config.width < 100 || config.height == 0) {
     ESP_LOGE(TAG, "Invalid dimensions: %dx%d", config.width, config.height);
     return false;
   }
@@ -132,8 +132,8 @@ bool LineChart::validateConfig(const LineChartConfig& config)
     ESP_LOGE(TAG, "colorsSeries is null");
     return false;
   }
-  if (config.maxPointsAmount < 2) {
-    ESP_LOGE(TAG, "maxPointsAmount must be >= 2");
+  if (config.maxPointsAmount < 5 || config.maxPointsAmount > 512) {
+    ESP_LOGE(TAG, "maxPointsAmount must be in 5..512");
     return false;
   }
   return true;
@@ -351,7 +351,6 @@ void LineChart::drawGrid()
   uint32_t sizeVSpace = m_maxHeight / m_config.verticalDivision;
   if (sizeVSpace == 0) return;
   uint32_t xStart = m_xPos + m_leftPadding + 2;
-  uint32_t xEnd = xStart + m_maxWidth;
 
   for (uint16_t i = 0; i < m_config.verticalDivision; i++) {
     uint16_t yLine = m_yPos + m_topBottomPadding + (sizeVSpace * i);
@@ -360,9 +359,7 @@ void LineChart::drawGrid()
   }
   WidgetBase::objTFT->drawFastHLine(xStart, m_yPos + m_topBottomPadding, m_maxWidth, m_config.gridColor);
 
-  for (uint32_t x = xStart; x <= xEnd; x += sizeVSpace)
-    WidgetBase::objTFT->drawFastVLine(x, m_yPos + m_topBottomPadding, m_maxHeight, m_config.gridColor);
-  WidgetBase::objTFT->drawFastVLine(xEnd, m_yPos + m_topBottomPadding, m_maxHeight, m_config.gridColor);
+
 #endif
 }
 

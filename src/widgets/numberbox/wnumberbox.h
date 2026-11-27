@@ -13,11 +13,13 @@ struct NumberBoxConfig {
   #if defined(USING_GRAPHIC_LIB)
   const GFXfont* font;           ///< Fonte para usar no texto.
   #endif
-  float startValue;              ///< Valor numérico inicial para exibir.
+  double startValue;              ///< Valor numérico inicial para exibir.
   uint16_t width;                ///< Largura da caixa de número.
   uint16_t height;               ///< Altura da caixa de número.
   uint16_t letterColor;          ///< Cor para o texto exibindo o valor.
   uint16_t backgroundColor;      ///< Cor de fundo da caixa de número.
+  double minValue = -1e9; ///< Inclusive input and programmatic lower bound.
+  double maxValue = 1e9; ///< Inclusive input and programmatic upper bound.
   uint8_t decimalPlaces;         ///< Número de casas decimais para exibir.
 };
 
@@ -59,6 +61,7 @@ private:
   static const char* TAG; ///< Tag estática para identificação em logs do ESP32.
   
   CharString m_value; ///< String representando o valor numérico atual.
+  double m_numericValue = 0; ///< Keep the bounded value independent of display rounding.
   #if defined(USING_GRAPHIC_LIB)
   const GFXfont* m_font; ///< Fonte para usar no texto.
   #endif

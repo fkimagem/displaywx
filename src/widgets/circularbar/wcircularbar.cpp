@@ -201,7 +201,7 @@ void CircularBar::redraw() {
     snprintf(buf, sizeof(buf), "%d", m_value);
     
     WidgetBase::objTFT->setTextColor(m_config.textColor);
-    WidgetBase::objTFT->setFont(&RobotoBold10pt7b);
+    WidgetBase::objTFT->setFont(m_config.font ? m_config.font : &RobotoBold10pt7b);
     printText(buf, m_xPos, m_yPos, MC_DATUM);
     updateFont(FontType::UNLOAD);
   }

@@ -25,9 +25,9 @@ struct LineChartConfig {
   uint16_t backgroundColor;
   uint16_t textColor;
   uint16_t verticalDivision;
-  uint16_t maxPointsAmount;
+  uint16_t maxPointsAmount = 512; ///< Requested maximum: 5..512; capped by drawable width.
   uint8_t amountSeries;
-  bool workInBackground;
+  bool workInBackground = false;
   bool showZeroLine;
   bool boldLine;
   bool showDots;
@@ -37,7 +37,7 @@ struct LineChartConfig {
 class LineChart : public WidgetBase
 {
 public:
-  static constexpr uint16_t SHOW_ALL = 9999;
+  static constexpr uint16_t SHOW_ALL = 512;
 
   LineChart(uint16_t _x, uint16_t _y, uint8_t _screen);
   ~LineChart();

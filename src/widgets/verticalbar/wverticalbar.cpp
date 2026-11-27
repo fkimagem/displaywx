@@ -121,7 +121,7 @@ void VBar::redraw()
     }
 
     if(clearArea > 0){
-      WidgetBase::objTFT->fillRoundRect(innerX, innerY, innerWidth, clearArea, innerRound, CFK_GREY11); // fundo total
+      WidgetBase::objTFT->fillRoundRect(innerX, innerY, innerWidth, clearArea, innerRound, m_config.backgroundColor); // fundo total
     }
 
     uint32_t proportionalHeight = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, minHeight, innerHeight);
@@ -144,7 +144,7 @@ void VBar::redraw()
     }
 
     if(clearArea > 0){
-      WidgetBase::objTFT->fillRoundRect(xValue, innerY, clearArea, innerHeight, innerRound, CFK_GREY11); // fundo total
+      WidgetBase::objTFT->fillRoundRect(xValue, innerY, clearArea, innerHeight, innerRound, m_config.backgroundColor); // fundo total
     }
 
     uint32_t proportionalWidth = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, minWidth, innerWidth);        // O +1 é para tirar a borda da contagem
@@ -282,8 +282,8 @@ void VBar::drawBackground()
   CHECK_SHOULDREDRAW_VOID
 
   #if defined(USING_GRAPHIC_LIB)
-  WidgetBase::objTFT->fillRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.round, CFK_GREY11); // fundo total
-  WidgetBase::objTFT->drawRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.round, CFK_BLACK);  // borda total
+  WidgetBase::objTFT->fillRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.round, m_config.backgroundColor); // fundo total
+  WidgetBase::objTFT->drawRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.round, m_config.borderColor);  // borda total
   #endif
 }
 

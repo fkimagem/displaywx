@@ -17,6 +17,7 @@ struct HSliderConfig {
   uint32_t radius;        ///< Raio do controle deslizante em pixels.
   uint16_t width;         ///< Largura da trilha do slider em pixels.
   uint16_t pressedColor;  ///< Cor RGB565 exibida quando o slider está pressionado.
+  int startValue = 0;     ///< Initial value, clamped to minValue..maxValue by setup().
   uint16_t backgroundColor; ///< Cor RGB565 de fundo do slider.
 };
 

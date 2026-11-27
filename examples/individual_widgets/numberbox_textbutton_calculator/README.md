@@ -223,6 +223,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -238,6 +240,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -393,6 +397,8 @@ NumberBoxConfig configNumberBox0 = {
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -428,6 +434,8 @@ NumberBoxConfig configNumberBox1 = {
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.

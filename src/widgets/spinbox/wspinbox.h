@@ -16,6 +16,9 @@ struct SpinBoxConfig {
   uint16_t step;          ///< Valor do passo para incrementos e decrementos da caixa de spin.
   uint16_t color;         ///< Cor para os elementos de exibição.
   uint16_t textColor;     ///< Cor do texto.
+#if defined(USING_GRAPHIC_LIB)
+  const GFXfont* font = nullptr; ///< Fixed font chosen by the editor; no automatic font fitting.
+#endif
 };
 
 /// @brief Widget de caixa de spin para entrada numérica com botões de incremento e decremento.

@@ -208,6 +208,7 @@ void loadWidgets(){
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR01,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -221,6 +222,7 @@ void loadWidgets(){
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR11,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -234,6 +236,7 @@ void loadWidgets(){
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR22,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -322,6 +325,7 @@ HSliderConfig configHSlider0 = {
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR01,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -354,6 +358,7 @@ HSliderConfig configHSlider1 = {
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR11,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -375,6 +380,7 @@ HSliderConfig configHSlider2 = {
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR22,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.

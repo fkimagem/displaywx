@@ -21,6 +21,9 @@ struct CircularBarConfig {
   uint8_t thickness;          ///< Espessura da linha da barra circular em pixels.
   bool showValue;             ///< Flag para mostrar/ocultar o texto do valor.
   bool inverted;              ///< Flag para inverter a direção de preenchimento.
+#if defined(USING_GRAPHIC_LIB)
+  const GFXfont* font = nullptr; ///< Fixed font chosen by the editor; no automatic font fitting.
+#endif
 };
 
 class CircularBar : public WidgetBase

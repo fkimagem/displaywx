@@ -1,6 +1,7 @@
 #include "../../widgets/widgetsetup.h"
 #if !defined(DFK_DISABLE_NUMBERBOX)
 #include "wnumberbox.h"
+#include <cmath>
 #include "../../check_touch.h"
 #include "../../displaywx.h"
 
@@ -214,7 +215,7 @@ void NumberBox::setup(uint16_t _width, uint16_t _height, uint16_t _letterColor,
 
   m_config.letterColor = _letterColor;
   m_config.backgroundColor = _backgroundColor;
-  m_value.setStringDouble(_startValue, m_config.decimalPlaces);
+  setValue(_startValue);
 
   m_loaded = true;
 }
@@ -246,6 +247,11 @@ void NumberBox::setup(const NumberBoxConfig &config) {
   // Deep copy configuration
   m_config = config;
   
+  if (!std::isfinite(config.minValue) || !std::isfinite(config.maxValue)
+      || !std::isfinite(config.startValue) || config.minValue > config.maxValue) {
+    ESP_LOGE(TAG, "Invalid NumberBox range or initial value");
+    return;
+  }
   // Copy function pointers (no deep copy needed for function pointers)
   parentScreen = config.funcPtr;
   m_callback = config.callback;
@@ -263,7 +269,7 @@ void NumberBox::setup(const NumberBoxConfig &config) {
   #endif
   
   // Set initial value
-  m_value.setStringDouble(config.startValue, config.decimalPlaces);
+  setValue(config.startValue);
   
   m_loaded = true;
   ESP_LOGD(TAG, "NumberBox configured: %dx%d, value: %f", 
@@ -302,6 +308,9 @@ void NumberBox::onClick()
  */
 void NumberBox::setValue(double str) {
   WidgetStateGuard widgetStateGuard;
+  if (!std::isfinite(str)) return;
+  str = constrain(str, m_config.minValue, m_config.maxValue);
+  m_numericValue = str;
   m_value.setStringDouble(str, m_config.decimalPlaces);
   ESP_LOGD(TAG, "Set value for numberbox: %s", m_value.getString());
   forceUpdate();
@@ -313,7 +322,7 @@ void NumberBox::setValue(double str) {
  * @details Converte a string interna para valor double usando toDouble().
  */
 double NumberBox::getValue() {
-  WidgetStateGuard widgetStateGuard; return m_value.toDouble(); }
+  WidgetStateGuard widgetStateGuard; return m_numericValue; }
 
 /**
  * @brief Recupera o valor numérico atual como string.

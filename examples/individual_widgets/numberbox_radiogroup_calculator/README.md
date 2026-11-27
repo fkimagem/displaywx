@@ -284,6 +284,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -299,6 +301,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -314,6 +318,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -329,6 +335,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -339,7 +347,7 @@ void loadWidgets(){
             .buttons = radiosOfGroup_grupo1,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo1,
-            .radius = 10,
+            .radius = 12,
             .group = 1,
             .amount = 4,
             .defaultClickedId = 1
@@ -350,7 +358,7 @@ void loadWidgets(){
             .buttons = radiosOfGroup_grupo2,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo2,
-            .radius = 10,
+            .radius = 12,
             .group = 2,
             .amount = 4,
             .defaultClickedId = 1
@@ -692,6 +700,8 @@ NumberBoxConfig configNumberBox0 = {
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -727,6 +737,8 @@ NumberBoxConfig configNumberBox1 = {
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -750,6 +762,8 @@ NumberBoxConfig configNumberBox2 = {
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -773,6 +787,8 @@ NumberBoxConfig configNumberBox3 = {
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -788,7 +804,7 @@ RadioGroupConfig configRadioGroup0 = {
             .buttons = radiosOfGroup_grupo1,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo1,
-            .radius = 10,
+            .radius = 12,
             .group = 1,
             .amount = 4,
             // ID da opção que começa selecionada.
@@ -802,7 +818,7 @@ grupo1.setup(configRadioGroup0);
 | --- | --- | --- |
 | `buttons` | `radiosOfGroup_grupo1` | Lista de opções `radio_t`. Cada item guarda X, Y, cor e ID. |
 | `callback` | `callbackOfGroup_grupo1` | Nome da função chamada quando há uma ação. Escreva o nome sem `()`. `nullptr` significa sem callback. |
-| `radius` | `10` | Raio de cada bolinha; X e Y ficam na lista radio_t. |
+| `radius` | `12` | Raio de cada bolinha; X e Y ficam na lista radio_t. |
 | `group` | `1` | Identificador do grupo. Use números diferentes para grupos diferentes. |
 | `amount` | `4` | Quantidade de opções presentes na lista `buttons`. |
 | `defaultClickedId` | `1` | ID que começa selecionado. Precisa existir na lista. |
@@ -816,7 +832,7 @@ RadioGroupConfig configRadioGroup1 = {
             .buttons = radiosOfGroup_grupo2,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo2,
-            .radius = 10,
+            .radius = 12,
             .group = 2,
             .amount = 4,
             // ID da opção que começa selecionada.
@@ -853,7 +869,7 @@ btnvolts.setup(configTextButton0);
 | `fontFamily` | `&RobotoBold10pt7b` | Fonte das letras, por exemplo `&RobotoRegular10pt7b`. O `&` aponta para uma fonte que já existe. |
 | `width` | `87` | Largura em pixels, os pontinhos da imagem. Mantenha o desenho dentro da tela. |
 | `height` | `34` | Altura em pixels. Reserve espaço suficiente para o desenho e as letras. |
-| `radius` | `10` | Raio do arredondamento dos cantos, não o tamanho do botão. |
+| `radius` | `12` | Raio do arredondamento dos cantos, não o tamanho do botão. |
 | `backgroundColor` | `CFK_COLOR14` | Cor do fundo, por exemplo `CFK_WHITE`. Use a cor da área onde o widget aparece. |
 | `textColor` | `CFK_BLACK` | Cor das letras/números. |
 

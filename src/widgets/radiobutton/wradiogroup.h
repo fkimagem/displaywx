@@ -18,7 +18,7 @@ struct radio_t
 struct RadioGroupConfig {
   const radio_t* buttons;      ///< Ponteiro para um array definindo os botões de rádio.
   functionCB_t callback;       ///< Função callback para executar na mudança de seleção.
-  uint16_t radius;             ///< Raio de cada botão de rádio.
+  uint16_t radius; // Radius in pixels: editor presets 12, 16, 20.             ///< Raio de cada botão de rádio.
   uint8_t group;               ///< Identificador do grupo para os botões de rádio.
   uint8_t amount;              ///< Número de botões de rádio no grupo.
   uint8_t defaultClickedId;    ///< ID do botão de rádio a ser selecionado por padrão.

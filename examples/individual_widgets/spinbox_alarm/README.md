@@ -210,7 +210,8 @@ void loadWidgets(){
             .height = 62,
             .step = 1,
             .color = CFK_COLOR19,
-            .textColor = CFK_BLACK
+            .textColor = CFK_BLACK,
+            .font = &RobotoBold8pt7b
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
     spinbox1.setup(configSpinBox0);
@@ -272,7 +273,8 @@ SpinBoxConfig configSpinBox0 = {
             .height = 62,
             .step = 1,
             .color = CFK_COLOR19,
-            .textColor = CFK_BLACK
+            .textColor = CFK_BLACK,
+            .font = &RobotoBold8pt7b
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
 spinbox1.setup(configSpinBox0);

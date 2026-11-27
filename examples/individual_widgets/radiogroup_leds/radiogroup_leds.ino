@@ -201,7 +201,7 @@ void loadWidgets(){
     RadioGroupConfig configRadioGroup0 = {
             .buttons = radiosOfGroup_grupo1,
             .callback = callbackOfGroup_grupo1,
-            .radius = 10,
+            .radius = 12,
             .group = 1,
             .amount = 3,
             .defaultClickedId = 1
@@ -210,7 +210,7 @@ void loadWidgets(){
     RadioGroupConfig configRadioGroup1 = {
             .buttons = radiosOfGroup_grupo2,
             .callback = callbackOfGroup_grupo2,
-            .radius = 10,
+            .radius = 12,
             .group = 2,
             .amount = 2,
             .defaultClickedId = 1

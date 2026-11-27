@@ -8,7 +8,7 @@ const char* SpinBox::TAG = "SpinBox";
 
 /**
  * @brief Diminui o valor atual pelo valor do passo.
- * @details Decrementa o valor atual garantindo que permaneça dentro da faixa definida:
+ * @details Decrementa o valor atual garantindo que permaneÃ§a dentro da faixa definida:
  *          - Calcula novo valor (atual - passo)
  *          - Restringe valor usando constrain() entre minValue e maxValue
  */
@@ -20,7 +20,7 @@ void SpinBox::decreaseValue() {
 
 /**
  * @brief Aumenta o valor atual pelo valor do passo.
- * @details Incrementa o valor atual garantindo que permaneça dentro da faixa definida:
+ * @details Incrementa o valor atual garantindo que permaneÃ§a dentro da faixa definida:
  *          - Calcula novo valor (atual + passo)
  *          - Restringe valor usando constrain() entre minValue e maxValue
  */
@@ -32,11 +32,11 @@ void SpinBox::increaseValue() {
 
 /**
  * @brief Construtor para a classe SpinBox.
- * @param _x Coordenada X para a posição do SpinBox.
- * @param _y Coordenada Y para a posição do SpinBox.
- * @param _screen Identificador da tela onde o SpinBox será exibido.
- * @details Inicializa o widget com valores padrão e configuração vazia.
- *          A caixa de spin não será funcional até que setup() seja chamado.
+ * @param _x Coordenada X para a posiÃ§Ã£o do SpinBox.
+ * @param _y Coordenada Y para a posiÃ§Ã£o do SpinBox.
+ * @param _screen Identificador da tela onde o SpinBox serÃ¡ exibido.
+ * @details Inicializa o widget com valores padrÃ£o e configuraÃ§Ã£o vazia.
+ *          A caixa de spin nÃ£o serÃ¡ funcional atÃ© que setup() seja chamado.
  */
 SpinBox::SpinBox(uint16_t _x, uint16_t _y, uint8_t _screen)
     : WidgetBase(_x, _y, _screen){
@@ -55,8 +55,8 @@ SpinBox::~SpinBox() {
 }
 
 /**
- * @brief Limpa memória usada pelo SpinBox.
- * @details SpinBox não usa alocação dinâmica de memória.
+ * @brief Limpa memÃ³ria usada pelo SpinBox.
+ * @details SpinBox nÃ£o usa alocaÃ§Ã£o dinÃ¢mica de memÃ³ria.
  */
 void SpinBox::cleanupMemory() {
   WidgetStateGuard widgetStateGuard;
@@ -64,16 +64,16 @@ void SpinBox::cleanupMemory() {
 }
 
 /**
- * @brief Detecta se o SpinBox foi tocado e manipula ações de incremento/decremento.
+ * @brief Detecta se o SpinBox foi tocado e manipula aÃ§Ãµes de incremento/decremento.
  * @param _xTouch Ponteiro para a coordenada X do toque.
  * @param _yTouch Ponteiro para a coordenada Y do toque.
- * @return True se o toque está dentro da área do SpinBox, False caso contrário.
- * @details Detecta toques nas áreas dos botões de decremento (esquerda) ou incremento (direita),
- *          e processa a mudança de valor conforme apropriado:
+ * @return True se o toque estÃ¡ dentro da Ã¡rea do SpinBox, False caso contrÃ¡rio.
+ * @details Detecta toques nas Ã¡reas dos botÃµes de decremento (esquerda) ou incremento (direita),
+ *          e processa a mudanÃ§a de valor conforme apropriado:
  *          - Valida visibilidade, uso de teclado, tela atual, carregamento e debounce
- *          - Define áreas de detecção para botão esquerdo (decremento) e direito (incremento)
- *          - Detecta toque na área de decremento: chama decreaseValue() e marca para redesenho
- *          - Detecta toque na área de incremento: chama increaseValue() e marca para redesenho
+ *          - Define Ã¡reas de detecÃ§Ã£o para botÃ£o esquerdo (decremento) e direito (incremento)
+ *          - Detecta toque na Ã¡rea de decremento: chama decreaseValue() e marca para redesenho
+ *          - Detecta toque na Ã¡rea de incremento: chama increaseValue() e marca para redesenho
  */
 bool SpinBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
   WidgetStateGuard widgetStateGuard;
@@ -113,22 +113,22 @@ bool SpinBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
 }
 
 /**
- * @brief Recupera a função callback associada ao SpinBox.
- * @return Ponteiro para a função callback.
- * @details Retorna o ponteiro para a função que será executada quando o SpinBox for utilizado.
+ * @brief Recupera a funÃ§Ã£o callback associada ao SpinBox.
+ * @return Ponteiro para a funÃ§Ã£o callback.
+ * @details Retorna o ponteiro para a funÃ§Ã£o que serÃ¡ executada quando o SpinBox for utilizado.
  */
 functionCB_t SpinBox::getCallbackFunc() {
   WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
- * @brief Redesenha o SpinBox na tela, atualizando sua aparência.
- * @details Atualiza a exibição do valor atual na caixa de spin,
- *          apenas redesenha se o SpinBox estiver na tela atual e precisar atualização:
+ * @brief Redesenha o SpinBox na tela, atualizando sua aparÃªncia.
+ * @details Atualiza a exibiÃ§Ã£o do valor atual na caixa de spin,
+ *          apenas redesenha se o SpinBox estiver na tela atual e precisar atualizaÃ§Ã£o:
  *          - Valida TFT, visibilidade, tela atual, uso de teclado, carregamento e flag de redesenho
- *          - Calcula dimensões dos botões e área disponível para texto
- *          - Define cor do texto e desenha retângulo de fundo para valor
- *          - Seleciona melhor fonte RobotoBold para o texto
- *          - Exibe valor atual centralizado na área de texto
+ *          - Calcula dimensÃµes dos botÃµes e Ã¡rea disponÃ­vel para texto
+ *          - Define cor do texto e desenha retÃ¢ngulo de fundo para valor
+ *          - Usa a fonte RobotoBold configurada
+ *          - Exibe valor atual centralizado na Ã¡rea de texto
  */
 void SpinBox::redraw() {
   WidgetStateGuard widgetStateGuard;
@@ -169,14 +169,14 @@ void SpinBox::redraw() {
 }
 
 /**
- * @brief Desenha o fundo do SpinBox, incluindo elementos estáticos.
- * @details Cria o container visual, botões de mais e menos para o SpinBox.
- *          Este método é tipicamente chamado uma vez durante setup ao invés de em cada redesenho:
- *          - Desenha retângulo principal com bordas arredondadas
+ * @brief Desenha o fundo do SpinBox, incluindo elementos estÃ¡ticos.
+ * @details Cria o container visual, botÃµes de mais e menos para o SpinBox.
+ *          Este mÃ©todo Ã© tipicamente chamado uma vez durante setup ao invÃ©s de em cada redesenho:
+ *          - Desenha retÃ¢ngulo principal com bordas arredondadas
  *          - Desenha borda do container
- *          - Desenha dois botões com cores clarificadas (lados esquerdo e direito)
- *          - Desenha bordas dos botões
- *          - Desenha sinais de menos (-) no botão esquerdo e mais (+) no botão direito
+ *          - Desenha dois botÃµes com cores clarificadas (lados esquerdo e direito)
+ *          - Desenha bordas dos botÃµes
+ *          - Desenha sinais de menos (-) no botÃ£o esquerdo e mais (+) no botÃ£o direito
  */
 void SpinBox::drawBackground() {
   WidgetStateGuard widgetStateGuard;
@@ -190,17 +190,17 @@ void SpinBox::drawBackground() {
 
   // Fundo
   WidgetBase::objTFT->fillRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_radius,m_config.color);
-  WidgetBase::objTFT->drawRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_radius,CFK_BLACK);
+  WidgetBase::objTFT->drawRoundRect(m_xPos, m_yPos, m_config.width, m_config.height, m_radius,m_config.textColor);
 
   uint16_t corBotao = lighten565(m_config.color, 0.5);//WidgetBase::lightenColor565(m_config.color, 4);
 
   // botao left
   WidgetBase::objTFT->fillRoundRect(m_xPos, m_yPos, m_buttonSize.width, m_buttonSize.height, m_radius, corBotao);
-  WidgetBase::objTFT->drawRoundRect(m_xPos, m_yPos, m_buttonSize.width, m_buttonSize.height, m_radius,CFK_BLACK);
+  WidgetBase::objTFT->drawRoundRect(m_xPos, m_yPos, m_buttonSize.width, m_buttonSize.height, m_radius,m_config.textColor);
 
   // botao right
   WidgetBase::objTFT->fillRoundRect(m_xPos + m_config.width - m_buttonSize.width, m_yPos, m_buttonSize.width, m_buttonSize.height, m_radius, corBotao);
-  WidgetBase::objTFT->drawRoundRect(m_xPos + m_config.width - m_buttonSize.width, m_yPos, m_buttonSize.width, m_buttonSize.height, m_radius,CFK_BLACK);
+  WidgetBase::objTFT->drawRoundRect(m_xPos + m_config.width - m_buttonSize.width, m_yPos, m_buttonSize.width, m_buttonSize.height, m_radius,m_config.textColor);
 
   int centerX_left = m_xPos + (m_buttonSize.width / 2);
   int centerY_left = m_yPos + (m_buttonSize.height / 2);
@@ -238,16 +238,16 @@ void SpinBox::drawBackground() {
 
 
 /**
- * @brief Configura o SpinBox com периметров definidos em uma estrutura de configuração.
- * @param config Estrutura @ref SpinBoxConfig contendo os parâmetros de configuração.
- * @details Este método deve ser chamado após criar o objeto para configurá-lo adequadamente:
- *          - Limpa memória existente usando cleanupMemory()
- *          - Copia profundamente a configuração
+ * @brief Configura o SpinBox com Ð¿ÐµÑ€Ð¸Ð¼ÐµÑ‚Ñ€Ð¾Ð² definidos em uma estrutura de configuraÃ§Ã£o.
+ * @param config Estrutura @ref SpinBoxConfig contendo os parÃ¢metros de configuraÃ§Ã£o.
+ * @details Este mÃ©todo deve ser chamado apÃ³s criar o objeto para configurÃ¡-lo adequadamente:
+ *          - Limpa memÃ³ria existente usando cleanupMemory()
+ *          - Copia profundamente a configuraÃ§Ã£o
  *          - Valida e corrige se minValue > maxValue (troca valores)
- *          - Restringe startValue dentro da faixa válida
+ *          - Restringe startValue dentro da faixa vÃ¡lida
  *          - Define callback
  *          - Marca o widget como carregado
- *          A caixa de spin não será exibida corretamente até que este método seja chamado.
+ *          A caixa de spin nÃ£o serÃ¡ exibida corretamente atÃ© que este mÃ©todo seja chamado.
  */
 void SpinBox::setup(const SpinBoxConfig &config) {
   WidgetStateGuard widgetStateGuard;
@@ -282,18 +282,9 @@ void SpinBox::setup(const SpinBoxConfig &config) {
   m_textAreaSize.width = m_config.width - (2 * m_buttonSize.width) - (m_offset);
 
 
-  char minText[12], maxText[12];
-  int charCountMinValue = snprintf(minText, sizeof(minText), "%d", m_config.minValue);
-  int charCountMaxValue = snprintf(maxText, sizeof(maxText), "%d", m_config.maxValue);
-  
-  #if defined(USING_GRAPHIC_LIB)
-  if (charCountMinValue > charCountMaxValue) {
-    m_font = getBestRobotoBold(m_textAreaSize.width, m_textAreaSize.height, minText);
-  } else {
-    m_font = getBestRobotoBold(m_textAreaSize.width, m_textAreaSize.height, maxText);
-  }
-  #endif
-
+#if defined(USING_GRAPHIC_LIB)
+  m_font = m_config.font ? m_config.font : &RobotoBold8pt7b;
+#endif
 
   m_currentValue = constrain(m_config.startValue, m_config.minValue, m_config.maxValue);
   m_callback = config.callback;
@@ -302,7 +293,7 @@ void SpinBox::setup(const SpinBoxConfig &config) {
 
 /**
  * @brief Recupera o valor atual do SpinBox.
- * @return Valor numérico atual.
+ * @return Valor numÃ©rico atual.
  * @details Retorna o valor armazenado em m_currentValue.
  */
 int SpinBox::getValue() {
@@ -310,11 +301,11 @@ int SpinBox::getValue() {
 
 /**
  * @brief Define o valor atual do SpinBox.
- * @param _value Novo valor numérico para definir.
- * @param triggerCallback True para disparar a callback (padrão), False para apenas atualizar o valor.
- * @details Atualiza o valor do SpinBox, garante que está dentro da faixa definida,
+ * @param _value Novo valor numÃ©rico para definir.
+ * @param triggerCallback True para disparar a callback (padrÃ£o), False para apenas atualizar o valor.
+ * @details Atualiza o valor do SpinBox, garante que estÃ¡ dentro da faixa definida,
  *          e marca o widget para redesenho. Dispara o callback se solicitado:
- *          - Valida se widget está carregado
+ *          - Valida se widget estÃ¡ carregado
  *          - Restringe valor usando constrain() dentro da faixa min/max
  *          - Marca para redesenho
  *          - Dispara callback se configurado e triggerCallback for true
@@ -335,8 +326,8 @@ void SpinBox::setValue(int _value, bool triggerCallback) {
 }
 
 /**
- * @brief Torna o SpinBox visível na tela.
- * @details Define o widget como visível e marca para redesenho.
+ * @brief Torna o SpinBox visÃ­vel na tela.
+ * @details Define o widget como visÃ­vel e marca para redesenho.
  */
 void SpinBox::show() {
   WidgetStateGuard widgetStateGuard;
@@ -346,7 +337,7 @@ void SpinBox::show() {
 
 /**
  * @brief Oculta o SpinBox da tela.
- * @details Define o widget como invisível e marca para redesenho.
+ * @details Define o widget como invisÃ­vel e marca para redesenho.
  */
 void SpinBox::hide() {
   WidgetStateGuard widgetStateGuard;
@@ -355,8 +346,8 @@ void SpinBox::hide() {
 }
 
 /**
- * @brief Força o SpinBox a atualizar.
- * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
+ * @brief ForÃ§a o SpinBox a atualizar.
+ * @details Define a flag de atualizaÃ§Ã£o para disparar um redesenho no prÃ³ximo ciclo.
  */
 void SpinBox::forceUpdate() {
   WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }

@@ -15,6 +15,8 @@ struct VerticalBarConfig {
   Orientation orientation; ///< Orientação da barra (vertical ou horizontal).
   uint16_t width;          ///< Largura da exibição do VBar.
   uint16_t height;         ///< Altura da exibição do VBar.
+  uint16_t backgroundColor = CFK_GREY11; ///< Empty track and erased pixels.
+  uint16_t borderColor = CFK_BLACK; ///< One-pixel outline.
   uint16_t filledColor;    ///< Cor usada para a porção preenchida da barra.
 };
 

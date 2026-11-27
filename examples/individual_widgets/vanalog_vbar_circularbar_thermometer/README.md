@@ -262,6 +262,8 @@ void loadWidgets(){
             .orientation = Orientation::VERTICAL,
             .width = 21,
             .height = 116,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -274,6 +276,8 @@ void loadWidgets(){
             .orientation = Orientation::HORIZONTAL,
             .width = 133,
             .height = 21,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -292,7 +296,8 @@ void loadWidgets(){
             .backgroundText = CFK_WHITE,
             .thickness = 20,
             .showValue = true,
-            .inverted = false
+            .inverted = false,
+            .font = &RobotoBold10pt7b
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
     circload1.setup(configCirculaBar0);
@@ -450,6 +455,8 @@ VerticalBarConfig configVBar0 = {
             .orientation = Orientation::VERTICAL,
             .width = 21,
             .height = 116,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -481,6 +488,8 @@ VerticalBarConfig configVBar1 = {
             .orientation = Orientation::HORIZONTAL,
             .width = 133,
             .height = 21,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -504,7 +513,8 @@ CircularBarConfig configCirculaBar0 = {
             .backgroundText = CFK_WHITE,
             .thickness = 20,
             .showValue = true,
-            .inverted = false
+            .inverted = false,
+            .font = &RobotoBold10pt7b
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.
 circload1.setup(configCirculaBar0);

@@ -306,6 +306,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     inputvolts.setup(configNumberBox0);
@@ -318,6 +320,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     inputohms.setup(configNumberBox1);
@@ -330,6 +334,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     inputamps.setup(configNumberBox2);
@@ -342,6 +348,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2
         };
     inputwatts.setup(configNumberBox3);
@@ -351,7 +359,7 @@ void loadWidgets(){
     RadioGroupConfig configRadioGroup0 = {
             .buttons = radiosOfGroup_grupo1,
             .callback = callbackOfGroup_grupo1,
-            .radius = 10,
+            .radius = 12,
             .group = 1,
             .amount = 4,
             .defaultClickedId = 1
@@ -360,7 +368,7 @@ void loadWidgets(){
     RadioGroupConfig configRadioGroup1 = {
             .buttons = radiosOfGroup_grupo2,
             .callback = callbackOfGroup_grupo2,
-            .radius = 10,
+            .radius = 12,
             .group = 2,
             .amount = 4,
             .defaultClickedId = 1

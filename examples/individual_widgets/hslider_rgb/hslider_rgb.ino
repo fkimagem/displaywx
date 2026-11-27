@@ -180,6 +180,7 @@ void loadWidgets(){
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR01,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
     slider1.setup(configHSlider0);
@@ -191,6 +192,7 @@ void loadWidgets(){
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR11,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
     slider1copy.setup(configHSlider1);
@@ -202,6 +204,7 @@ void loadWidgets(){
             .radius = 15,
             .width = 254,
             .pressedColor = CFK_COLOR22,
+            .startValue = 0,
             .backgroundColor = CFK_WHITE
         };
     slider1copy2.setup(configHSlider2);

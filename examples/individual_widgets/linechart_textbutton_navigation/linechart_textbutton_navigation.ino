@@ -206,7 +206,7 @@ void loadWidgets(){
             .backgroundColor = CFK_GREY3,
             .textColor = CFK_WHITE,
             .verticalDivision = 5,
-            .maxPointsAmount = LineChart::SHOW_ALL,
+            .maxPointsAmount = 512,
             .amountSeries = qtdLinesChart0,
             .workInBackground = true,
             .showZeroLine = true,

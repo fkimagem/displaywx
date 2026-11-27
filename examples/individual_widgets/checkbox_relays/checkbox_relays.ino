@@ -169,7 +169,7 @@ void loadWidgets(){
     CheckBoxConfig configCheckbox0 = {
             .callback = checkbox1_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR04,
             .uncheckedColor = CFK_GREY10
         };
@@ -177,7 +177,7 @@ void loadWidgets(){
     CheckBoxConfig configCheckbox1 = {
             .callback = checkbox2_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR20,
             .uncheckedColor = CFK_GREY10
         };
@@ -185,7 +185,7 @@ void loadWidgets(){
     CheckBoxConfig configCheckbox2 = {
             .callback = checkbox3_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR30,
             .uncheckedColor = CFK_GREY10
         };

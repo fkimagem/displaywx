@@ -156,7 +156,8 @@ void loadWidgets(){
             .height = 62,
             .step = 1,
             .color = CFK_COLOR19,
-            .textColor = CFK_BLACK
+            .textColor = CFK_BLACK,
+            .font = &RobotoBold8pt7b
         };
     spinbox1.setup(configSpinBox0);
     myDisplay.setSpinbox(arraySpinbox,qtdSpinbox);

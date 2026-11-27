@@ -210,7 +210,7 @@ void loadWidgets(){
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox1_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR04,
             .uncheckedColor = CFK_GREY10
         };
@@ -220,7 +220,7 @@ void loadWidgets(){
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox2_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR20,
             .uncheckedColor = CFK_GREY10
         };
@@ -230,7 +230,7 @@ void loadWidgets(){
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox3_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR30,
             .uncheckedColor = CFK_GREY10
         };
@@ -307,7 +307,7 @@ CheckBoxConfig configCheckbox0 = {
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox1_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR04,
             .uncheckedColor = CFK_GREY10
         };
@@ -319,7 +319,7 @@ checkbox1.setup(configCheckbox0);
 | --- | --- | --- |
 | `callback` | `checkbox1_cb` | Nome da função chamada quando há uma ação. Escreva o nome sem `()`. `nullptr` significa sem callback. |
 | `weight` | `CheckBoxWeight::MEDIUM` | Espessura do símbolo de marcação: `CheckBoxWeight::LIGHT`, `MEDIUM` ou `HEAVY`. |
-| `size` | `21` | Lado do quadrado em pixels. No CheckBox, use de 10 a 100. |
+| `size` | `24` | Lado do quadrado em pixels. No CheckBox, use de 10 a 100. |
 | `checkedColor` | `CFK_COLOR04` | Cor da caixa marcada. |
 | `uncheckedColor` | `CFK_GREY10` | Cor da caixa desmarcada. O valor `0` escolhe a cor automática do tema. |
 
@@ -332,7 +332,7 @@ CheckBoxConfig configCheckbox1 = {
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox2_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR20,
             .uncheckedColor = CFK_GREY10
         };
@@ -349,7 +349,7 @@ CheckBoxConfig configCheckbox2 = {
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox3_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR30,
             .uncheckedColor = CFK_GREY10
         };

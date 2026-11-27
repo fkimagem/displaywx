@@ -148,6 +148,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0
         };
     numberbox1.setup(configNumberBox0);
@@ -160,6 +162,8 @@ void loadWidgets(){
             .height = 25,
             .letterColor = CFK_GREY1,
             .backgroundColor = CFK_WHITE,
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0
         };
     numberbox1copy.setup(configNumberBox1);

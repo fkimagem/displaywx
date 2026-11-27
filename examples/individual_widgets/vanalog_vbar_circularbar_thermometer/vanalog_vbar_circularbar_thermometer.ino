@@ -213,6 +213,8 @@ void loadWidgets(){
             .orientation = Orientation::VERTICAL,
             .width = 21,
             .height = 116,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
     vertbar1.setup(configVBar0);
@@ -224,6 +226,8 @@ void loadWidgets(){
             .orientation = Orientation::HORIZONTAL,
             .width = 133,
             .height = 21,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
     vertbar2.setup(configVBar1);
@@ -242,7 +246,8 @@ void loadWidgets(){
             .backgroundText = CFK_WHITE,
             .thickness = 20,
             .showValue = true,
-            .inverted = false
+            .inverted = false,
+            .font = &RobotoBold10pt7b
         };
     circload1.setup(configCirculaBar0);
     myDisplay.setCircularBar(arrayCircularbar,qtdCircBar);

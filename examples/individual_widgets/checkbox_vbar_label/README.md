@@ -216,7 +216,7 @@ void loadWidgets(){
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox1_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR30,
             .uncheckedColor = CFK_GREY10
         };
@@ -245,6 +245,8 @@ void loadWidgets(){
             .orientation = Orientation::VERTICAL,
             .width = 21,
             .height = 130,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
     // Aplica a ficha ao objeto; faça isso durante a preparação.
@@ -314,7 +316,7 @@ CheckBoxConfig configCheckbox0 = {
             // Função chamada quando o usuário aciona este controle.
             .callback = checkbox1_cb,
             .weight = CheckBoxWeight::MEDIUM,
-            .size = 21,
+            .size = 24,
             .checkedColor = CFK_COLOR30,
             .uncheckedColor = CFK_GREY10
         };
@@ -326,7 +328,7 @@ checkbox1.setup(configCheckbox0);
 | --- | --- | --- |
 | `callback` | `checkbox1_cb` | Nome da função chamada quando há uma ação. Escreva o nome sem `()`. `nullptr` significa sem callback. |
 | `weight` | `CheckBoxWeight::MEDIUM` | Espessura do símbolo de marcação: `CheckBoxWeight::LIGHT`, `MEDIUM` ou `HEAVY`. |
-| `size` | `21` | Lado do quadrado em pixels. No CheckBox, use de 10 a 100. |
+| `size` | `24` | Lado do quadrado em pixels. No CheckBox, use de 10 a 100. |
 | `checkedColor` | `CFK_COLOR30` | Cor da caixa marcada. |
 | `uncheckedColor` | `CFK_GREY10` | Cor da caixa desmarcada. O valor `0` escolhe a cor automática do tema. |
 
@@ -372,6 +374,8 @@ VerticalBarConfig configVBar0 = {
             .orientation = Orientation::VERTICAL,
             .width = 21,
             .height = 130,
+            .backgroundColor = CFK_GREY11,
+            .borderColor = CFK_BLACK,
             .filledColor = CFK_COLOR30
         };
 // Aplica a ficha ao objeto; faça isso durante a preparação.

@@ -231,7 +231,7 @@ void loadWidgets(){
             .buttons = radiosOfGroup_grupo1,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo1,
-            .radius = 10,
+            .radius = 12,
             .group = 1,
             .amount = 3,
             .defaultClickedId = 1
@@ -242,7 +242,7 @@ void loadWidgets(){
             .buttons = radiosOfGroup_grupo2,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo2,
-            .radius = 10,
+            .radius = 12,
             .group = 2,
             .amount = 2,
             .defaultClickedId = 1
@@ -346,7 +346,7 @@ RadioGroupConfig configRadioGroup0 = {
             .buttons = radiosOfGroup_grupo1,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo1,
-            .radius = 10,
+            .radius = 12,
             .group = 1,
             .amount = 3,
             // ID da opção que começa selecionada.
@@ -360,7 +360,7 @@ grupo1.setup(configRadioGroup0);
 | --- | --- | --- |
 | `buttons` | `radiosOfGroup_grupo1` | Lista de opções `radio_t`. Cada item guarda X, Y, cor e ID. |
 | `callback` | `callbackOfGroup_grupo1` | Nome da função chamada quando há uma ação. Escreva o nome sem `()`. `nullptr` significa sem callback. |
-| `radius` | `10` | Raio de cada bolinha; X e Y ficam na lista radio_t. |
+| `radius` | `12` | Raio de cada bolinha; X e Y ficam na lista radio_t. |
 | `group` | `1` | Identificador do grupo. Use números diferentes para grupos diferentes. |
 | `amount` | `3` | Quantidade de opções presentes na lista `buttons`. |
 | `defaultClickedId` | `1` | ID que começa selecionado. Precisa existir na lista. |
@@ -374,7 +374,7 @@ RadioGroupConfig configRadioGroup1 = {
             .buttons = radiosOfGroup_grupo2,
             // Função chamada quando o usuário aciona este controle.
             .callback = callbackOfGroup_grupo2,
-            .radius = 10,
+            .radius = 12,
             .group = 2,
             .amount = 2,
             // ID da opção que começa selecionada.

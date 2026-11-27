@@ -350,6 +350,7 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .radius = 18, ///< Raio do slider geral: 18 pixels.
             .width = 337, ///< Largura do slider geral: 337 pixels.
             .pressedColor = CFK_COLOR041, ///< Cor do slider geral enquanto esta pressionado: CFK_COLOR041.
+            .startValue = 0,
             .backgroundColor = CFK_WHITE, ///< Cor de fundo do slider geral: CFK_WHITE.
         }; ///< Fecha a ficha do slider geral.
     slidergeral.setup(configHSlider0); ///< Aplica a ficha configHSlider0 ao widget slidergeral.
@@ -361,6 +362,7 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .radius = 21, ///< Raio do slider do programa 1: 21 pixels.
             .width = 343, ///< Largura do slider do programa 1: 343 pixels.
             .pressedColor = CFK_GREY3, ///< Cor do slider do programa 1 enquanto esta pressionado: CFK_GREY3.
+            .startValue = 0,
             .backgroundColor = CFK_WHITE, ///< Cor de fundo do slider do programa 1: CFK_WHITE.
         }; ///< Fecha a ficha do slider do programa 1.
     sliderprg1.setup(configHSlider1); ///< Aplica a ficha configHSlider1 ao widget sliderprg1.
@@ -372,6 +374,7 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .radius = 21, ///< Raio do slider do programa 2: 21 pixels.
             .width = 343, ///< Largura do slider do programa 2: 343 pixels.
             .pressedColor = CFK_GREY3, ///< Cor do slider do programa 2 enquanto esta pressionado: CFK_GREY3.
+            .startValue = 0,
             .backgroundColor = CFK_WHITE, ///< Cor de fundo do slider do programa 2: CFK_WHITE.
         }; ///< Fecha a ficha do slider do programa 2.
     sliderprg2.setup(configHSlider2); ///< Aplica a ficha configHSlider2 ao widget sliderprg2.
@@ -524,7 +527,7 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .backgroundColor = CFK_GREY3, ///< Cor de fundo do grafico da tela principal: CFK_GREY3.
             .textColor = CFK_WHITE, ///< Cor do texto do grafico da tela principal: CFK_WHITE.
             .verticalDivision = 10, ///< Divisoes verticais da grade do grafico da tela principal: 10.
-            .maxPointsAmount = LineChart::SHOW_ALL, ///< O grafico da tela principal guarda todos os pontos recebidos.
+            .maxPointsAmount = 512, ///< O grafico da tela principal guarda todos os pontos recebidos.
             .amountSeries = qtdLinesChart0, ///< Quantidade de series do grafico da tela principal, vinda de qtdLinesChart0.
             .workInBackground = true, ///< O grafico da tela principal continua recebendo pontos mesmo fora da tela atual.
             .showZeroLine = true, ///< Desenha a linha de referencia do zero no grafico da tela principal.
@@ -545,7 +548,7 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .backgroundColor = CFK_GREY3, ///< Cor de fundo do grafico do programa 1: CFK_GREY3.
             .textColor = CFK_WHITE, ///< Cor do texto do grafico do programa 1: CFK_WHITE.
             .verticalDivision = 10, ///< Divisoes verticais da grade do grafico do programa 1: 10.
-            .maxPointsAmount = LineChart::SHOW_ALL, ///< O grafico do programa 1 guarda todos os pontos recebidos.
+            .maxPointsAmount = 512, ///< O grafico do programa 1 guarda todos os pontos recebidos.
             .amountSeries = qtdLinesChart1, ///< Quantidade de series do grafico do programa 1, vinda de qtdLinesChart1.
             .workInBackground = false, ///< O grafico do programa 1 so e atualizado enquanto a sua tela esta visivel.
             .showZeroLine = true, ///< Desenha a linha de referencia do zero no grafico do programa 1.
@@ -566,7 +569,7 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .backgroundColor = CFK_GREY3, ///< Cor de fundo do grafico do programa 2: CFK_GREY3.
             .textColor = CFK_WHITE, ///< Cor do texto do grafico do programa 2: CFK_WHITE.
             .verticalDivision = 10, ///< Divisoes verticais da grade do grafico do programa 2: 10.
-            .maxPointsAmount = LineChart::SHOW_ALL, ///< O grafico do programa 2 guarda todos os pontos recebidos.
+            .maxPointsAmount = 512, ///< O grafico do programa 2 guarda todos os pontos recebidos.
             .amountSeries = qtdLinesChart2, ///< Quantidade de series do grafico do programa 2, vinda de qtdLinesChart2.
             .workInBackground = false, ///< O grafico do programa 2 so e atualizado enquanto a sua tela esta visivel.
             .showZeroLine = true, ///< Desenha a linha de referencia do zero no grafico do programa 2.
@@ -591,6 +594,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de tempo de espera do programa 1: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de tempo de espera do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de tempo de espera do programa 1: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de tempo de espera do programa 1 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de tempo de espera do programa 1.
     pg1starttime.setup(configNumberBox0); ///< Aplica a ficha configNumberBox0 ao widget pg1starttime.
@@ -603,6 +608,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de tempo ligado do programa 1: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de tempo ligado do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de tempo ligado do programa 1: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de tempo ligado do programa 1 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de tempo ligado do programa 1.
     pg1runtime.setup(configNumberBox1); ///< Aplica a ficha configNumberBox1 ao widget pg1runtime.
@@ -615,6 +622,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de tempo parado do programa 1: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de tempo parado do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de tempo parado do programa 1: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de tempo parado do programa 1 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de tempo parado do programa 1.
     pg1endtime.setup(configNumberBox2); ///< Aplica a ficha configNumberBox2 ao widget pg1endtime.
@@ -627,6 +636,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de frequencia maxima do programa 1: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de frequencia maxima do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de frequencia maxima do programa 1: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2 ///< A caixa de frequencia maxima do programa 1 aceita 2 casas decimais.
         }; ///< Fecha a ficha da caixa de frequencia maxima do programa 1.
     pg1freqmax.setup(configNumberBox3); ///< Aplica a ficha configNumberBox3 ao widget pg1freqmax.
@@ -639,6 +650,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de RPM maximo do programa 1: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de RPM maximo do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de RPM maximo do programa 1: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de RPM maximo do programa 1 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de RPM maximo do programa 1.
     pg1rpmmax.setup(configNumberBox4); ///< Aplica a ficha configNumberBox4 ao widget pg1rpmmax.
@@ -651,6 +664,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de tempo de espera do programa 2: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de tempo de espera do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de tempo de espera do programa 2: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de tempo de espera do programa 2 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de tempo de espera do programa 2.
     pg2starttime.setup(configNumberBox5); ///< Aplica a ficha configNumberBox5 ao widget pg2starttime.
@@ -663,6 +678,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de tempo ligado do programa 2: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de tempo ligado do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de tempo ligado do programa 2: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de tempo ligado do programa 2 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de tempo ligado do programa 2.
     pg2runtime.setup(configNumberBox6); ///< Aplica a ficha configNumberBox6 ao widget pg2runtime.
@@ -675,6 +692,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de tempo parado do programa 2: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de tempo parado do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de tempo parado do programa 2: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de tempo parado do programa 2 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de tempo parado do programa 2.
     pg2stoptime.setup(configNumberBox7); ///< Aplica a ficha configNumberBox7 ao widget pg2stoptime.
@@ -687,6 +706,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de frequencia maxima do programa 2: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de frequencia maxima do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de frequencia maxima do programa 2: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 2 ///< A caixa de frequencia maxima do programa 2 aceita 2 casas decimais.
         }; ///< Fecha a ficha da caixa de frequencia maxima do programa 2.
     pg2freqmax.setup(configNumberBox8); ///< Aplica a ficha configNumberBox8 ao widget pg2freqmax.
@@ -699,6 +720,8 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .height = 25, ///< Altura da caixa de RPM maximo do programa 2: 25 pixels.
             .letterColor = CFK_WHITE, ///< Cor dos caracteres da caixa de RPM maximo do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY6, ///< Cor de fundo da caixa de RPM maximo do programa 2: CFK_GREY6.
+            .minValue = -1e9,
+            .maxValue = 1e9,
             .decimalPlaces = 0 ///< A caixa de RPM maximo do programa 2 aceita somente numeros inteiros.
         }; ///< Fecha a ficha da caixa de RPM maximo do programa 2.
     pg2rpmmax.setup(configNumberBox9); ///< Aplica a ficha configNumberBox9 ao widget pg2rpmmax.

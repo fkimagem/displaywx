@@ -243,7 +243,7 @@ void loadWidgets(){
             .backgroundColor = CFK_GREY3,
             .textColor = CFK_WHITE,
             .verticalDivision = 5,
-            .maxPointsAmount = LineChart::SHOW_ALL,
+            .maxPointsAmount = 512,
             .amountSeries = qtdLinesChart0,
             .workInBackground = false,
             .showZeroLine = true,
@@ -364,7 +364,7 @@ LineChartConfig configLineChart0 = {
             .backgroundColor = CFK_GREY3,
             .textColor = CFK_WHITE,
             .verticalDivision = 5,
-            .maxPointsAmount = LineChart::SHOW_ALL,
+            .maxPointsAmount = 512,
             .amountSeries = qtdLinesChart0,
             // Permite receber dados mesmo em outra tela.
             .workInBackground = false,
