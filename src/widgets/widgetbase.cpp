@@ -1,12 +1,13 @@
 #include "widgetbase.h"
+#include "../extras/dwx_safe.h"
 #include <esp_log.h>
 
 //#define DEBUG_TEXT_BOUND
 
 const char* WidgetBase::TAG = "WidgetBase";
 
-bool WidgetBase::usingKeyboard = false;
-uint8_t WidgetBase::currentScreen = 0;
+std::atomic<bool> WidgetBase::usingKeyboard{false};
+std::atomic<uint8_t> WidgetBase::currentScreen{0};
 bool WidgetBase::showingLog = false;
 bool WidgetBase::lightMode = true;
 uint16_t WidgetBase::backgroundColor = 0xffff;
@@ -33,7 +34,7 @@ U8G2 *WidgetBase::objTFT = nullptr;
 uint16_t WidgetBase::screenWidth = 480;
 uint16_t WidgetBase::screenHeight = 240;
 // unsigned long WidgetBase::sharedTime = 0;
-functionLoadScreen_t WidgetBase::loadScreen = nullptr;
+std::atomic<functionLoadScreen_t> WidgetBase::loadScreen{nullptr};
 #if defined(DFK_SD)
 fs::SDFS *WidgetBase::mySD = nullptr;
 #endif
@@ -213,6 +214,7 @@ WidgetBase::~WidgetBase()
 
 bool WidgetBase::showingMyScreen()
 {
+  WidgetStateGuard widgetStateGuard;
     return WidgetBase::currentScreen == m_screen;
 }
 
@@ -221,6 +223,7 @@ bool WidgetBase::showingMyScreen()
  * @param pressed True if widget is being pressed, false otherwise
  */
 void WidgetBase::setPressed(bool pressed) {
+  WidgetStateGuard widgetStateGuard;
     m_isPressed = pressed;
     if (pressed) {
         ESP_LOGD(TAG, "Widget marked as pressed at (%d, %d)", m_xPos, m_yPos);
@@ -237,6 +240,7 @@ void WidgetBase::setPressed(bool pressed) {
  *          then set m_shouldRedraw = true if visual update is needed.
  */
 void WidgetBase::onRelease() {
+  WidgetStateGuard widgetStateGuard;
     // Default implementation: reset pressed state
     m_isPressed = false;
     ESP_LOGD(TAG, "Widget released at (%d, %d)", m_xPos, m_yPos);
@@ -248,6 +252,7 @@ void WidgetBase::onRelease() {
  * @param origin Origin of the callback
  */
 void WidgetBase::addCallback(functionCB_t callback, CallbackOrigin origin){
+  WidgetStateGuard widgetStateGuard;
     static uint32_t droppedCallbacks = 0;
 
     if (callback == nullptr) {
@@ -364,6 +369,7 @@ int WidgetBase::getFirstLettersForSpace(const char* textoCompleto, uint16_t widt
  */
 const GFXfont* WidgetBase::getBestFontForArea(const char* text, uint16_t width, uint16_t height, const GFXfont* const fonts[], size_t fontCount)
 {
+    WidgetStateGuard stateGuard;
   if (!objTFT || !fonts || fontCount == 0) {
     return nullptr;
   }
@@ -411,6 +417,16 @@ const GFXfont* WidgetBase::getBestFontForArea(const char* text, uint16_t width, 
  */
 const GFXfont *WidgetBase::getBestRobotoBold(uint16_t availableWidth, uint16_t availableHeight, const char* texto)
 {
+#if defined(DFK_ROBOTO_BOLD_CATALOG)
+    static const GFXfont* const fontes[] = { DFK_ROBOTO_BOLD_CATALOG };
+    const size_t amountFonts = sizeof(fontes) / sizeof(fontes[0]);
+#elif defined(DFK_COMPACT_FONTS)
+    static const GFXfont* const fontes[] = { &RobotoBold20pt7b, &RobotoBold12pt7b, &RobotoBold8pt7b, &RobotoBold5pt7b };
+    const uint8_t amountFonts = 4;
+#elif !defined(FONT_ROBOTO)
+    static const GFXfont* const fontes[] = { &RobotoBold5pt7b };
+    const uint8_t amountFonts = 1;
+#else
     const uint8_t amountFonts = 18;
     // Array de fontes disponíveis, ordenadas do maior para o menor
     static const GFXfont* const fontes[amountFonts] = {
@@ -434,6 +450,8 @@ const GFXfont *WidgetBase::getBestRobotoBold(uint16_t availableWidth, uint16_t a
         &RobotoBold2pt7b
     };
 
+#endif
+
     return this->getBestFontForArea( texto, availableWidth, availableHeight, fontes, amountFonts);
 }
 
@@ -445,6 +463,7 @@ const GFXfont *WidgetBase::getBestRobotoBold(uint16_t availableWidth, uint16_t a
  */
 void WidgetBase::updateFont(FontType _f)
 {
+    WidgetStateGuard stateGuard;
 #if defined(USING_GRAPHIC_LIB)
     if (!objTFT) return;
     WidgetBase::objTFT->setTextSize(1);
@@ -483,6 +502,7 @@ void WidgetBase::updateFont(FontType _f)
  */
 #if defined(USING_GRAPHIC_LIB)
 void WidgetBase::printText(const char* _texto, uint16_t _x, uint16_t _y, uint8_t _datum){
+    WidgetStateGuard stateGuard;
     //int ox = _x, oy = _y;
     WidgetBase::recalculateTextPosition(_texto, &_x, &_y, _datum);
 
@@ -509,6 +529,7 @@ void WidgetBase::printText(const char* _texto, uint16_t _x, uint16_t _y, uint8_t
  * @param _colorPadding Color of the padding.
  */
 void WidgetBase::printText(const char* _texto, uint16_t _x, uint16_t _y, uint8_t _datum, TextBound_t &lastTextBoud, uint16_t _colorPadding){
+    WidgetStateGuard stateGuard;
     objTFT->setTextWrap(false);
     objTFT->fillRect(lastTextBoud.x, lastTextBoud.y, lastTextBoud.width, lastTextBoud.height, _colorPadding);
     //int ox = _x, oy = _y;
@@ -542,6 +563,7 @@ void WidgetBase::printText(const char* _texto, uint16_t _x, uint16_t _y, uint8_t
  */
 void WidgetBase::recalculateTextPosition(const char *_texto, uint16_t *_x, uint16_t *_y, uint8_t _datum)
 {
+    WidgetStateGuard stateGuard;
     //static const int16_t OFFSET_PADDING_Y = 6;
     
     // Obtém as dimensões do texto
@@ -667,37 +689,21 @@ TextBound_t WidgetBase::getTextBounds(const char *str, int16_t x, int16_t y)
  */
 void WidgetBase::drawRotatedImageOptimized(uint16_t *image, int16_t width, int16_t height, float angle, int16_t pivotX, int16_t pivotY, int16_t drawX, int16_t drawY)
 {
-    log_d("Drawing image with  %i x %i and angle %f at pos %i x %i", width, height, angle, drawX, drawY);
-    // Converte o ângulo para radianos
-    float radians = angle * DEG_TO_RAD;
-
-    // Pré-calcula o seno e o cosseno do ângulo
-    float cosA = cos(radians);
-    float sinA = sin(radians);
-
-    // Pré-calcula limites de varredura
-    int16_t minX = -pivotX;
-    int16_t maxX = width - pivotX;
-    int16_t minY = -pivotY;
-    int16_t maxY = height - pivotY;
-
-    // Desenha a imagem rotacionada
-    objTFT->startWrite();  // Começa a transação de escrita para otimizar a comunicação com o display
-    for (int16_t y = minY; y < maxY; y++) {
-        for (int16_t x = minX; x < maxX; x++) {
-            // Calcula as coordenadas rotacionadas
-            int16_t rotatedX = pivotX + (x * cosA - y * sinA);
-            int16_t rotatedY = pivotY + (x * sinA + y * cosA);
-
-            // Verifica se o pixel rotacionado está dentro dos limites da tela
-            if (rotatedX >= 0 && rotatedX < objTFT->width() && rotatedY >= 0 && rotatedY < objTFT->height()) {
-                // Desenha o pixel rotacionado no display
-                uint16_t color = image[(y + pivotY) * width + (x + pivotX)]; // Obtém a cor original no formato RGB565
-                objTFT->writePixel(drawX + rotatedX, drawY + rotatedY, color); // Desenha na nova posição
-            }
+    WidgetStateGuard guard;
+    if (!objTFT || !image || width <= 0 || height <= 0 || !dwx_normalize_angle(angle, &angle)) return;
+    const float radians = angle * DEG_TO_RAD;
+    const float c = cosf(radians), s = sinf(radians);
+    objTFT->startWrite();
+    for (int32_t sy = 0; sy < height; ++sy) {
+        for (int32_t sx = 0; sx < width; ++sx) {
+            const float dx = sx - pivotX, dy = sy - pivotY;
+            const int32_t x = lroundf(drawX + pivotX + dx * c - dy * s);
+            const int32_t y = lroundf(drawY + pivotY + dx * s + dy * c);
+            if (x >= 0 && x < objTFT->width() && y >= 0 && y < objTFT->height())
+                objTFT->writePixel(x, y, image[size_t(sy) * width + sx]);
         }
     }
-    objTFT->endWrite();  // Termina a transação de escrita
+    objTFT->endWrite();
 }
 
 #endif // USING_GRAPHIC_LIB: drawing helpers
@@ -707,6 +713,7 @@ void WidgetBase::drawRotatedImageOptimized(uint16_t *image, int16_t width, int16
  * @param color The color of the origin.
  */
 void WidgetBase::showOrigin(uint16_t color){
+    WidgetStateGuard stateGuard;
 #if defined(HELPERS) && defined(USING_GRAPHIC_LIB)
     if (!objTFT) return;
     uint8_t tam = 5;
@@ -720,37 +727,45 @@ void WidgetBase::showOrigin(uint16_t color){
 
 // New state management methods
 bool WidgetBase::isInitialized() const {
+  WidgetStateGuard widgetStateGuard;
     return m_initialized;
 }
 
 bool WidgetBase::isEnabled() const {
+  WidgetStateGuard widgetStateGuard;
     return m_enabled;
 }
 
 void WidgetBase::setEnabled(bool enabled) {
+  WidgetStateGuard widgetStateGuard;
     m_enabled = enabled;
     m_shouldRedraw = true;
     ESP_LOGD(TAG, "Widget %s at (%d, %d)", enabled ? "enabled" : "disabled", m_xPos, m_yPos);
 }
 
 bool WidgetBase::isValidState() const {
+  WidgetStateGuard widgetStateGuard;
     return m_initialized && m_loaded && (objTFT != nullptr);
 }
 
 bool WidgetBase::validateParameters() const {
+    WidgetStateGuard stateGuard;
     return (m_xPos < screenWidth) && (m_yPos < screenHeight);// && (m_screen >= 0);
 }
 
 void WidgetBase::lock() {
+  WidgetStateGuard widgetStateGuard;
     m_locked = true;
     ESP_LOGD(TAG, "Widget locked at (%d, %d)", m_xPos, m_yPos);
 }
 
 void WidgetBase::unlock() {
+  WidgetStateGuard widgetStateGuard;
     m_locked = false;
     ESP_LOGD(TAG, "Widget unlocked at (%d, %d)", m_xPos, m_yPos);
 }
 
 bool WidgetBase::isLocked() const {
+  WidgetStateGuard widgetStateGuard;
     return m_locked;
 }

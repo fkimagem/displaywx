@@ -57,6 +57,8 @@ const char *PASSWORD = "SUA_SENHA";
 // In DisplayWX/user_setup.h, enable DISP_DEFAULT and TOUCH_FT6336.
 // Enable only the FT6336 touch driver for this hardware configuration.
 #include <displaywx.h>
+#include <fonts/RobotoRegular/RobotoRegular10pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular8pt7b.h>
 
 /* Project setup:
  * MCU: ESP32S3
@@ -209,10 +211,13 @@ void loadWidgets() {
                               .prefix = "RSSI: ",
                               .suffix = " dBm",
                               .fontFamily = &RobotoRegular10pt7b,
-                              .datum = TL_DATUM,
+                              .datum = L_BASELINE,
                               .fontColor = CFK_BLACK,
                               .backgroundColor = CFK_WHITE,
-                              .textMetrics = nullptr, // Measure using the configured GFX font.
+                              .textMetrics = &edgewx_text_RobotoRegular10,
+                              .backgroundDatum = TL_DATUM,
+                              .backgroundAnchorX = 190.0f,
+                              .backgroundAnchorY = 195.0f,
                               .fillBackground = true
   };
   txtforce.setup(configLabel0);

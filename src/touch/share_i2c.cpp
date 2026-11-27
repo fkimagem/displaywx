@@ -1,9 +1,10 @@
 #include "share_i2c.h"
 
-#if defined(HAS_CAMERA_MIPI)
+#if defined(HAS_CAMERA_MIPI) || defined(TOUCH_GSL3680)
 #include "esp_log.h"
 #include "esp32-hal-periman.h"
 #include "soc/soc_caps.h"
+#include <new>
 
 static const char *TAG = "TouchI2C";
 static const uint32_t kTimeoutMs = 50;
@@ -11,18 +12,15 @@ static const size_t kBufferSize = 128;
 
 TouchI2cMaster::TouchI2cMaster()
 {
-    busMutex = xSemaphoreCreateMutexStatic(&busMutexBuffer);
+    busMutex = xSemaphoreCreateRecursiveMutexStatic(&busMutexBuffer);
 }
 
-bool TouchI2cMaster::lock()
+bool TouchI2cMaster::lock(uint32_t timeoutMs)
 {
     if (busMutex == nullptr) {
         return false;
     }
-    if (xSemaphoreGetMutexHolder(busMutex) == xTaskGetCurrentTaskHandle()) {
-        return true;
-    }
-    if (xSemaphoreTake(busMutex, pdMS_TO_TICKS(kTimeoutMs)) == pdTRUE) {
+    if (xSemaphoreTakeRecursive(busMutex, (timeoutMs == UINT32_MAX ? portMAX_DELAY : pdMS_TO_TICKS(timeoutMs))) == pdTRUE) {
         return true;
     }
     ESP_LOGW(TAG, "I2C lock timed out");
@@ -37,7 +35,7 @@ void TouchI2cMaster::unlock()
     if (xSemaphoreGetMutexHolder(busMutex) != xTaskGetCurrentTaskHandle()) {
         return;
     }
-    xSemaphoreGive(busMutex);
+    xSemaphoreGiveRecursive(busMutex);
 }
 
 bool TouchI2cMaster::usesPins(int8_t sda, int8_t scl) const
@@ -112,71 +110,23 @@ static bool tryReuseBusOnPins(int8_t sda, int8_t scl, i2c_master_bus_handle_t *h
     return true;
 }
 
-static bool registerPinsOnPeriman(int8_t sda, int8_t scl, i2c_port_num_t port)
+// Let the Arduino core own registration and rollback of its I2C pins.
+static bool createBusOnFreePort(int8_t sda, int8_t scl, i2c_master_bus_handle_t *handle, TwoWire **owner)
 {
-    void *bus = (void *)(port + 1);
-    if (!perimanSetPinBus((uint8_t)sda, ESP32_BUS_TYPE_I2C_MASTER_SDA, bus, (int8_t)port, -1)) {
-        ESP_LOGE(TAG, "Failed to register SDA pin on periman");
-        return false;
+    if (!pinIsFree(sda) || !pinIsFree(scl)) return false;
+    for (int port = 0; port < SOC_HP_I2C_NUM; ++port) {
+        if (!portIsFree(static_cast<i2c_port_num_t>(port))) continue;
+        TwoWire *wire = new (std::nothrow) TwoWire(port);
+        if (!wire) return false;
+        if (wire->begin(sda, scl) &&
+            i2c_master_get_bus_handle(static_cast<i2c_port_num_t>(port), handle) == ESP_OK) {
+            *owner = wire;
+            return true;
+        }
+        wire->end();
+        delete wire;
+        *handle = nullptr;
     }
-    if (!perimanSetPinBus((uint8_t)scl, ESP32_BUS_TYPE_I2C_MASTER_SCL, bus, (int8_t)port, -1)) {
-        ESP_LOGE(TAG, "Failed to register SCL pin on periman");
-        return false;
-    }
-    return true;
-}
-
-static bool createMasterBusOnPort(i2c_port_num_t port, int8_t sda, int8_t scl, i2c_master_bus_handle_t *handle)
-{
-    i2c_master_bus_config_t config = {};
-    config.i2c_port = port;
-    config.sda_io_num = (gpio_num_t)sda;
-    config.scl_io_num = (gpio_num_t)scl;
-    config.clk_source = I2C_CLK_SRC_DEFAULT;
-    config.glitch_ignore_cnt = 7;
-    config.flags.enable_internal_pullup = true;
-
-    esp_err_t err = i2c_new_master_bus(&config, handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "i2c_new_master_bus failed: %s", esp_err_to_name(err));
-        return false;
-    }
-    return true;
-}
-
-static bool tryCreateOnPort(i2c_port_num_t port, int8_t sda, int8_t scl, i2c_master_bus_handle_t *handle)
-{
-    if (!portIsFree(port)) {
-        return false;
-    }
-    if (!createMasterBusOnPort(port, sda, scl, handle)) {
-        return false;
-    }
-    if (!registerPinsOnPeriman(sda, scl, port)) {
-        return false;
-    }
-
-    ESP_LOGI(TAG, "created I2C port %d", (int)port);
-    return true;
-}
-
-static bool createBusOnFreePort(int8_t sda, int8_t scl, i2c_master_bus_handle_t *handle)
-{
-    if (!pinIsFree(sda)) {
-        return false;
-    }
-    if (!pinIsFree(scl)) {
-        return false;
-    }
-    if (tryCreateOnPort(I2C_NUM_0, sda, scl, handle)) {
-        return true;
-    }
-#if SOC_HP_I2C_NUM > 1
-    if (tryCreateOnPort(I2C_NUM_1, sda, scl, handle)) {
-        return true;
-    }
-#endif
-    ESP_LOGE(TAG, "No free HP I2C port for touch");
     return false;
 }
 
@@ -187,7 +137,7 @@ bool TouchI2cMaster::acquireBus(int8_t sda, int8_t scl)
         return true;
     }
 
-    busReady = createBusOnFreePort(sda, scl, &busHandle);
+    busReady = createBusOnFreePort(sda, scl, &busHandle, &ownedWire);
     if (busReady) {
         return true;
     }
@@ -207,8 +157,9 @@ bool TouchI2cMaster::begin(int sda, int scl, uint32_t frequency)
         return false;
     }
     if (busHandle != nullptr) {
+        const bool matches = usesPins((int8_t)sda, (int8_t)scl);
         unlock();
-        return true;
+        return matches;
     }
     if (frequency > 0) {
         sclSpeedHz = frequency;
@@ -287,18 +238,17 @@ uint8_t TouchI2cMaster::statusFromEsp(esp_err_t err)
 
 void TouchI2cMaster::beginTransmission(uint8_t address)
 {
+    if (!(ownsLock() && holdingBus) && !lock()) return;
+    holdingBus = true;
     repeatedStart = false;
+    rxIndex = rxLength = 0;
     txAddress = address;
     txLength = 0;
-    if (holdingBus) {
-        return;
-    }
-    holdingBus = lock();
 }
 
 size_t TouchI2cMaster::write(uint8_t data)
 {
-    if (txLength >= kBufferSize) {
+    if (!ownsLock() || !holdingBus || txLength >= kBufferSize) {
         return 0;
     }
     txBuffer[txLength++] = data;
@@ -307,6 +257,7 @@ size_t TouchI2cMaster::write(uint8_t data)
 
 size_t TouchI2cMaster::write(const uint8_t *data, size_t quantity)
 {
+    if (!data) return 0;
     size_t written = 0;
     while (written < quantity) {
         if (write(data[written]) == 0) {
@@ -319,7 +270,7 @@ size_t TouchI2cMaster::write(const uint8_t *data, size_t quantity)
 
 uint8_t TouchI2cMaster::endTransmission(bool sendStop)
 {
-    if (!holdingBus) {
+    if (!ownsLock() || !holdingBus) {
         return 5;
     }
     if (!sendStop) {
@@ -354,7 +305,7 @@ size_t TouchI2cMaster::requestFrom(uint8_t address, size_t len, bool sendStop)
     if (len > kBufferSize) {
         len = kBufferSize;
     }
-    if (!holdingBus && !lock()) {
+    if (!(ownsLock() && holdingBus) && !lock()) {
         return 0;
     }
     holdingBus = true;
@@ -362,6 +313,7 @@ size_t TouchI2cMaster::requestFrom(uint8_t address, size_t len, bool sendStop)
     rxIndex = 0;
     rxLength = 0;
 
+    if (len == 0) { endRead(); return 0; }
     i2c_master_dev_handle_t device = deviceFor(address);
     esp_err_t err = ESP_OK;
     if (device == nullptr) {
@@ -373,9 +325,8 @@ size_t TouchI2cMaster::requestFrom(uint8_t address, size_t len, bool sendStop)
         err = i2c_master_receive(device, rxBuffer, len, kTimeoutMs);
     }
 
-    holdingBus = false;
-    unlock();
     if (err != ESP_OK) {
+        endRead();
         ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
         return 0;
     }
@@ -391,15 +342,46 @@ size_t TouchI2cMaster::requestFrom(uint8_t address, size_t len)
 
 int TouchI2cMaster::available()
 {
-    return (int)(rxLength - rxIndex);
+    return ownsLock() && holdingBus ? (int)(rxLength - rxIndex) : 0;
 }
 
 int TouchI2cMaster::read()
 {
-    if (rxIndex >= rxLength) {
-        return -1;
+    if (!ownsLock() || !holdingBus || rxIndex >= rxLength) return -1;
+    const int value = rxBuffer[rxIndex++];
+    if (rxIndex == rxLength) endRead();
+    return value;
+}
+
+bool TouchI2cMaster::ownsLock() const
+{
+    return busMutex && xSemaphoreGetMutexHolder(busMutex) == xTaskGetCurrentTaskHandle();
+}
+
+void TouchI2cMaster::endRead()
+{
+    if (!ownsLock() || !holdingBus) return;
+    rxIndex = rxLength = txLength = 0;
+    repeatedStart = holdingBus = false;
+    unlock();
+}
+
+bool TouchI2cMaster::end()
+{
+    if (!lock(UINT32_MAX)) return false;
+    endRead();
+    bool ok = true;
+    for (auto &slot : deviceSlots) {
+        if (slot.used && i2c_master_bus_rm_device(slot.handle) != ESP_OK) { ok = false; break; }
+        slot = {};
     }
-    return rxBuffer[rxIndex++];
+    if (ok && ownedWire) {
+        ok = ownedWire->end();
+        if (ok) { delete ownedWire; ownedWire = nullptr; }
+    }
+    if (ok) { busHandle = nullptr; sdaPin = sclPin = -1; }
+    unlock();
+    return ok;
 }
 
 TouchI2cMaster TouchI2c;

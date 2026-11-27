@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_TOUCHAREA)
 #include "wtoucharea.h"
 
 const char* TouchArea::TAG = "[TouchArea]";
@@ -17,6 +19,7 @@ TouchArea::TouchArea(uint16_t _x, uint16_t _y, uint8_t _screen)
  * @details Desaloca memória dinâmica e remove referências a objetos.
  */
 void TouchArea::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
   // TouchArea não aloca memória dinâmica no momento
 }
 
@@ -40,6 +43,7 @@ TouchArea::~TouchArea() {
  *          - Retorna resultado da detecção
  */
 bool TouchArea::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -63,7 +67,8 @@ bool TouchArea::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o TouchArea for tocado.
  */
-functionCB_t TouchArea::getCallbackFunc() { return m_callback; }
+functionCB_t TouchArea::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Redesenha o TouchArea na tela.
@@ -72,6 +77,7 @@ functionCB_t TouchArea::getCallbackFunc() { return m_callback; }
  *          - Não desenha nada na tela
  */
 void TouchArea::redraw() {
+  WidgetStateGuard widgetStateGuard;
   if (!m_visible) {
     return;
   }
@@ -85,6 +91,7 @@ void TouchArea::redraw() {
  *          - Útil para ativar a área de toque programaticamente
  */
 void TouchArea::onClick() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(DFK_TOUCHAREA)
   if (!m_loaded) {
     ESP_LOGE(TAG, "TouchArea widget not loaded");
@@ -103,6 +110,7 @@ void TouchArea::onClick() {
  * @details Chama método setup() com parâmetros individuais da configuração.
  */
 void TouchArea::setup(const TouchAreaConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   m_config = config;
   m_callback = config.callback;
   m_loaded = true;
@@ -115,6 +123,7 @@ void TouchArea::setup(const TouchAreaConfig &config) {
  * Not implemented in the current version.
  */
 void TouchArea::changeState() {
+  WidgetStateGuard widgetStateGuard;
   // Not implemented
 }
 
@@ -123,13 +132,15 @@ void TouchArea::changeState() {
  * @return Status atual da área de toque.
  * @details Consulta o status interno da área de toque.
  */
-bool TouchArea::getStatus() { return m_status; }
+bool TouchArea::getStatus() {
+  WidgetStateGuard widgetStateGuard; return m_status; }
 
 /**
  * @brief Torna o TouchArea visível na tela.
  * @details Define o widget como visível e marca para redesenho.
  */
 void TouchArea::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -139,6 +150,7 @@ void TouchArea::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void TouchArea::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
@@ -147,4 +159,6 @@ void TouchArea::hide() {
  * @brief Força o TouchArea a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void TouchArea::forceUpdate() { m_shouldRedraw = true; }
+void TouchArea::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
+#endif // DFK_DISABLE_TOUCHAREA

@@ -1,4 +1,7 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_HSLIDER)
 #include "whslider.h"
+#include "../../extras/dwx_safe.h"
 #include <Arduino.h>
 #include <esp_log.h>
 
@@ -54,6 +57,7 @@ HSlider::~HSlider() {
  *          Suporta dois modos: detecção apenas no controle (DETECT_ON_HANDLER) ou na área total.
  */
 bool HSlider::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   // Early validation checks using macros
   CHECK_VISIBLE_BOOL
   CHECK_INITIALIZED_BOOL
@@ -106,7 +110,8 @@ bool HSlider::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o valor do slider mudar.
  */
-functionCB_t HSlider::getCallbackFunc() { return m_callback; }
+functionCB_t HSlider::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 
 /**
@@ -119,6 +124,7 @@ functionCB_t HSlider::getCallbackFunc() { return m_callback; }
  *          - Raio deve ser maior que zero
  */
 bool HSlider::validateConfig(const HSliderConfig& config) {
+  WidgetStateGuard widgetStateGuard;
   // Validate basic parameters
   if (config.width <= 0) {
     ESP_LOGE(TAG, "Invalid width: %d", config.width);
@@ -130,7 +136,9 @@ bool HSlider::validateConfig(const HSliderConfig& config) {
     return false;
   }
   
-  if (config.radius <= 0) {
+  if (config.radius <= 4 || config.width <= 2U * config.radius ||
+      (uint32_t)m_xPos + config.width > INT16_MAX ||
+      (uint32_t)m_yPos + 2U * config.radius > INT16_MAX) {
     ESP_LOGE(TAG, "Invalid radius: %d", config.radius);
     return false;
   }
@@ -141,10 +149,11 @@ bool HSlider::validateConfig(const HSliderConfig& config) {
 /**
  * @brief Atualiza o valor do slider baseado na posição atual.
  * @details Mapeia a posição atual do controle para o valor correspondente
- *          dentro da faixa configurada usando a função map().
+ *          dentro da faixa configurada usando a função dwx_map_clamped().
  */
 void HSlider::updateValue() {
-  m_value = map(m_currentPos, m_minX, m_maxX, m_config.minValue, m_config.maxValue);
+  WidgetStateGuard widgetStateGuard;
+  m_value = dwx_map_clamped(m_currentPos, m_minX, m_maxX, m_config.minValue, m_config.maxValue);
 }
 
 /**
@@ -156,6 +165,7 @@ void HSlider::updateValue() {
  *          - Raio interno para área de conteúdo
  */
 void HSlider::updateDimensions() {
+  WidgetStateGuard widgetStateGuard;
   m_height = m_config.radius * 2;
   m_centerV = m_yPos + m_config.radius;
   m_minX = m_xPos + m_config.radius;
@@ -169,6 +179,7 @@ void HSlider::updateDimensions() {
  *          para redesenho na próxima atualização.
  */
 void HSlider::start() {
+  WidgetStateGuard widgetStateGuard;
   updateDimensions();
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "HSlider initialized at (%d, %d)", m_xPos, m_yPos);
@@ -188,6 +199,7 @@ void HSlider::start() {
  *          e a flag m_shouldRedraw está configurada como true.
  */
 void HSlider::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -253,6 +265,7 @@ void HSlider::redraw() {
  *          Chamado durante a configuração inicial e quando o slider precisa de redesenho completo.
  */
 void HSlider::drawBackground() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -285,6 +298,7 @@ void HSlider::drawBackground() {
  *          O slider não será exibido corretamente até que este método seja chamado.
  */
 void HSlider::setup(const HSliderConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   // Validate TFT object
   CHECK_TFT_VOID
 
@@ -316,7 +330,8 @@ void HSlider::setup(const HSliderConfig &config) {
  * @return Valor atual do slider dentro da faixa configurada.
  * @details Retorna o valor mapeado baseado na posição atual do controle deslizante.
  */
-int HSlider::getValue() const { return m_value; }
+int HSlider::getValue() const {
+  WidgetStateGuard widgetStateGuard; return m_value; }
 
 /**
  * @brief Define o valor do slider.
@@ -329,13 +344,14 @@ int HSlider::getValue() const { return m_value; }
  *          - Executa callback se configurado e triggerCallback for true
  */
 void HSlider::setValue(int newValue, bool triggerCallback) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   CHECK_INITIALIZED_VOID
   
   m_value = constrain(newValue, m_config.minValue, m_config.maxValue);
   
   // Update position based on value
-  m_currentPos = map(m_value, m_config.minValue, m_config.maxValue, m_minX, m_maxX);
+  m_currentPos = dwx_map_clamped(m_value, m_config.minValue, m_config.maxValue, m_minX, m_maxX);
   
   m_shouldRedraw = true;
   
@@ -351,7 +367,8 @@ void HSlider::setValue(int newValue, bool triggerCallback) {
  * @details Define a flag m_shouldRedraw como true para garantir que o widget
  *          seja redesenhado na próxima oportunidade.
  */
-void HSlider::forceUpdate() { 
+void HSlider::forceUpdate() {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true; 
   ESP_LOGD(TAG, "HSlider force update requested");
 }
@@ -361,6 +378,7 @@ void HSlider::forceUpdate() {
  * @details Define o widget como visível e marca para redesenho.
  */
 void HSlider::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "HSlider shown at (%d, %d)", m_xPos, m_yPos);
@@ -371,7 +389,10 @@ void HSlider::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void HSlider::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "HSlider hidden at (%d, %d)", m_xPos, m_yPos);
 }
+
+#endif // DFK_DISABLE_HSLIDER

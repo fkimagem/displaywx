@@ -71,36 +71,80 @@ constexpr uint16_t process_color(uint16_t val) {
 }
 #endif
 
+#if !defined(DFK_DISABLE_TOUCHAREA)
 #define DFK_TOUCHAREA 1
+#endif
+#if !defined(DFK_DISABLE_CIRCLEBTN)
 #define DFK_CIRCLEBTN 1
+#endif
+#if !defined(DFK_DISABLE_RECTBTN)
 #define DFK_RECTBTN 1
+#endif
+#if !defined(DFK_DISABLE_LED)
 #define DFK_LED 1
+#endif
+#if !defined(DFK_DISABLE_VBAR)
 #define DFK_VBAR 1
+#endif
+#if !defined(DFK_DISABLE_TOGGLE)
 #define DFK_TOGGLE 1
+#endif
+#if !defined(DFK_DISABLE_HSLIDER)
 #define DFK_HSLIDER 1
+#endif
+#if !defined(DFK_DISABLE_TEXTBOX)
 #define DFK_TEXTBOX 1
+#endif
+#if !defined(DFK_DISABLE_CHECKBOX)
 #define DFK_CHECKBOX 1
+#endif
+#if !defined(DFK_DISABLE_RADIO)
 #define DFK_RADIO 1
+#endif
+#if !defined(DFK_DISABLE_NUMBERBOX)
 #define DFK_NUMBERBOX 1
+#endif
+#if !defined(DFK_DISABLE_VANALOG)
 #define DFK_VANALOG 1
+#endif
+#if !defined(DFK_DISABLE_GAUGE)
 #define DFK_GAUGE 1
+#endif
+#if !defined(DFK_DISABLE_LINECHART)
 #define DFK_LINECHART 1
+#endif
+#if !defined(DFK_DISABLE_LABEL)
 #define DFK_LABEL 1
+#endif
 #if !defined(DFK_DISABLE_IMAGE)
 #define DFK_IMAGE 1
 #endif
 #if !defined(DFK_DISABLE_SD)
 #define DFK_SD 1
 #endif
+#if !defined(DFK_DISABLE_SPINBOX)
 #define DFK_SPINBOX 1
+#endif
+#if !defined(DFK_DISABLE_TEXTBUTTON)
 #define DFK_TEXTBUTTON 1
+#endif
+#if !defined(DFK_DISABLE_CIRCULARBAR)
 #define DFK_CIRCULARBAR 1
+#endif
+#if !defined(DFK_DISABLE_THERMOMETER)
 #define DFK_THERMOMETER 1
+#endif
+#if !defined(DFK_DISABLE_CAMERA_MIPI)
 #define DFK_CAMERA_MIPI 1
+#endif
 //#define DFK_EXTERNALINPUT 1
 
+#if !defined(DFK_DISABLE_SPIFFS)
 #define USE_SPIFFS 1
+#endif
+#if !defined(DFK_DISABLE_FATFS)
 #define USE_FATFS 1
+#endif
 
 #if defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
 #undef DFK_TOUCHAREA
@@ -321,6 +365,7 @@ constexpr uint16_t CFK_COLOR075 = process_color(0xFD5A);   // #FFAAD4
 
 #if defined(USING_GRAPHIC_LIB)
 
+#if !defined(DFK_SELECT_FONT_FAMILIES)
 #define FONT_ROBOTO
 #define FONT_SEGMENT7
 #define FONT_LED
@@ -331,9 +376,18 @@ constexpr uint16_t CFK_COLOR075 = process_color(0xFD5A);   // #FFAAD4
 #define FONT_SCREENMATRIX
 #define FONT_URBAN
 #define FONT_VACATION
+#endif
 
 
 
+#endif
+
+#if defined(DFK_SD) && !defined(DFK_DISABLE_LOGGING)
+#define DFK_LOGGING 1
+#endif
+
+#ifndef DFK_CAMERA_MAX_BYTES
+#define DFK_CAMERA_MAX_BYTES (4u * 1024u * 1024u)
 #endif
 
 #endif

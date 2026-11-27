@@ -62,7 +62,7 @@ private:
 
   void cleanupMemory();
   void start();
-  uint16_t calculateArrowVerticalPosition(uint16_t value);
+  uint16_t calculateArrowVerticalPosition(int value);
   void drawArrow();
   void clearArrow();
   void drawText();

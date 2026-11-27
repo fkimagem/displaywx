@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_CHECKBOX)
 #include "wcheckbox.h"
 #include <Arduino.h>
 #include <esp_log.h>
@@ -42,7 +44,8 @@ CheckBox::~CheckBox() {
  *          no próximo ciclo de atualização da tela. Útil para garantir que mudanças
  *          no estado ou configuração sejam visíveis imediatamente.
  */
-void CheckBox::forceUpdate() { 
+void CheckBox::forceUpdate() {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true; 
   ESP_LOGD(TAG, "CheckBox force update requested");
 }
@@ -63,6 +66,7 @@ void CheckBox::forceUpdate() {
  *          o estado é alternado e o widget é marcado para redesenho.
  */
 bool CheckBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   // Early validation checks using macros
   CHECK_VISIBLE_BOOL
   CHECK_INITIALIZED_BOOL
@@ -102,7 +106,8 @@ bool CheckBox::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @details A função callback é executada quando o estado do checkbox muda.
  *          Para mais informações sobre callbacks, consulte @ref WidgetBase.
  */
-functionCB_t CheckBox::getCallbackFunc() { return m_callback; }
+functionCB_t CheckBox::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 // getEnabled() and setEnabled() are inherited from WidgetBase
 
@@ -111,7 +116,8 @@ functionCB_t CheckBox::getCallbackFunc() { return m_callback; }
  * @details Inverte o valor do atributo m_status. Este método é chamado internamente
  *          por detectTouch() quando o checkbox é tocado pelo usuário.
  */
-void CheckBox::changeState() { m_status = !m_status; }
+void CheckBox::changeState() {
+  WidgetStateGuard widgetStateGuard; m_status = !m_status; }
 
 /**
  * @brief Redesenha o CheckBox na tela, atualizando sua aparência baseada em seu estado.
@@ -125,6 +131,7 @@ void CheckBox::changeState() { m_status = !m_status; }
  *          e a flag m_shouldRedraw está configurada como true.
  */
 void CheckBox::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -170,6 +177,7 @@ void CheckBox::redraw() {
  *          - O checkbox não será exibido corretamente até que este método seja chamado
  */
 void CheckBox::setup(const CheckBoxConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   // Validate TFT object
   CHECK_TFT_VOID
 
@@ -207,7 +215,8 @@ void CheckBox::setup(const CheckBoxConfig &config) {
  * @brief Recupera o status atual do CheckBox.
  * @return True se o checkbox está marcado, False se está desmarcado.
  */
-bool CheckBox::getStatus() const { return m_status; }
+bool CheckBox::getStatus() const {
+  WidgetStateGuard widgetStateGuard; return m_status; }
 
 /**
  * @brief Define o estado atual do checkbox.
@@ -221,6 +230,7 @@ bool CheckBox::getStatus() const { return m_status; }
  *          Útil para sincronizar o estado visual com valores de variáveis ou configurações.
  */
 void CheckBox::setStatus(bool status, bool triggerCallback) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   
   m_status = status;
@@ -239,6 +249,7 @@ void CheckBox::setStatus(bool status, bool triggerCallback) {
  *          desenhado na próxima chamada de redraw() se estiver na tela atual.
  */
 void CheckBox::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "CheckBox shown at (%d, %d)", m_xPos, m_yPos);
@@ -250,6 +261,7 @@ void CheckBox::show() {
  *          mais desenhado até que show() seja chamado novamente.
  */
 void CheckBox::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "CheckBox hidden at (%d, %d)", m_xPos, m_yPos);
@@ -265,6 +277,7 @@ void CheckBox::hide() {
  *          Caso contrário, retorna o valor configurado em m_config.uncheckedColor.
  */
 uint16_t CheckBox::getUncheckedColor() {
+  WidgetStateGuard widgetStateGuard;
   if (m_config.uncheckedColor != 0) {
     return m_config.uncheckedColor;
   }
@@ -279,6 +292,7 @@ uint16_t CheckBox::getUncheckedColor() {
  *          A borda usa a cor do checkbox marcado para manter a consistência visual.
  */
 uint16_t CheckBox::getBorderColor() {
+  WidgetStateGuard widgetStateGuard;
   return m_config.checkedColor;
 }
 
@@ -292,6 +306,7 @@ uint16_t CheckBox::getBorderColor() {
  *          Usa os pontos calculados em setup() para criar o desenho.
  */
 void CheckBox::drawCheckmark() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   uint8_t weight = static_cast<uint8_t>(m_config.weight);
 
@@ -319,6 +334,7 @@ void CheckBox::drawCheckmark() {
  *          m_borderWidth. Usa a cor retornada por getBorderColor().
  */
 void CheckBox::drawBorder() {
+  WidgetStateGuard widgetStateGuard;
   #if defined(USING_GRAPHIC_LIB)
   uint16_t borderColor = getBorderColor();
   
@@ -341,6 +357,7 @@ void CheckBox::drawBorder() {
  *          Marca o widget para redesenho após a alteração.
  */
 void CheckBox::setSize(uint16_t newSize) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   
   if (newSize < 10 || newSize > 100) {
@@ -359,6 +376,7 @@ void CheckBox::setSize(uint16_t newSize) {
  * @return O tamanho atual em pixels.
  */
 uint16_t CheckBox::getSize() const {
+  WidgetStateGuard widgetStateGuard;
   return m_config.size;
 }
 
@@ -370,6 +388,7 @@ uint16_t CheckBox::getSize() const {
  *          a cor será calculada automaticamente baseada no modo claro/escuro em tempo de execução.
  */
 void CheckBox::setColors(uint16_t checkedColor, uint16_t uncheckedColor) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   
   m_config.checkedColor = checkedColor;
@@ -379,3 +398,4 @@ void CheckBox::setColors(uint16_t checkedColor, uint16_t uncheckedColor) {
   ESP_LOGD(TAG, "CheckBox colors updated: checked=0x%04X, unchecked=0x%04X", 
                checkedColor, uncheckedColor);
 }
+#endif // DFK_DISABLE_CHECKBOX

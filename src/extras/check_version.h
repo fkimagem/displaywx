@@ -65,7 +65,7 @@
 #endif // ESP_ARDUINO_VERSION
 
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 4, 0)
-#error "ESP32 IDF version is too old. Please upgrade to a version between 5.4.0 and 5.4.3."
+#error "ESP32 IDF version is too old. Use the ESP-IDF bundled with Arduino ESP32 core 3.3.12 (minimum IDF 5.4.0)."
 #endif
 
 #if (defined(CAM_OV02C10) + defined(CAM_OV5647) + defined(CAM_SC2336) + defined(CAM_OV2710)) > 1

@@ -1,4 +1,7 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_VANALOG)
 #include "wverticalanalog.h"
+#include "../../extras/dwx_safe.h"
 
 const char* VAnalog::TAG = "[VAnalog]";
 
@@ -19,6 +22,7 @@ VAnalog::VAnalog(uint16_t _x, uint16_t _y, uint8_t _screen) : WidgetBase(_x, _y,
  * @details Desaloca memória dinâmica e remove referências a objetos.
  */
 void VAnalog::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
   // VAnalog não aloca memória dinâmica no momento
 }
 
@@ -40,6 +44,7 @@ VAnalog::~VAnalog()
  */
 bool VAnalog::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
   return false;
 }
 
@@ -50,6 +55,7 @@ bool VAnalog::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  */
 functionCB_t VAnalog::getCallbackFunc()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_callback;
 }
 
@@ -60,6 +66,7 @@ functionCB_t VAnalog::getCallbackFunc()
  */
 void VAnalog::sortValues()
 {
+  WidgetStateGuard widgetStateGuard;
   if (m_config.minValue > m_config.maxValue)
   {
     int temp = m_config.minValue;
@@ -76,6 +83,8 @@ void VAnalog::sortValues()
  */
 void VAnalog::setScale(int newMinValue, int newMaxValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newMinValue == newMaxValue) return;
   m_config.minValue = newMinValue;
   m_config.maxValue = newMaxValue;
   sortValues();
@@ -91,6 +100,8 @@ void VAnalog::setScale(int newMinValue, int newMaxValue)
  */
 void VAnalog::setMinValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newValue == m_config.maxValue) return;
   m_config.minValue = newValue;
   sortValues();
   m_currentValue = constrain(m_currentValue, m_config.minValue, m_config.maxValue);
@@ -105,6 +116,8 @@ void VAnalog::setMinValue(int newValue)
  */
 void VAnalog::setMaxValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
+  if (newValue == m_config.minValue) return;
   m_config.maxValue = newValue;
   sortValues();
   m_currentValue = constrain(m_currentValue, m_config.minValue, m_config.maxValue);
@@ -118,6 +131,7 @@ void VAnalog::setMaxValue(int newValue)
  */
 int VAnalog::getMinValue()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.minValue;
 }
 
@@ -127,6 +141,7 @@ int VAnalog::getMinValue()
  */
 int VAnalog::getMaxValue()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.maxValue;
 }
 
@@ -139,6 +154,7 @@ int VAnalog::getMaxValue()
  */
 void VAnalog::start()
 {
+  WidgetStateGuard widgetStateGuard;
   #if defined(USING_GRAPHIC_LIB)
   m_config.width = constrain(m_config.width, 40, WidgetBase::objTFT->width());
   m_config.height = constrain(m_config.height, 40, WidgetBase::objTFT->height());
@@ -176,6 +192,7 @@ void VAnalog::start()
  */
 void VAnalog::drawBackground()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_LOADED_VOID
@@ -201,7 +218,7 @@ void VAnalog::drawBackground()
 
   float intervaloMarca = (m_drawArea.height / (float)(m_config.steps));
 
-  for (uint16_t i = 0; i <= m_config.steps; i++)
+  for (uint32_t i = 0; i <= m_config.steps; i++)
   {
     uint16_t yLinha = intervaloMarca * i + (m_drawArea.y);
     uint16_t lineLength = i % 5 == 0 ? 10 : 5;
@@ -225,6 +242,7 @@ void VAnalog::drawBackground()
  */
 void VAnalog::setValue(int newValue, bool _viewValue)
 {
+  WidgetStateGuard widgetStateGuard;
   m_currentValue = constrain(newValue, m_config.minValue, m_config.maxValue);
   m_updateText = _viewValue;
   ////Serial.println("ajusta currentValue: " + String(currentValue));
@@ -243,6 +261,7 @@ void VAnalog::setValue(int newValue, bool _viewValue)
  */
 void VAnalog::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -278,6 +297,7 @@ void VAnalog::redraw()
  */
 void VAnalog::forceUpdate()
 {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
 }
 
@@ -289,6 +309,7 @@ void VAnalog::forceUpdate()
  */
 void VAnalog::setup(const VerticalAnalogConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!WidgetBase::objTFT)
   {
     ESP_LOGE(TAG, "TFT not defined on WidgetBase");
@@ -299,6 +320,11 @@ void VAnalog::setup(const VerticalAnalogConfig& config)
     ESP_LOGD(TAG, "VAnalog widget already configured");
     return;
   }
+  if (config.minValue >= config.maxValue || config.steps == 0 || config.width < 40 || config.height < 50 ||
+      uint32_t(m_xPos) + config.width > INT16_MAX || uint32_t(m_yPos) + config.height > INT16_MAX) return;
+#if defined(USING_GRAPHIC_LIB)
+  if (WidgetBase::objTFT->width() < 40 || WidgetBase::objTFT->height() < 50) return;
+#endif
   m_config = config;
   start();
   m_loaded = true;
@@ -311,6 +337,7 @@ void VAnalog::setup(const VerticalAnalogConfig& config)
  */
 void VAnalog::show()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = true;
     m_shouldRedraw = true;
 }
@@ -321,6 +348,7 @@ void VAnalog::show()
  */
 void VAnalog::hide()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = false;
     m_shouldRedraw = true;
 }
@@ -331,9 +359,10 @@ void VAnalog::hide()
  * @param value Valor para calcular a posição.
  * @return Posição vertical da seta marcadora.
  */
-uint16_t VAnalog::calculateArrowVerticalPosition(uint16_t value)
+uint16_t VAnalog::calculateArrowVerticalPosition(int value)
 {
-  return map(value, m_config.minValue, m_config.maxValue, m_drawArea.y + m_drawArea.height, m_drawArea.y);
+  WidgetStateGuard widgetStateGuard;
+  return dwx_map_clamped(value, m_config.minValue, m_config.maxValue, m_drawArea.y + m_drawArea.height, m_drawArea.y);
 }
 
 
@@ -343,6 +372,7 @@ uint16_t VAnalog::calculateArrowVerticalPosition(uint16_t value)
  */
 void VAnalog::clearArrow()
 {
+  WidgetStateGuard widgetStateGuard;
   #if defined(USING_GRAPHIC_LIB)
   uint16_t y = calculateArrowVerticalPosition(m_lastValue);
   int offset = m_arrowSize / 2;
@@ -358,6 +388,7 @@ void VAnalog::clearArrow()
  */
 void VAnalog::drawArrow()
 {
+  WidgetStateGuard widgetStateGuard;
 
   #if defined(USING_GRAPHIC_LIB)
   uint16_t y = calculateArrowVerticalPosition(m_currentValue);
@@ -374,10 +405,14 @@ void VAnalog::drawArrow()
  */
 void VAnalog::drawText()
 {
+  WidgetStateGuard widgetStateGuard;
   #if defined(USING_GRAPHIC_LIB)
   WidgetBase::objTFT->setTextColor(m_config.textColor);
   WidgetBase::objTFT->setFont(&RobotoRegular5pt7b);
   WidgetBase::objTFT->fillRect(m_textArea.x, m_textArea.y, m_textArea.width, m_textArea.height, m_config.backgroundColor);
-  printText(String(m_currentValue).c_str(), m_textArea.x + (m_textArea.width / 2), m_textArea.y + (m_textArea.height / 2), MC_DATUM);
+  char valueText[12];
+  snprintf(valueText, sizeof(valueText), "%d", m_currentValue);
+  printText(valueText, m_textArea.x + (m_textArea.width / 2), m_textArea.y + (m_textArea.height / 2), MC_DATUM);
   #endif
 }
+#endif // DFK_DISABLE_VANALOG

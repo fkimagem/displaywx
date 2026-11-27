@@ -19,3 +19,4 @@ animacao_camera/
 references_code/
 *.pptx
 *.py
+!/tests/*.py

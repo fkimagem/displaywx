@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 
-#define LOGXPT //uncomment if you wanna see XPT log on serial
+// Define LOGXPT in the project configuration to enable serial diagnostics.
 
 /// @brief Represents an interface to the XPT2046 touch controller, providing methods to initialize and read touch input.
 class XPT2046 {
@@ -28,6 +28,9 @@ static const int XPT2046_ZLIMIT = 350;  // Z limit
 
   /// @brief Destructor for the XPT2046 class.
   ~XPT2046();
+  XPT2046(const XPT2046&) = delete;
+  XPT2046& operator=(const XPT2046&) = delete;
+  void end();
 
   /// @brief Initializes the XPT2046 with a shared SPI instance.
   /// @param sharedSPI Pointer to the shared SPI instance.
@@ -57,6 +60,8 @@ static const int XPT2046_ZLIMIT = 350;  // Z limit
   bool configured = false; ///< Flag indicating if the XPT2046 has been configured.
 
   SPIClass *touchspi = nullptr; ///< Pointer to the SPI instance used for touch input.
+private:
+  bool m_ownsSpi = false;
 };
 
 

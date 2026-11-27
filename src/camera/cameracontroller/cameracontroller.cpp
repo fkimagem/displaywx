@@ -1,4 +1,6 @@
 #include "cameracontroller.h"
+#include "../../extras/dwx_safe.h"
+#include <esp_cache.h>
 #include "../../touch/share_i2c.h"
 
 #if defined(HAS_CAMERA_MIPI) && defined(DFK_CAMERA_MIPI)
@@ -153,15 +155,27 @@ bool CameraController::startWithFormat(esp_video_format_t format, const char *fo
     return true;
 }
 
-void CameraController::releaseAfterFailedStart()
+CameraController::~CameraController() { end(); }
+
+void CameraController::end()
 {
     m_ready = false;
+    releaseFrame();
+    m_frame.end();
     m_buffer = nullptr;
-    if (m_captureDev.isOpened()) {
-        m_captureDev.end();
-    }
+    m_captureDev.end();
     m_video.end();
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    if (m_ppaSrm) { ppa_unregister_client(m_ppaSrm); m_ppaSrm = nullptr; }
+    if (m_xclk) {
+        esp_cam_sensor_xclk_stop(m_xclk);
+        esp_cam_sensor_xclk_free(m_xclk);
+        m_xclk = nullptr;
+    }
+#endif
 }
+
+void CameraController::releaseAfterFailedStart() { end(); }
 
 void CameraController::markReady()
 {
@@ -172,7 +186,7 @@ void CameraController::markReady()
 
 bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq, int8_t resetPin, int8_t pwdnPin, uint16_t sensorWidth, uint16_t sensorHeight)
 {
-    m_ready = false;
+    if (m_ready || m_captureDev.isOpened()) return false;
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 4, 0)
     ESP_LOGE(TAG, "ESP_IDF_VERSION < 5.4.0, CSI camera is not supported");
     return false;
@@ -244,10 +258,8 @@ bool CameraController::begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_
         return true;
     }
 
-    if (startWithFormat(fallbackFormat(), fallbackFormatName())) {
-        markReady();
-        return true;
-    }
+    // Display widgets consume RGB565. RAW8/RAW10 must never be reinterpreted.
+    ESP_LOGE(TAG, "RGB565 capture is required by the display pipeline");
 
     Serial.printf("%s capture did not start, releasing SCCB pins\n", sensorName());
     ESP_LOGE(TAG, "%s capture did not start, releasing SCCB pins", sensorName());
@@ -321,6 +333,8 @@ bool CameraController::startXclk(int8_t pin, uint32_t freqHz)
     {
         Serial.printf("failed to start camera XCLK %lu Hz\n", (unsigned long)freqHz);
         ESP_LOGE(TAG, "failed to start camera XCLK");
+        esp_cam_sensor_xclk_free(m_xclk);
+        m_xclk = nullptr;
         return false;
     }
     Serial.printf("camera XCLK %lu Hz on GPIO %d\n", (unsigned long)freqHz, pin);
@@ -393,6 +407,17 @@ bool CameraController::captureFrame()
         return false;
     }
 
+    size_t pixels = 0, bytes = 0;
+    if (m_frame.formatType() != ESP_VIDEO_FORMAT_RGB565 || !m_frame.data() ||
+        m_frame.getWidth() < 2 || m_frame.getHeight() < 2 ||
+        !dwx_size_mul(m_frame.getWidth(), m_frame.getHeight(), &pixels) ||
+        !dwx_size_mul(pixels, sizeof(uint16_t), &bytes) || bytes > m_frame.size()) {
+        m_frame.end();
+        xSemaphoreGive(m_cameraBusy);
+        return false;
+    }
+    // DMA owns the captured buffer until dequeue; CPU acquires it here once.
+    esp_cache_msync(m_frame.data(), bytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
     m_buffer = &m_frame;
     return true;
 }

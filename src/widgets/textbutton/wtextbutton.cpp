@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_TEXTBUTTON)
 #include "wtextbutton.h"
 
 const char *TextButton::TAG = "TextButton";
@@ -38,6 +40,7 @@ TextButton::~TextButton()
  */
 void TextButton::cleanupMemory()
 {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "TextButton memory cleanup completed");
 }
 
@@ -54,6 +57,7 @@ void TextButton::cleanupMemory()
  */
 bool TextButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -84,6 +88,7 @@ bool TextButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  *          to update visual appearance when button is no longer pressed
  */
 void TextButton::onRelease() {
+  WidgetStateGuard widgetStateGuard;
     // Call base implementation to set m_isPressed = false
     WidgetBase::onRelease();
     
@@ -94,21 +99,24 @@ void TextButton::onRelease() {
     ESP_LOGD(TAG, "TextButton released at (%d, %d)", m_xPos, m_yPos);
 }
 
-functionCB_t TextButton::getCallbackFunc() { return m_config.callback; }
+functionCB_t TextButton::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_config.callback; }
 
 /**
  * @brief Recupera o estado atual habilitado do botão.
  * @return True se o botão está habilitado, False caso contrário.
  * @details Retorna o valor de m_enabled.
  */
-bool TextButton::getEnabled() { return m_enabled; }
+bool TextButton::getEnabled() {
+  WidgetStateGuard widgetStateGuard; return m_enabled; }
 
 /**
  * @brief Define o estado habilitado do botão.
  * @param newState True para habilitar o botão, False para desabilitá-lo.
  * @details Atualiza o valor de m_enabled.
  */
-void TextButton::setEnabled(bool newState) { m_enabled = newState; }
+void TextButton::setEnabled(bool newState) {
+  WidgetStateGuard widgetStateGuard; m_enabled = newState; }
 
 /**
  * @brief Redesenha o botão na tela, atualizando sua aparência.
@@ -122,6 +130,7 @@ void TextButton::setEnabled(bool newState) { m_enabled = newState; }
  */
 void TextButton::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -177,6 +186,7 @@ void TextButton::redraw()
  */
 void TextButton::start()
 {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   m_config.width = constrain(m_config.width, 5, WidgetBase::objTFT->width());
   m_config.height = constrain(m_config.height, 5, WidgetBase::objTFT->height());
@@ -194,6 +204,7 @@ void TextButton::start()
  */
 void TextButton::onClick()
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "TextButton widget not loaded");
@@ -217,6 +228,7 @@ void TextButton::onClick()
  */
 void TextButton::setup(const TextButtonConfig &config)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded)
   {
@@ -245,6 +257,7 @@ void TextButton::setup(const TextButtonConfig &config)
  */
 void TextButton::show()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -255,6 +268,7 @@ void TextButton::show()
  */
 void TextButton::hide()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
@@ -263,4 +277,6 @@ void TextButton::hide()
  * @brief Força o TextButton a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void TextButton::forceUpdate() { m_shouldRedraw = true; }
+void TextButton::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
+#endif // DFK_DISABLE_TEXTBUTTON

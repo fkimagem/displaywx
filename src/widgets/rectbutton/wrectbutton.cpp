@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_RECTBTN)
 #include "wrectbutton.h"
 
 const char* RectButton::TAG = "RectButton";
@@ -29,6 +31,7 @@ RectButton::~RectButton() {
  * @details RectButton não usa alocação dinâmica de memória.
  */
 void RectButton::cleanupMemory() {
+  WidgetStateGuard widgetStateGuard;
     ESP_LOGD(TAG, "RectButton memory cleanup completed");
 }
 
@@ -44,6 +47,7 @@ void RectButton::cleanupMemory() {
  *          - Chama changeState() e marca para redesenho se toque detectado
  */
 bool RectButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_VISIBLE_BOOL
   CHECK_USINGKEYBOARD_BOOL
   CHECK_CURRENTSCREEN_BOOL
@@ -73,27 +77,31 @@ bool RectButton::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o RectButton for utilizado.
  */
-functionCB_t RectButton::getCallbackFunc() { return m_callback; }
+functionCB_t RectButton::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Recupera o estado atual habilitado do botão.
  * @return True se o botão está habilitado, False caso contrário.
  * @details Retorna o valor de m_enabled.
  */
-bool RectButton::getEnabled() { return m_enabled; }
+bool RectButton::getEnabled() {
+  WidgetStateGuard widgetStateGuard; return m_enabled; }
 
 /**
  * @brief Define o estado habilitado do botão.
  * @param newState True para habilitar o botão, False para desabilitá-lo.
  * @details Atualiza o valor de m_enabled.
  */
-void RectButton::setEnabled(bool newState) { m_enabled = newState; }
+void RectButton::setEnabled(bool newState) {
+  WidgetStateGuard widgetStateGuard; m_enabled = newState; }
 
 /**
  * @brief Muda o estado atual do botão (pressionado ou solto).
  * @details Inverte o estado atual do botão usando m_status = !m_status.
  */
-void RectButton::changeState() { m_status = !m_status; }
+void RectButton::changeState() {
+  WidgetStateGuard widgetStateGuard; m_status = !m_status; }
 
 /**
  * @brief Simula um clique no RectButton.
@@ -102,6 +110,7 @@ void RectButton::changeState() { m_status = !m_status; }
  */
 void RectButton::onClick(bool triggerCallback)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded)
   {
     ESP_LOGE(TAG, "RectButton widget not loaded");
@@ -121,7 +130,8 @@ void RectButton::onClick(bool triggerCallback)
  * @brief Força o botão a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void RectButton::forceUpdate() { m_shouldRedraw = true; }
+void RectButton::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
 
 /**
  * @brief Redesenha o botão na tela, atualizando sua aparência.
@@ -133,6 +143,7 @@ void RectButton::forceUpdate() { m_shouldRedraw = true; }
  *          - Desenha área interna com cor diferente baseado no status (pressed ou background)
  */
 void RectButton::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -170,6 +181,7 @@ void RectButton::redraw() {
  *          - Marca como carregado
  */
 void RectButton::start() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   m_config.width = constrain(m_config.width, 5, WidgetBase::objTFT->width());
   m_config.height = constrain(m_config.height, 5, WidgetBase::objTFT->height());
@@ -189,6 +201,7 @@ void RectButton::start() {
  *          O botão não será exibido corretamente até que este método seja chamado.
  */
 void RectButton::setup(const RectButtonConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) {
     ESP_LOGW(TAG, "RectButton already initialized");
@@ -215,7 +228,8 @@ void RectButton::setup(const RectButtonConfig &config) {
  * @return True se o botão está pressionado, False caso contrário.
  * @details Retorna o valor de m_status.
  */
-bool RectButton::getStatus() { return m_status; }
+bool RectButton::getStatus() {
+  WidgetStateGuard widgetStateGuard; return m_status; }
 
 /**
  * @brief Define o status do botão.
@@ -228,6 +242,7 @@ bool RectButton::getStatus() { return m_status; }
  *          - Dispara callback se configurado e triggerCallback for true
  */
 void RectButton::setStatus(bool _status, bool triggerCallback) {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded) {
     ESP_LOGE(TAG, "RectButton widget not loaded");
     return;
@@ -245,6 +260,7 @@ void RectButton::setStatus(bool _status, bool triggerCallback) {
  * @details Define o widget como visível e marca para redesenho.
  */
 void RectButton::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -254,6 +270,8 @@ void RectButton::show() {
  * @details Define o widget como invisível e marca para redesenho.
  */
 void RectButton::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+#endif // DFK_DISABLE_RECTBTN

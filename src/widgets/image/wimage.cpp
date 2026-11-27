@@ -1,4 +1,12 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_IMAGE)
 #include "wimage.h"
+#include "../../extras/dwx_safe.h"
+#include <esp_heap_caps.h>
+
+#ifndef DFK_IMAGE_MAX_BYTES
+#define DFK_IMAGE_MAX_BYTES (4U * 1024U * 1024U)
+#endif
 #include "../../storage/imagebinary.h"
 #if defined(DFK_SD)
 #include "../../storage/sdcard.h"
@@ -9,6 +17,7 @@
 const char* Image::TAG = "Image";
 
 void Image::clearBackground() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(USING_GRAPHIC_LIB)
   objTFT->fillRect(m_xPos, m_yPos, m_config.width, m_config.height, m_config.backgroundColor);
 #elif defined(DISP_U8G2)
@@ -96,6 +105,7 @@ Image::~Image() { clearBuffers(); }
  *          Se todas as validações passarem, marca o widget para redesenho.
  */
 bool Image::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   // Early validation checks using macros
   CHECK_VISIBLE_BOOL
   CHECK_LOADED_BOOL
@@ -125,7 +135,8 @@ if(detected) {
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando a imagem for tocada.
  */
-functionCB_t Image::getCallbackFunc() { return m_callback; }
+functionCB_t Image::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 namespace {
 
@@ -154,8 +165,8 @@ bool readExact(fs::File &file, uint8_t *buffer, size_t expected)
 
 void releaseImageBuffers(pixel_t *&pixels, uint8_t *&mask)
 {
-    delete[] pixels;
-    delete[] mask;
+    heap_caps_free(pixels);
+    heap_caps_free(mask);
     pixels = nullptr;
     mask = nullptr;
 }
@@ -167,6 +178,7 @@ void releaseImageBuffers(pixel_t *&pixels, uint8_t *&mask)
  * Os pixels e a máscara só são publicados nos membros depois da leitura completa.
  */
 bool Image::readFileFromDisk(fs::FS &filesystem, const char *path) {
+  WidgetStateGuard widgetStateGuard;
   if (path == nullptr || path[0] == '\0') {
     ESP_LOGE(TAG, "Image path is empty");
     return false;
@@ -210,16 +222,23 @@ bool Image::readFileFromDisk(fs::FS &filesystem, const char *path) {
   }
 
   const uint32_t pixelCount = static_cast<uint32_t>(width) * static_cast<uint32_t>(height);
-  pixel_t *pixels = new (std::nothrow) pixel_t[pixelCount];
-  uint8_t *mask = new (std::nothrow) uint8_t[layout.maskBytes];
+  size_t pixelBytes = 0;
+  if (!dwx_size_mul(pixelCount, sizeof(pixel_t), &pixelBytes) ||
+      layout.maskBytes > DFK_IMAGE_MAX_BYTES || pixelBytes > DFK_IMAGE_MAX_BYTES - layout.maskBytes) return false;
+  auto allocateAsset = [](size_t bytes) -> void* {
+    void *memory = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!memory) memory = heap_caps_malloc(bytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    return memory;
+  };
+  pixel_t *pixels = static_cast<pixel_t*>(allocateAsset(pixelBytes));
+  uint8_t *mask = static_cast<uint8_t*>(allocateAsset(layout.maskBytes));
   if (pixels == nullptr || mask == nullptr) {
     ESP_LOGE(TAG, "Image allocation failed: %s", path);
     releaseImageBuffers(pixels, mask);
     file.close();
     return false;
   }
-  memset(pixels, 0, static_cast<size_t>(pixelCount) * sizeof(pixel_t));
-  memset(mask, 0, layout.maskBytes);
+  // All pixels and the full mask (including row padding) are read before publication.
 
 #if defined(DFK_HAS_RGB565)
   size_t stored = 0;
@@ -288,6 +307,7 @@ bool Image::readFileFromDisk(fs::FS &filesystem, const char *path) {
  *          Valida a configuração usando o método centralizado validateConfig().
  */
 void Image::drawBackground() {
+  WidgetStateGuard widgetStateGuard;
   if(m_drawBackground == false) return;
 
   CHECK_TFT_VOID
@@ -311,6 +331,7 @@ void Image::drawBackground() {
 }
 
 void Image::listDir(fs::FS &fs, const char * dirname) {
+  WidgetStateGuard widgetStateGuard;
   Serial.printf("Listing directory: %s\n", dirname);
 
   File root = fs.open(dirname);
@@ -345,6 +366,7 @@ void Image::listDir(fs::FS &fs, const char * dirname) {
  *          - Desenha fundo se o widget não estiver visível
  */
 void Image::draw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_CURRENTSCREEN_VOID
@@ -434,6 +456,7 @@ void Image::draw() {
  *          Toda a validação é tratada pelo próprio método draw().
  */
 void Image::redraw() {
+  WidgetStateGuard widgetStateGuard;
   draw();
 }
 
@@ -441,7 +464,8 @@ void Image::redraw() {
  * @brief Força a imagem a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void Image::forceUpdate() { 
+void Image::forceUpdate() {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true; 
   ESP_LOGD(TAG, "Image force update requested");
 }
@@ -460,10 +484,12 @@ void Image::forceUpdate() {
  *          A imagem não será exibida corretamente até que este método seja chamado.
  */
 void Image::setupFromFile(ImageFromFileConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   setupFromFileSafe(config);
 }
 
 bool Image::setupFromFileSafe(ImageFromFileConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   if (!WidgetBase::objTFT) {
     ESP_LOGW(TAG, "TFT not defined on WidgetBase");
     return false;
@@ -549,6 +575,7 @@ bool Image::setupFromFileSafe(ImageFromFileConfig &config) {
  *          Ideal para imagens embutidas no código como arrays constantes.
  */
 void Image::setupFromPixels(ImageFromPixelsConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   if (!WidgetBase::objTFT) {
     ESP_LOGW(TAG, "TFT not defined on WidgetBase");
     return;
@@ -597,6 +624,7 @@ void Image::setupFromPixels(ImageFromPixelsConfig &config) {
  * @details Define se o fundo do widget deve ser desenhado ou nao.
  */
 void Image::setDrawBackground(bool drawBackground) {
+  WidgetStateGuard widgetStateGuard;
   m_drawBackground = drawBackground;
 }
 
@@ -610,6 +638,7 @@ void Image::setDrawBackground(bool drawBackground) {
  *          - EMBED: retorna erro (embutido não precisa de sistema de arquivos)
  */
 void Image::defineFileSystem(SourceFile source) {
+  WidgetStateGuard widgetStateGuard;
   switch (source) {
     case SourceFile::SD:
     {
@@ -672,6 +701,7 @@ void Image::defineFileSystem(SourceFile source) {
  *          - Tempo total acumulado
  */
 void Image::printMetrics() const {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGI(TAG, "=== Image Performance Metrics ===");
   ESP_LOGI(TAG, "Draw Operations: %u calls", m_metrics.drawCount);
   ESP_LOGI(TAG, "File Loads: %u calls", m_metrics.fileLoadCount);
@@ -696,7 +726,7 @@ void Image::printMetrics() const {
   ESP_LOGI(TAG, "  Total: %u", m_metrics.totalRotationTime);
   ESP_LOGI(TAG, "");
   // print m_loaded
-  ESP_LOGI(TAG, "Loaded: %d", m_loaded);
+  ESP_LOGI(TAG, "Loaded: %d", m_loaded.load());
   // print m_shouldRedraw
   ESP_LOGI(TAG, "Should Redraw: %d", m_shouldRedraw);
   // print m_visible
@@ -718,85 +748,69 @@ void Image::printMetrics() const {
  *          Rotação ao redor do centro da imagem.
  */
 void Image::drawRotatedImage() {
-  // Start rotation performance timing
-  uint32_t rotationStartTime = micros();
-  m_metrics.rotationDrawCount++;
-  
-  // Convert angle to radians
-  float angleRad = m_config.angle * PI / 180.0f;
-  float cosAngle = cos(angleRad);
-  float sinAngle = sin(angleRad);
-  
-  // Calculate center point
-  float centerX = m_config.width / 2.0f;
-  float centerY = m_config.height / 2.0f;
-  
-  // Calculate rotated dimensions (bounding box)
-  float cosAbs = fabs(cosAngle);
-  float sinAbs = fabs(sinAngle);
-  int rotatedWidth = (int)(m_config.width * cosAbs + m_config.height * sinAbs);
-  int rotatedHeight = (int)(m_config.width * sinAbs + m_config.height * cosAbs);
-  
-  ESP_LOGD(TAG, "Drawing rotated image: %dx%d -> %dx%d (%.1f°)", 
-           m_config.width, m_config.height, rotatedWidth, rotatedHeight, m_config.angle);
-  
-  // Draw rotated image pixel by pixel
-  for (int y = 0; y < rotatedHeight; y++) {
-    for (int x = 0; x < rotatedWidth; x++) {
-      // Calculate position relative to rotated center
-      float relX = x - rotatedWidth / 2.0f;
-      float relY = y - rotatedHeight / 2.0f;
-      
-      // Apply inverse rotation to get original coordinates
-      float origX = relX * cosAngle + relY * sinAngle + centerX;
-      float origY = -relX * sinAngle + relY * cosAngle + centerY;
-      
-      // Check if original coordinates are within bounds
-      if (origX >= 0 && origX < m_config.width && origY >= 0 && origY < m_config.height) {
-        int origXInt = (int)origX;
-        int origYInt = (int)origY;
-        int pixelIndex = origYInt * m_config.width + origXInt;
-        
-        // Draw pixel with rotation
-        int screenX = m_xPos + x - rotatedWidth / 2 + m_config.width / 2;
-        int screenY = m_yPos + y - rotatedHeight / 2 + m_config.height / 2;
-
-        #if defined(USING_GRAPHIC_LIB)
-
-        bool inBounds = screenX >= 0 && screenX < WidgetBase::objTFT->width() &&  screenY >= 0 && screenY < WidgetBase::objTFT->height();
-        #elif defined(DISP_U8G2)
-        bool inBounds = screenX >= 0 && screenX < WidgetBase::objTFT->getDisplayWidth() &&  screenY >= 0 && screenY < WidgetBase::objTFT->getDisplayHeight();
-        #endif
-        
-        if (inBounds) {
-
-
-          
+  WidgetStateGuard widgetStateGuard;
+  const uint32_t started = micros();
+  ++m_metrics.rotationDrawCount;
+  const float angle = m_config.angle * (PI / 180.0f);
+  float cosine = cosf(angle), sine = sinf(angle);
+  // Exact cardinal rotations avoid floating-point drift at pixel boundaries.
+  if (m_config.angle == 0) { cosine = 1; sine = 0; }
+  else if (m_config.angle == 90) { cosine = 0; sine = 1; }
+  else if (m_config.angle == 180) { cosine = -1; sine = 0; }
+  else if (m_config.angle == 270) { cosine = 0; sine = -1; }
+  const int rw = (int)ceilf(m_config.width * fabsf(cosine) + m_config.height * fabsf(sine));
+  const int rh = (int)ceilf(m_config.width * fabsf(sine) + m_config.height * fabsf(cosine));
+  const int left = (int)m_xPos - rw / 2 + m_config.width / 2;
+  const int top = (int)m_yPos - rh / 2 + m_config.height / 2;
+#if defined(USING_GRAPHIC_LIB)
+  const int displayWidth = WidgetBase::objTFT->width(), displayHeight = WidgetBase::objTFT->height();
+#else
+  const int displayWidth = WidgetBase::objTFT->getDisplayWidth(), displayHeight = WidgetBase::objTFT->getDisplayHeight();
+#endif
+  const int xBegin = max(0, -left), xEnd = min(rw, displayWidth - left);
+  const int yBegin = max(0, -top), yEnd = min(rh, displayHeight - top);
 #if defined(DFK_HAS_RGB565)
-          if (!pixelVisible(origXInt, origYInt)) continue;
-          const uint16_t color = pgm_read_word(m_config.pixels + pixelIndex);
-          WidgetBase::objTFT->drawPixel(screenX, screenY, color);
-#elif defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
-          if (pixelVisible(origXInt, origYInt) && monoPixelSet(origXInt, origYInt)) {
-#if defined(DISP_U8G2)
-            WidgetBase::objTFT->drawPixel(screenX, screenY);
+  uint16_t span[128];
+#endif
+  for (int y = yBegin; y < yEnd; ++y) {
+    int runStart = xBegin, runLength = 0;
+    auto flush = [&]() {
+      if (!runLength) return;
+#if defined(DFK_HAS_RGB565)
+      WidgetBase::objTFT->draw16bitRGBBitmap(left + runStart, top + y, span, runLength, 1);
 #elif defined(DFK_MONO_ADAFRUIT)
-            WidgetBase::objTFT->drawPixel(screenX, screenY, CFK_BLACK);
+      WidgetBase::objTFT->drawFastHLine(left + runStart, top + y, runLength, CFK_BLACK);
+#else
+      WidgetBase::objTFT->drawHLine(left + runStart, top + y, runLength);
 #endif
-          }
+      runLength = 0;
+    };
+    // Rebase each short block to bound accumulation error on long scanlines.
+    for (int block = xBegin; block < xEnd; block += 128) {
+      const int end = min(block + 128, xEnd);
+      float ox = (block + 0.5f - rw / 2.0f) * cosine + (y + 0.5f - rh / 2.0f) * sine + m_config.width / 2.0f;
+      float oy = -(block + 0.5f - rw / 2.0f) * sine + (y + 0.5f - rh / 2.0f) * cosine + m_config.height / 2.0f;
+      for (int x = block; x < end; ++x, ox += cosine, oy -= sine) {
+        bool visible = ox >= 0 && oy >= 0 && ox < m_config.width && oy < m_config.height;
+        const uint16_t sx = visible ? (uint16_t)ox : 0, sy = visible ? (uint16_t)oy : 0;
+        visible = visible && pixelVisible(sx, sy);
+#if !defined(DFK_HAS_RGB565)
+        visible = visible && monoPixelSet(sx, sy);
 #endif
-        }
+        if (!visible) { flush(); continue; }
+        if (!runLength) runStart = x;
+#if defined(DFK_HAS_RGB565)
+        span[runLength] = pgm_read_word(m_config.pixels + (size_t)sy * m_config.width + sx);
+#endif
+        ++runLength;
+        if (runLength == 128) flush();
       }
     }
+    flush();
   }
-  
-  // End rotation performance timing
-  uint32_t rotationEndTime = micros();
-  m_metrics.lastRotationTime = rotationEndTime - rotationStartTime;
+  m_metrics.lastRotationTime = micros() - started;
   m_metrics.totalRotationTime += m_metrics.lastRotationTime;
-  if (m_metrics.lastRotationTime > m_metrics.maxRotationTime) {
-    m_metrics.maxRotationTime = m_metrics.lastRotationTime;
-  }
+  m_metrics.maxRotationTime = max(m_metrics.maxRotationTime, m_metrics.lastRotationTime);
 }
 
 /**
@@ -814,6 +828,7 @@ void Image::drawRotatedImage() {
  *          - Considera bounding box para imagens rotacionadas
  */
 bool Image::validateConfig() {
+  WidgetStateGuard widgetStateGuard;
 
   // Validate basic configuration
   if (m_config.pixels == nullptr) {
@@ -841,13 +856,10 @@ bool Image::validateConfig() {
   }
   
   // Validate angle is reasonable
-  if (m_config.angle < -360.0f || m_config.angle > 360.0f) {
-    ESP_LOGW(TAG, "Angle out of range: %.1f° (normalizing to 0-360°)", m_config.angle);
-    // Normalize angle to 0-360 range
-    while (m_config.angle < 0.0f) m_config.angle += 360.0f;
-    while (m_config.angle >= 360.0f) m_config.angle -= 360.0f;
-  }
-  
+  float normalizedAngle;
+  if (!dwx_normalize_angle(m_config.angle, &normalizedAngle)) return false;
+  m_config.angle = normalizedAngle;
+
   // Validate display compatibility
   if (!WidgetBase::objTFT) {
     ESP_LOGE(TAG, "TFT display not initialized");
@@ -907,6 +919,7 @@ bool Image::validateConfig() {
  *          Previne vazamentos de memória através de gerenciamento inteligente de propriedade.
  */
 void Image::clearBuffers() {
+  WidgetStateGuard widgetStateGuard;
   // Clear unified configuration
   m_config.pixels = nullptr;
   m_config.maskAlpha = nullptr;
@@ -920,7 +933,7 @@ void Image::clearBuffers() {
   if (m_pixels) {
     // Only delete if we own the memory
     if (m_ownsMemory) {
-      delete[] m_pixels;
+      heap_caps_free(m_pixels);
     }
     m_pixels = nullptr;
   }
@@ -928,7 +941,7 @@ void Image::clearBuffers() {
   if (m_maskAlpha) {
     // Only delete if we own the memory
     if (m_ownsMemory) {
-      delete[] m_maskAlpha;
+      heap_caps_free(m_maskAlpha);
     }
     m_maskAlpha = nullptr;
   }
@@ -951,6 +964,7 @@ void Image::clearBuffers() {
 }
 
 void Image::drawMonoPixels() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(DFK_MONO_ADAFRUIT) || defined(DISP_U8G2)
   const uint16_t width = m_config.width;
   const uint16_t height = m_config.height;
@@ -980,6 +994,7 @@ void Image::drawMonoPixels() {
  *          Funciona apenas se o widget estiver adequadamente carregado.
  */
 void Image::show() {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded) {
     ESP_LOGW(TAG, "Cannot show unloaded image widget");
     return;
@@ -996,6 +1011,7 @@ void Image::show() {
  *          Funciona apenas se o widget estiver adequadamente carregado.
  */
 void Image::hide() {
+  WidgetStateGuard widgetStateGuard;
   if (!m_loaded) {
     ESP_LOGW(TAG, "Cannot hide unloaded image widget");
     return;
@@ -1005,3 +1021,5 @@ void Image::hide() {
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "Image hidden at (%d, %d)", m_xPos, m_yPos);
 }
+
+#endif // DFK_DISABLE_IMAGE

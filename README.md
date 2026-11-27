@@ -1,5 +1,5 @@
-# Display FK
-This library is a HAL that allow you to use many widgtes based on display library ArduinoGFX version 1.5.9 from `moononournation`
+# DisplayWX
+Display widgets for Arduino ESP32 core **3.3.12**, using **GFX Library for Arduino 1.6.5** for the default backend. The installed core uses GCC 14.2.0, GNU C++20 and GNU C17.
 
 [https://github.com/moononournation/Arduino_GFX]
 
@@ -34,3 +34,30 @@ This does not enable its automatic registration through `DFK_CIRCULARBAR`.
 `python tests/display_backend_contract_test.py` checks conditional branches and
 display method names/argument counts against the locally installed sibling
 libraries. It does not compile firmware or replace a C++ type check.
+
+## Correções e testes
+
+Consulte [as correções, contratos de uso e roteiro de teste](docs/CORRECOES_ESP32_CORE_3.3.12.md).
+A [revisão original](docs/REVISAO_TECNICA_ESP32_CORE_3.3.12.md) é um registro histórico anterior às correções.
+
+A configuração precisa ser igual em **todas** as unidades de compilação. Edite `user_setup.h`
+ou coloque esta linha em `build_opt.h` na pasta do sketch, substituindo o caminho:
+
+```text
+"-DDISPLAYWX_CONFIG_HEADER=\"C:/meu_projeto/config_displaywx.h\""
+```
+
+Mantenha as aspas e barras invertidas da linha acima: o compilador lê `build_opt.h`
+como arquivo de argumentos. No caminho, use `/`. Definir opções apenas antes de
+`#include <displaywx.h>` no `.ino`
+não altera a compilação dos `.cpp` da biblioteca. Faça um build limpo após trocar opções.
+
+- `DFK_COMPACT_FONTS`: inclui somente as fontes internas e um catálogo automático de 5, 8, 12 e 20 pt.
+- `DFK_SELECT_FONT_FAMILIES`: ativa somente famílias `FONT_*` explicitamente definidas na configuração;
+  as fontes necessárias aos widgets continuam disponíveis.
+- `DFK_FONT_HEADER`: cabeçalho adicional de fontes; `DFK_ROBOTO_BOLD_CATALOG`: lista de ponteiros,
+  do maior para o menor, para substituir o catálogo automático.
+- `DFK_DISABLE_<recurso>`: exclui recursos opcionais; a lista e os limites de memória estão no documento.
+
+Os algoritmos portáveis estão em `src/extras/dwx_safe.c` e `textmetrics.c`.
+A API Arduino continua em C++, com guards para sincronização e destruição coordenada.

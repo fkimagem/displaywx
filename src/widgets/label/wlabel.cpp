@@ -1,4 +1,6 @@
 #include "wlabel.h"
+#include "../../extras/dwx_safe.h"
+#include <math.h>
 
 const char* Label::TAG = "Label";
 
@@ -14,16 +16,19 @@ Label::Label(uint16_t _x, uint16_t _y, uint8_t _screen)
 
 bool Label::detectTouch(uint16_t *, uint16_t *)
 {
+  WidgetStateGuard widgetStateGuard;
   return false;
 }
 
 functionCB_t Label::getCallbackFunc()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_callback;
 }
 
 void Label::setPrefix(const char* str)
 {
+  WidgetStateGuard widgetStateGuard;
   strncpy(m_prefix, str ? str : "", LABEL_MAX_PREFIX_LENGTH - 1);
   m_prefix[LABEL_MAX_PREFIX_LENGTH - 1] = '\0';
   if (m_loaded) buildFinalText(m_value);
@@ -31,6 +36,7 @@ void Label::setPrefix(const char* str)
 
 void Label::setSuffix(const char* str)
 {
+  WidgetStateGuard widgetStateGuard;
   strncpy(m_suffix, str ? str : "", LABEL_MAX_SUFFIX_LENGTH - 1);
   m_suffix[LABEL_MAX_SUFFIX_LENGTH - 1] = '\0';
   if (m_loaded) buildFinalText(m_value);
@@ -38,6 +44,7 @@ void Label::setSuffix(const char* str)
 
 void Label::buildFinalText(const char* coreText)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!coreText) return;
   if (coreText != m_value) {
     strncpy(m_value, coreText, LABEL_MAX_TEXT_LENGTH - 1);
@@ -56,6 +63,7 @@ void Label::buildFinalText(const char* coreText)
 
 void Label::setText(const char* str)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_LOADED_VOID
   if (!str) return;
 
@@ -64,20 +72,23 @@ void Label::setText(const char* str)
 
 void Label::setText(const String& str)
 {
+  WidgetStateGuard widgetStateGuard;
   setText(str.c_str());
 }
 
 void Label::setTextFloat(float value, uint8_t decimalPlaces)
 {
+  WidgetStateGuard widgetStateGuard;
   setDecimalPlaces(decimalPlaces);
 
   char buffer[20];
-  dtostrf(value, 1, m_decimalPlaces, buffer);
+  if (!dwx_format_float(buffer, sizeof(buffer), value, m_decimalPlaces)) return;
   buildFinalText(buffer);
 }
 
 void Label::setTextInt(int value)
 {
+  WidgetStateGuard widgetStateGuard;
   char buffer[16];
   snprintf(buffer, sizeof(buffer), "%d", value);
   buildFinalText(buffer);
@@ -85,6 +96,7 @@ void Label::setTextInt(int value)
 
 void Label::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   #if defined(USING_GRAPHIC_LIB)
@@ -104,10 +116,15 @@ void Label::redraw()
 
   if (m_config.textMetrics) {
     const auto box = EdgewxText::measure(m_text, *m_config.textMetrics, m_fontSize);
+    if (box.width > INT16_MAX || box.height > INT16_MAX || !isfinite(box.baseline)) return;
     const uint8_t datum = m_config.backgroundDatum;
     const int horizontal = datum % 3, vertical = datum / 3;
     const float left = m_config.backgroundAnchorX - horizontal * box.width / 2.0f;
     const float top = m_config.backgroundAnchorY - vertical * box.height / 2.0f;
+    if (left < INT16_MIN || left > INT16_MAX || top < INT16_MIN || top > INT16_MAX ||
+        top + box.baseline < INT16_MIN || top + box.baseline > INT16_MAX) return;
+    if (left < INT16_MIN || left > INT16_MAX || top < INT16_MIN || top > INT16_MAX ||
+        top + box.baseline < INT16_MIN || top + box.baseline > INT16_MAX) return;
     area = {int16_t(lroundf(left)), int16_t(lroundf(top)), uint16_t(box.width), uint16_t(box.height)};
     textY = int16_t(lroundf(top + box.baseline));
   }
@@ -139,16 +156,19 @@ void Label::redraw()
 
 void Label::forceUpdate()
 {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
 }
 
 void Label::setDecimalPlaces(uint8_t places)
 {
+  WidgetStateGuard widgetStateGuard;
   m_decimalPlaces = constrain(places, 0, 5);
 }
 
 void Label::setFontSize(uint8_t newSize)
 {
+  WidgetStateGuard widgetStateGuard;
   const uint8_t size = newSize ? newSize : 1;
   if (m_fontSize == size) return;
   m_fontSize = size;
@@ -157,15 +177,18 @@ void Label::setFontSize(uint8_t newSize)
 
 void Label::invalidateBackground()
 {
+  WidgetStateGuard widgetStateGuard;
   m_lastArea = {0, 0, 0, 0};
   m_shouldRedraw = true;
 }
 
 void Label::setup(const LabelConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded) return;
 
+  if (!isfinite(config.backgroundAnchorX) || !isfinite(config.backgroundAnchorY)) return;
   m_config = config;
 
   setPrefix(config.prefix);
@@ -183,12 +206,14 @@ void Label::setup(const LabelConfig& config)
 
 void Label::show()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
 
 void Label::hide()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }

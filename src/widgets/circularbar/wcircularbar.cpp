@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_CIRCULARBAR)
 #include "wcircularbar.h"
 #include <esp_log.h>
 #include <cmath>
@@ -50,13 +52,16 @@ CircularBar::~CircularBar() {
 }
 
 bool CircularBar::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard;
   return false; 
 }
 
-functionCB_t CircularBar::getCallbackFunc() { return m_callback; }
+functionCB_t CircularBar::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 
 void CircularBar::drawBackground() {
+  WidgetStateGuard widgetStateGuard;
 #if defined(DFK_HAS_FILL_ARC)
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
@@ -78,12 +83,14 @@ void CircularBar::drawBackground() {
 }
 
 void CircularBar::sortValues() {
+  WidgetStateGuard widgetStateGuard;
   if (m_config.minValue > m_config.maxValue) {
     std::swap(m_config.minValue, m_config.maxValue);
   }
 }
 
 void CircularBar::setScale(int newMinValue, int newMaxValue) {
+  WidgetStateGuard widgetStateGuard;
   m_config.minValue = newMinValue;
   m_config.maxValue = newMaxValue;
   sortValues();
@@ -93,6 +100,7 @@ void CircularBar::setScale(int newMinValue, int newMaxValue) {
 }
 
 void CircularBar::setMinValue(int newValue) {
+  WidgetStateGuard widgetStateGuard;
   m_config.minValue = newValue;
   sortValues();
   m_changedScale = true;
@@ -100,16 +108,20 @@ void CircularBar::setMinValue(int newValue) {
 }
 
 void CircularBar::setMaxValue(int newValue) {
+  WidgetStateGuard widgetStateGuard;
   m_config.maxValue = newValue;
   sortValues();
   m_changedScale = true;
   m_shouldRedraw = true;
 }
 
-int CircularBar::getMinValue() { return m_config.minValue; }
-int CircularBar::getMaxValue() { return m_config.maxValue; }
+int CircularBar::getMinValue() {
+  WidgetStateGuard widgetStateGuard; return m_config.minValue; }
+int CircularBar::getMaxValue() {
+  WidgetStateGuard widgetStateGuard; return m_config.maxValue; }
 
 void CircularBar::setValue(int newValue) {
+  WidgetStateGuard widgetStateGuard;
   int constrained = constrain(newValue, m_config.minValue, m_config.maxValue);
   if (m_value != constrained) {
     m_value = constrained;
@@ -118,6 +130,7 @@ void CircularBar::setValue(int newValue) {
 }
 
 void CircularBar::redraw() {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   CHECK_INITIALIZED_VOID
@@ -198,10 +211,12 @@ void CircularBar::redraw() {
 }
 
 void CircularBar::forceUpdate() {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
 }
 
 void CircularBar::setup(const CircularBarConfig &config) {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   m_config = config;
   sortValues();
@@ -219,11 +234,15 @@ void CircularBar::setup(const CircularBarConfig &config) {
 }
 
 void CircularBar::show() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
 
 void CircularBar::hide() {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
+
+#endif // DFK_DISABLE_CIRCULARBAR

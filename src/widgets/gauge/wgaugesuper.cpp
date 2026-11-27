@@ -1,4 +1,8 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_GAUGE)
 #include "wgaugesuper.h"
+#include <new>
+#include "../../extras/dwx_safe.h"
 #include <esp_log.h>
 
 const char* GaugeSuper::TAG = "GaugeSuper";
@@ -71,6 +75,7 @@ GaugeSuper::~GaugeSuper()
  */
 bool GaugeSuper::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
 {
+  WidgetStateGuard widgetStateGuard;
   // GaugeSuper doesn't handle touch events, it's a display-only widget
   UNUSED(_xTouch);
   UNUSED(_yTouch);
@@ -85,6 +90,7 @@ bool GaugeSuper::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch)
  */
 functionCB_t GaugeSuper::getCallbackFunc()
 {
+  WidgetStateGuard widgetStateGuard;
   return m_callback;
 }
 
@@ -97,6 +103,7 @@ functionCB_t GaugeSuper::getCallbackFunc()
  */
 void GaugeSuper::start()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   #if defined(USING_GRAPHIC_LIB)
   if (m_config.maxValue < m_config.minValue)
@@ -110,11 +117,12 @@ void GaugeSuper::start()
 
   // Calculate text dimensions for values
   char strMin[12], strMax[12];// Maximum of 12 characters for values
-  sprintf(strMin, "%d", m_config.minValue * 10);// Multiply by 10 to have one more digit and serve as text offset
-  sprintf(strMax, "%d", m_config.maxValue * 10);// Multiply by 10 to have one more digit and serve as text offset
+  snprintf(strMin, sizeof(strMin), "%d", m_config.minValue);
+  snprintf(strMax, sizeof(strMax), "%d", m_config.maxValue);
   TextBound_t dimensionMin = getTextBounds(strMin, m_xPos, m_yPos);// Get text dimensions
   TextBound_t dimensionMax = getTextBounds(strMax, m_xPos, m_yPos);// Get text dimensions
-  m_textBoundForValue = dimensionMax.width > dimensionMin.width ? dimensionMax : dimensionMin;// Get the larger value between the two
+  m_textBoundForValue = dimensionMax.width > dimensionMin.width ? dimensionMax : dimensionMin;
+  m_textBoundForValue.width += getTextBounds("0", m_xPos, m_yPos).width;
 
   // Configure the title
   // Title visibility is determined by m_config.title != nullptr
@@ -191,6 +199,7 @@ void GaugeSuper::start()
  */
 void GaugeSuper::drawBackground()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   #if defined(USING_GRAPHIC_LIB)
@@ -253,8 +262,8 @@ void GaugeSuper::drawBackground()
     int x3 = sx2 * m_radius + m_origem.x;
     int y3 = sy2 * m_radius + m_origem.y;
 
-    int vFaixa = map(i, 0, (2 * m_maxAngle), m_config.minValue, m_config.maxValue); // Transform the for loop from -50 to 50 into value between min and max to paint
-    if (vFaixa >= m_intervals[m_indexCurrentStrip] && m_indexCurrentStrip < m_config.amountIntervals)
+    int vFaixa = dwx_map_clamped(i, 0, (2 * m_maxAngle), m_config.minValue, m_config.maxValue); // Transform the for loop from -50 to 50 into value between min and max to paint
+    if (m_indexCurrentStrip < m_config.amountIntervals && vFaixa >= m_intervals[m_indexCurrentStrip])
     {
       m_stripColor = m_colors[m_indexCurrentStrip];
       m_indexCurrentStrip++;
@@ -269,30 +278,6 @@ void GaugeSuper::drawBackground()
 
   // Calculate and draw the multiplier
   WidgetBase::objTFT->setTextColor(m_config.textColor); // Text color
-
-  uint32_t absMin = 0;
-  int auxmin = abs(m_config.minValue);
-  while (auxmin > 1)
-  {
-    absMin++;
-    auxmin = auxmin / 10;
-  }
-
-  uint32_t absMax = 0;
-  int auxmax = abs(m_config.maxValue);
-  while (auxmax > 1)
-  {
-    absMax++;
-    auxmax = auxmax / 10;
-  }
-
-
-  if (m_divisor > 1)
-  {
-
-    char char_arr[20];
-    sprintf(char_arr, "x%d", m_divisor);
-  }
 
   if (isLabelsVisible())
   {
@@ -314,8 +299,8 @@ void GaugeSuper::drawBackground()
       uint16_t x0 = sx * (m_radius + tl) + m_origem.x;
       uint16_t y0 = sy * (m_radius + tl) + m_origem.y;
 
-      int vFaixa = map(i, 0, 2 * m_maxAngle, m_config.minValue, m_config.maxValue);
-      if (vFaixa >= m_intervals[m_indexCurrentStrip] && m_indexCurrentStrip < m_config.amountIntervals)
+      int vFaixa = dwx_map_clamped(i, 0, 2 * m_maxAngle, m_config.minValue, m_config.maxValue);
+      if (m_indexCurrentStrip < m_config.amountIntervals && vFaixa >= m_intervals[m_indexCurrentStrip])
       {
         int aX = sx * (m_radius + tl + 2) + m_origem.x;
         int aY = sy * (m_radius + tl + 2) + m_origem.y;
@@ -334,7 +319,7 @@ void GaugeSuper::drawBackground()
           alinhamento = BL_DATUM;
         }
         char char_arr[20];
-        sprintf(char_arr, "%d", m_intervals[m_indexCurrentStrip] / m_divisor);
+        snprintf(char_arr, sizeof(char_arr), "%d", m_intervals[m_indexCurrentStrip] / m_divisor);
         printText(char_arr, aX, aY, alinhamento);
         //printText(String(m_intervals[m_indexCurrentStrip] / m_divisor).c_str(), aX, aY, alinhamento);
         ESP_LOGD(TAG, "Writing \"%d\" at %d, %d", m_intervals[m_indexCurrentStrip] / m_divisor, aX, aY);
@@ -342,7 +327,9 @@ void GaugeSuper::drawBackground()
       }
       if (i == 2 * m_maxAngle)
       {
-        printText(String(m_config.maxValue / m_divisor).c_str(), x0, y0, BL_DATUM);
+        char maximumText[12];
+        snprintf(maximumText, sizeof(maximumText), "%d", m_config.maxValue / m_divisor);
+        printText(maximumText, x0, y0, BL_DATUM);
 
         ESP_LOGD(TAG, "Writing %d at %d, %d", m_config.maxValue / m_divisor, x0, y0);
       }
@@ -408,6 +395,7 @@ void GaugeSuper::drawBackground()
  */
 void GaugeSuper::setValue(int newValue)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_CURRENTSCREEN_VOID
   CHECK_USINGKEYBOARD_VOID
   CHECK_LOADED_VOID
@@ -432,7 +420,7 @@ void GaugeSuper::setValue(int newValue)
  * @brief Redesenha o widget GaugeSuper na tela, atualizando a posição da agulha.
  * @details Este método é responsável por renderizar o gauge na tela:
  *          - Verifica todas as condições necessárias para o redesenho
- *          - Mapeia o valor atual para ângulos usando a função map()
+ *          - Mapeia o valor atual para ângulos usando a função dwx_map_clamped()
  *          - Apaga a agulha anterior desenhando sobre ela com a cor de fundo
  *          - Desenha a nova agulha na posição calculada
  *          - Usa funções trigonométricas otimizadas (fastCos, fastSin, fastTan)
@@ -443,6 +431,7 @@ void GaugeSuper::setValue(int newValue)
  */
 void GaugeSuper::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_VISIBLE_VOID
   #if defined(USING_GRAPHIC_LIB)
@@ -460,13 +449,12 @@ void GaugeSuper::redraw()
   m_lastValue = m_currentValue;
 
   // Draw here
-  char buf[8];
-  sprintf(buf, "%d", m_currentValue);
+
 
   // Since the drawing is rotated -90 and drawing angles are -50 and 50.
   // int diff10 = (maxAngle + 10) - 90;
 
-  int sdeg = map(m_currentValue, m_config.minValue, m_config.maxValue, 0, 2 * m_maxAngle); // Map input values min and max with extrapolation of 10 to angle with extrapolation of 10
+  int sdeg = dwx_map_clamped(m_currentValue, m_config.minValue, m_config.maxValue, 0, 2 * m_maxAngle); // Map input values min and max with extrapolation of 10 to angle with extrapolation of 10
   int angulo = sdeg + m_rotation;
 
   // Calculate needle components according to angle
@@ -532,6 +520,7 @@ void GaugeSuper::redraw()
  */
 void GaugeSuper::forceUpdate()
 {
+  WidgetStateGuard widgetStateGuard;
   m_shouldRedraw = true;
   ESP_LOGD(TAG, "GaugeSuper force update requested");
 }
@@ -551,6 +540,7 @@ void GaugeSuper::forceUpdate()
  */
 void GaugeSuper::setup(const GaugeConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   #if defined(USING_GRAPHIC_LIB)
   // Validate TFT object
   CHECK_TFT_VOID
@@ -586,7 +576,7 @@ void GaugeSuper::setup(const GaugeConfig& config)
       m_titleAllocated = false;
     }
     
-    m_title = new char[titleLen + 1];
+    m_title = new (std::nothrow) char[titleLen + 1];
     if (m_title != nullptr) {
       strncpy(m_title, config.title, titleLen);
       m_title[titleLen] = '\0'; // Ensure null termination
@@ -615,8 +605,8 @@ void GaugeSuper::setup(const GaugeConfig& config)
     }
     
     // Allocate new memory
-    m_intervals = new int[clampedAmount];
-    m_colors = new uint16_t[clampedAmount];
+    m_intervals = new (std::nothrow) int[clampedAmount];
+    m_colors = new (std::nothrow) uint16_t[clampedAmount];
     
     if (m_intervals != nullptr && m_colors != nullptr) {
       // Copy data
@@ -658,6 +648,7 @@ void GaugeSuper::setup(const GaugeConfig& config)
  */
 void GaugeSuper::show()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = true;
     m_shouldRedraw = true;
     ESP_LOGD(TAG, "GaugeSuper shown at (%d, %d)", m_xPos, m_yPos);
@@ -670,6 +661,7 @@ void GaugeSuper::show()
  */
 void GaugeSuper::hide()
 {
+  WidgetStateGuard widgetStateGuard;
     m_visible = false;
     m_shouldRedraw = true;
     ESP_LOGD(TAG, "GaugeSuper hidden at (%d, %d)", m_xPos, m_yPos);
@@ -682,6 +674,7 @@ void GaugeSuper::hide()
  */
 bool GaugeSuper::isTitleVisible() const
 {
+  WidgetStateGuard widgetStateGuard;
   return (m_title != nullptr && strlen(m_title) > 0);
 }
 
@@ -692,6 +685,7 @@ bool GaugeSuper::isTitleVisible() const
  */
 bool GaugeSuper::isLabelsVisible() const
 {
+  WidgetStateGuard widgetStateGuard;
   return m_config.showLabels;
 }
 
@@ -703,6 +697,9 @@ bool GaugeSuper::isLabelsVisible() const
  */
 void GaugeSuper::cleanupMemory()
 {
+  WidgetStateGuard widgetStateGuard;
+  m_loaded = false;
+  m_initialized = false;
   // Clean up intervals array
   if (m_intervalsAllocated && m_intervals != nullptr) {
     delete[] m_intervals;
@@ -742,6 +739,7 @@ void GaugeSuper::cleanupMemory()
  */
 bool GaugeSuper::validateConfig(const GaugeConfig& config)
 {
+  WidgetStateGuard widgetStateGuard;
   // Validate basic parameters
   if (config.width <= 0) {
     ESP_LOGE(TAG, "Invalid width: %d", config.width);
@@ -766,5 +764,13 @@ bool GaugeSuper::validateConfig(const GaugeConfig& config)
     }
   }
   
+  for (size_t i = 0; i < config.amountIntervals; ++i) {
+    if (config.intervals[i] < config.minValue || config.intervals[i] > config.maxValue ||
+        (i && config.intervals[i] <= config.intervals[i - 1])) {
+      ESP_LOGE(TAG, "Intervals must be increasing and within the gauge range");
+      return false;
+    }
+  }
   return true;
 }
+#endif // DFK_DISABLE_GAUGE

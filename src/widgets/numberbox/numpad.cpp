@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_NUMBERBOX)
 #include "numpad.h"
 #include "../../check_touch.h"
 
@@ -73,6 +75,7 @@ Numpad::~Numpad()
  */
 void Numpad::cleanupMemory()
 {
+  WidgetStateGuard widgetStateGuard;
   ESP_LOGD(TAG, "Numpad memory cleanup completed");
 }
 
@@ -83,14 +86,16 @@ void Numpad::cleanupMemory()
  * @return True se o toque está dentro da área do Numpad, False caso contrário.
  * @details Método override que sempre retorna false. Use detectTouch() com pressedKey para detecção real.
  */
-bool Numpad::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) { return false; }
+bool Numpad::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch) {
+  WidgetStateGuard widgetStateGuard; return false; }
 
 /**
  * @brief Recupera a função callback associada ao Numpad.
  * @return Ponteiro para a função callback.
  * @details Retorna o ponteiro para a função que será executada quando o teclado for utilizado.
  */
-functionCB_t Numpad::getCallbackFunc() { return m_callback; }
+functionCB_t Numpad::getCallbackFunc() {
+  WidgetStateGuard widgetStateGuard; return m_callback; }
 
 /**
  * @brief Detecta se uma tecla específica do Numpad foi tocada e retorna o tipo de tecla.
@@ -107,6 +112,7 @@ functionCB_t Numpad::getCallbackFunc() { return m_callback; }
 bool Numpad::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch,
                          PressedKeyType *pressedKey)
 {
+  WidgetStateGuard widgetStateGuard;
 
   CHECK_VISIBLE_BOOL
   CHECK_INITIALIZED_BOOL
@@ -237,6 +243,7 @@ bool Numpad::detectTouch(uint16_t *_xTouch, uint16_t *_yTouch,
 
 void Numpad::drawBackKey(uint16_t x, uint16_t y)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_LOADED_VOID
 
@@ -270,6 +277,7 @@ void Numpad::drawBackKey(uint16_t x, uint16_t y)
  */
 void Numpad::drawKeys(bool fullScreen, bool onlyContent)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_LOADED_VOID
   //uint32_t startMillis = millis();
@@ -357,6 +365,7 @@ void Numpad::drawKeys(bool fullScreen, bool onlyContent)
  */
 void Numpad::addLetter(char c)
 {
+  WidgetStateGuard widgetStateGuard;
   if (c == '.' && m_content.containsChar('.'))
   {
     ESP_LOGE(TAG, "Value of numberbox aleady has . character");
@@ -380,6 +389,7 @@ void Numpad::addLetter(char c)
  */
 void Numpad::removeLetter()
 {
+  WidgetStateGuard widgetStateGuard;
   if (!m_content.removeLastChar())
   {
     ESP_LOGD(TAG, "Char not removed");
@@ -399,6 +409,7 @@ void Numpad::removeLetter()
  */
 bool Numpad::setup()
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_BOOL
   if (m_loaded)
   {
@@ -450,6 +461,7 @@ bool Numpad::setup()
  */
 void Numpad::setup(const NumpadConfig &config)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   if (m_loaded)
   {
@@ -510,6 +522,7 @@ void Numpad::setup(const NumpadConfig &config)
  */
 void Numpad::open(NumberBox *_field)
 {
+  WidgetStateGuard widgetStateGuard;
   m_myTime = millis() + (TIMEOUT_CLICK *
                          3); // Espera o tempo de 3 clicks para iniciar a
                              // detecção, evitando apertar tecla assim que abre.
@@ -535,6 +548,7 @@ void Numpad::open(NumberBox *_field)
  */
 void Numpad::close()
 {
+  WidgetStateGuard widgetStateGuard;
   // Libera tecla pressionada antes de fechar
   releaseKey();
 
@@ -559,6 +573,7 @@ void Numpad::close()
  */
 void Numpad::insertChar(char c)
 {
+  WidgetStateGuard widgetStateGuard;
   if (WidgetBase::usingKeyboard)
   {
     addLetter(c);
@@ -575,6 +590,7 @@ void Numpad::insertChar(char c)
  */
 void Numpad::show()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = true;
   m_shouldRedraw = true;
 }
@@ -585,6 +601,7 @@ void Numpad::show()
  */
 void Numpad::hide()
 {
+  WidgetStateGuard widgetStateGuard;
   m_visible = false;
   m_shouldRedraw = true;
 }
@@ -593,7 +610,8 @@ void Numpad::hide()
  * @brief Força o Numpad a atualizar.
  * @details Define a flag de atualização para disparar um redesenho no próximo ciclo.
  */
-void Numpad::forceUpdate() { m_shouldRedraw = true; }
+void Numpad::forceUpdate() {
+  WidgetStateGuard widgetStateGuard; m_shouldRedraw = true; }
 
 /**
  * @brief Redesenha o Numpad na tela.
@@ -601,6 +619,7 @@ void Numpad::forceUpdate() { m_shouldRedraw = true; }
  */
 void Numpad::redraw()
 {
+  WidgetStateGuard widgetStateGuard;
   drawKeys(false, false);
 }
 
@@ -613,6 +632,7 @@ void Numpad::redraw()
  */
 void Numpad::drawSingleKey(uint16_t row, uint16_t col, bool isPressed)
 {
+  WidgetStateGuard widgetStateGuard;
   CHECK_TFT_VOID
   CHECK_LOADED_VOID
 
@@ -665,6 +685,7 @@ void Numpad::drawSingleKey(uint16_t row, uint16_t col, bool isPressed)
  */
 void Numpad::pressKey(uint16_t row, uint16_t col)
 {
+  WidgetStateGuard widgetStateGuard;
   // Libera tecla anterior se houver
   if (m_pressedKey.isPressed)
   {
@@ -688,6 +709,7 @@ void Numpad::pressKey(uint16_t row, uint16_t col)
  */
 void Numpad::releaseKey()
 {
+  WidgetStateGuard widgetStateGuard;
   if (m_pressedKey.isPressed)
   {
     drawSingleKey(m_pressedKey.row, m_pressedKey.col, false);
@@ -705,6 +727,7 @@ void Numpad::releaseKey()
  */
 bool Numpad::isPointInKey(uint16_t xTouch, uint16_t yTouch, const KeyState &keyState)
 {
+  WidgetStateGuard widgetStateGuard;
   if (!keyState.isPressed)
   {
     return false;
@@ -717,3 +740,4 @@ bool Numpad::isPointInKey(uint16_t xTouch, uint16_t yTouch, const KeyState &keyS
 
   return POINT_IN_RECT(xTouch, yTouch, key_x, key_y, key_width, key_height);
 }
+#endif // DFK_DISABLE_NUMBERBOX

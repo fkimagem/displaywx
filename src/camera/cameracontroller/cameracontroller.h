@@ -22,6 +22,10 @@ class CameraController
 {
 public:
     CameraController();
+    ~CameraController();
+    CameraController(const CameraController&) = delete;
+    CameraController& operator=(const CameraController&) = delete;
+    void end(); // Consumers must be stopped first.
 
     bool begin(int sccbPort, int8_t sclPin, int8_t sdaPin, uint32_t i2cFreq = 0, int8_t resetPin = -1, int8_t pwdnPin = -1, uint16_t sensorWidth = 0, uint16_t sensorHeight = 0);
     bool enableBoardPower(int8_t pin, bool activeHigh = true, uint32_t settleMs = 20);

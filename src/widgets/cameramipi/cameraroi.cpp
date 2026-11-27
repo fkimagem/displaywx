@@ -1,3 +1,5 @@
+#include "../../widgets/widgetsetup.h"
+#if !defined(DFK_DISABLE_CAMERA_MIPI)
 #include "cameraroi.h"
 #include "../../displaywx.h"
 #include <string.h>
@@ -438,3 +440,5 @@ bool CameraRoi::keepZoom() const { return false; }
 CameraMipi *CameraRoi::widget() const { return nullptr; }
 
 #endif
+
+#endif // DFK_DISABLE_CAMERA_MIPI
