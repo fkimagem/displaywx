@@ -50,6 +50,10 @@ atual.
 // In DisplayWX/user_setup.h, enable DISP_DEFAULT and TOUCH_FT6336.
 // Enable only the FT6336 touch driver for this hardware configuration.
 #include <displaywx.h>
+#include <fonts/RobotoBold/RobotoBold10pt7b.h>
+#include <fonts/RobotoBold/RobotoBold8pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular10pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular5pt7b.h>
 
 
     /* Project setup:
@@ -176,10 +180,13 @@ void loadWidgets(){
             .prefix = "Line",
             .suffix = "",
             .fontFamily = &RobotoRegular10pt7b,
-            .datum = TL_DATUM,
+            .datum = L_BASELINE,
             .fontColor = CFK_COLOR08,
             .backgroundColor = CFK_GREY3,
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular10,
+            .backgroundDatum = TL_DATUM,
+            .backgroundAnchorX = 170.0f,
+            .backgroundAnchorY = 225.0f,
             .fillBackground = true
         };
     labelchart11.setup(configLabel0);

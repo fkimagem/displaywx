@@ -310,6 +310,7 @@ void TouchScreen::touch(TPoint p, TEvent e)
 void TouchScreen::touch_init()
 {
   ESP_LOGD(TAG, "touch_init");
+#if defined(HAS_TOUCH)
   if (!m_ts) { m_startedTouch = false; return; }
 #if defined(TOUCH_GT911)
   m_ts->begin();
@@ -354,6 +355,9 @@ void TouchScreen::touch_init()
   m_ts->begin();
 #endif
   m_startedTouch = true;
+#else
+  m_startedTouch = false;
+#endif
 }
 
 #if defined(TOUCH_FT6336)

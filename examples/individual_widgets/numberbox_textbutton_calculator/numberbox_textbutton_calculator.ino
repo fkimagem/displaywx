@@ -8,6 +8,8 @@
 // In DisplayWX/user_setup.h, enable DISP_DEFAULT and TOUCH_FT6336.
 // Enable only the FT6336 touch driver for this hardware configuration.
 #include <displaywx.h>
+#include <fonts/RobotoBold/RobotoBold10pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular10pt7b.h>
 
 
     /* Project setup:
@@ -119,10 +121,13 @@ void loadWidgets(){
             .prefix = "",
             .suffix = "",
             .fontFamily = &RobotoRegular10pt7b,
-            .datum = TC_DATUM,
+            .datum = C_BASELINE,
             .fontColor = CFK_BLACK,
             .backgroundColor = CFK_WHITE,
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular10,
+            .backgroundDatum = TC_DATUM,
+            .backgroundAnchorX = 240.0f,
+            .backgroundAnchorY = 240.0f,
             .fillBackground = true
         };
     txtresultado.setup(configLabel0);

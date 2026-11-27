@@ -7,6 +7,15 @@
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
 #include <displaywx.h>
+#include <fonts/RobotoBold/RobotoBold13pt7b.h>
+#include <fonts/RobotoBold/RobotoBold14pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular10pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular11pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular12pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular13pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular5pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular8pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular9pt7b.h>
 #include "fluxo.h" // [MANUAL]
 
 
@@ -374,10 +383,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto da frequencia atual.
             .suffix = " Hz", ///< Texto fixo depois do valor do texto da frequencia atual: " Hz".
             .fontFamily = &RobotoRegular12pt7b, ///< Fonte do texto da frequencia atual: RobotoRegular12pt7b.
-            .datum = TL_DATUM, ///< No texto da frequencia atual, alinha o texto pelo canto superior esquerdo.
+            .datum = L_BASELINE,
             .fontColor = CFK_COLOR013, ///< Cor da fonte do texto da frequencia atual: CFK_COLOR013.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto da frequencia atual: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular12,
+            .backgroundDatum = TL_DATUM, ///< No texto da frequencia atual, alinha o texto pelo canto superior esquerdo.
+            .backgroundAnchorX = 290.0f,
+            .backgroundAnchorY = 325.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto da frequencia atual.
     valuefact.setup(configLabel0); ///< Aplica a ficha configLabel0 ao widget valuefact.
@@ -386,10 +398,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto da frequencia de setpoint.
             .suffix = " Hz", ///< Texto fixo depois do valor do texto da frequencia de setpoint: " Hz".
             .fontFamily = &RobotoRegular12pt7b, ///< Fonte do texto da frequencia de setpoint: RobotoRegular12pt7b.
-            .datum = TL_DATUM, ///< No texto da frequencia de setpoint, alinha o texto pelo canto superior esquerdo.
+            .datum = L_BASELINE,
             .fontColor = CFK_COLOR043, ///< Cor da fonte do texto da frequencia de setpoint: CFK_COLOR043.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto da frequencia de setpoint: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular12,
+            .backgroundDatum = TL_DATUM, ///< No texto da frequencia de setpoint, alinha o texto pelo canto superior esquerdo.
+            .backgroundAnchorX = 290.0f,
+            .backgroundAnchorY = 360.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto da frequencia de setpoint.
     valuefset.setup(configLabel1); ///< Aplica a ficha configLabel1 ao widget valuefset.
@@ -398,10 +413,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto do percentual do slider geral.
             .suffix = "%", ///< Texto fixo depois do valor do texto do percentual do slider geral: "%".
             .fontFamily = &RobotoRegular8pt7b, ///< Fonte do texto do percentual do slider geral: RobotoRegular8pt7b.
-            .datum = TC_DATUM, ///< No texto do percentual do slider geral, alinha o texto pelo centro superior.
+            .datum = C_BASELINE,
             .fontColor = CFK_COLOR043, ///< Cor da fonte do texto do percentual do slider geral: CFK_COLOR043.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do percentual do slider geral: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular8,
+            .backgroundDatum = TC_DATUM, ///< No texto do percentual do slider geral, alinha o texto pelo centro superior.
+            .backgroundAnchorX = 205.0f,
+            .backgroundAnchorY = 445.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto do percentual do slider geral.
     labelhsliderge.setup(configLabel2); ///< Aplica a ficha configLabel2 ao widget labelhsliderge.
@@ -410,10 +428,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto do RPM do programa 1.
             .suffix = "", ///< Nao escreve texto depois do valor do texto do RPM do programa 1.
             .fontFamily = &RobotoRegular13pt7b, ///< Fonte do texto do RPM do programa 1: RobotoRegular13pt7b.
-            .datum = TL_DATUM, ///< No texto do RPM do programa 1, alinha o texto pelo canto superior esquerdo.
+            .datum = L_BASELINE,
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do RPM do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do RPM do programa 1: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular13,
+            .backgroundDatum = TL_DATUM, ///< No texto do RPM do programa 1, alinha o texto pelo canto superior esquerdo.
+            .backgroundAnchorX = 240.0f,
+            .backgroundAnchorY = 310.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto do RPM do programa 1.
     setrpmvalue.setup(configLabel3); ///< Aplica a ficha configLabel3 ao widget setrpmvalue.
@@ -422,10 +443,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto do percentual do programa 1.
             .suffix = "%", ///< Texto fixo depois do valor do texto do percentual do programa 1: "%".
             .fontFamily = &RobotoRegular13pt7b, ///< Fonte do texto do percentual do programa 1: RobotoRegular13pt7b.
-            .datum = TL_DATUM, ///< No texto do percentual do programa 1, alinha o texto pelo canto superior esquerdo.
+            .datum = L_BASELINE,
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do percentual do programa 1: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do percentual do programa 1: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular13,
+            .backgroundDatum = TL_DATUM, ///< No texto do percentual do programa 1, alinha o texto pelo canto superior esquerdo.
+            .backgroundAnchorX = 190.0f,
+            .backgroundAnchorY = 415.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto do percentual do programa 1.
     rpmvalue.setup(configLabel4); ///< Aplica a ficha configLabel4 ao widget rpmvalue.
@@ -434,10 +458,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto do RPM do programa 2.
             .suffix = "", ///< Nao escreve texto depois do valor do texto do RPM do programa 2.
             .fontFamily = &RobotoRegular13pt7b, ///< Fonte do texto do RPM do programa 2: RobotoRegular13pt7b.
-            .datum = TL_DATUM, ///< No texto do RPM do programa 2, alinha o texto pelo canto superior esquerdo.
+            .datum = L_BASELINE,
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do RPM do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do RPM do programa 2: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular13,
+            .backgroundDatum = TL_DATUM, ///< No texto do RPM do programa 2, alinha o texto pelo canto superior esquerdo.
+            .backgroundAnchorX = 235.0f,
+            .backgroundAnchorY = 305.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto do RPM do programa 2.
     text8copycopy.setup(configLabel5); ///< Aplica a ficha configLabel5 ao widget text8copycopy.
@@ -446,10 +473,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "", ///< Nao escreve texto antes do valor do texto do percentual do programa 2.
             .suffix = "%", ///< Texto fixo depois do valor do texto do percentual do programa 2: "%".
             .fontFamily = &RobotoRegular13pt7b, ///< Fonte do texto do percentual do programa 2: RobotoRegular13pt7b.
-            .datum = TL_DATUM, ///< No texto do percentual do programa 2, alinha o texto pelo canto superior esquerdo.
+            .datum = L_BASELINE,
             .fontColor = CFK_WHITE, ///< Cor da fonte do texto do percentual do programa 2: CFK_WHITE.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do percentual do programa 2: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular13,
+            .backgroundDatum = TL_DATUM, ///< No texto do percentual do programa 2, alinha o texto pelo canto superior esquerdo.
+            .backgroundAnchorX = 205.0f,
+            .backgroundAnchorY = 420.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto do percentual do programa 2.
     rpmvalue6.setup(configLabel6); ///< Aplica a ficha configLabel6 ao widget rpmvalue6.
@@ -458,10 +488,13 @@ void loadWidgets(){ ///< Monta a ficha de cada widget e registra os grupos na Di
             .prefix = "Server: ", ///< Texto fixo antes do valor do texto do estado do servidor: "Server: ".
             .suffix = "", ///< Nao escreve texto depois do valor do texto do estado do servidor.
             .fontFamily = &RobotoRegular10pt7b, ///< Fonte do texto do estado do servidor: RobotoRegular10pt7b.
-            .datum = TC_DATUM, ///< No texto do estado do servidor, alinha o texto pelo centro superior.
+            .datum = C_BASELINE,
             .fontColor = CFK_GREY14, ///< Cor da fonte do texto do estado do servidor: CFK_GREY14.
             .backgroundColor = CFK_GREY5, ///< Cor de fundo do texto do estado do servidor: CFK_GREY5.
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular10,
+            .backgroundDatum = TC_DATUM, ///< No texto do estado do servidor, alinha o texto pelo centro superior.
+            .backgroundAnchorX = 610.0f,
+            .backgroundAnchorY = 20.0f,
             .fillBackground = true
         }; ///< Fecha a ficha do texto do estado do servidor.
     labelservstat.setup(configLabel7); ///< Aplica a ficha configLabel7 ao widget labelservstat.

@@ -33,6 +33,7 @@ Usamos a startCustomDraw e finishCustomDraw para agrupar mudanças no widgets, o
 // In DisplayWX/user_setup.h, enable DISP_DEFAULT and TOUCH_FT6336.
 // Enable only the FT6336 touch driver for this hardware configuration.
 #include <displaywx.h>
+#include <fonts/RobotoRegular/RobotoRegular10pt7b.h>
 
 
     /* Project setup:
@@ -157,10 +158,13 @@ void loadWidgets(){
             .prefix = "",
             .suffix = "%",
             .fontFamily = &RobotoRegular10pt7b,
-            .datum = TL_DATUM,
+            .datum = L_BASELINE,
             .fontColor = CFK_COLOR30,
             .backgroundColor = CFK_WHITE,
-            .textMetrics = nullptr, // Measure using the configured GFX font.
+            .textMetrics = &edgewx_text_RobotoRegular10,
+            .backgroundDatum = TL_DATUM,
+            .backgroundAnchorX = 130.0f,
+            .backgroundAnchorY = 265.0f,
             .fillBackground = true
         };
     labelvbar12.setup(configLabel0);

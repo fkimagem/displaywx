@@ -8,6 +8,14 @@
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
 #include <displaywx.h>
+#include <fonts/RobotoBold/RobotoBold10pt7b.h>
+#include <fonts/RobotoBold/RobotoBold15pt7b.h>
+#include <fonts/RobotoBold/RobotoBold7pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular12pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular15pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular5pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular6pt7b.h>
+#include <fonts/RobotoRegular/RobotoRegular7pt7b.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
@@ -418,29 +426,41 @@ void loadWidgets() {
     myDisplay.setCircularBar(arrayCircularbar, 1);
     LabelConfig configUmidade = {
         .text = "", .prefix = "", .suffix = "%", .fontFamily = FONTE_UMIDADE,
-        .datum = TL_DATUM, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO,
-        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .datum = L_BASELINE, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO,
+        .textMetrics = &edgewx_text_RobotoRegular15,
+        .backgroundDatum = TL_DATUM,
+        .backgroundAnchorX = 180.0f,
+        .backgroundAnchorY = 133.0f,
         .fillBackground = true
     };
     textoUmidade.setup(configUmidade);
     LabelConfig configQualidade = {
         .text = "", .prefix = "", .suffix = "", .fontFamily = &RobotoRegular12pt7b,
-        .datum = TL_DATUM, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO,
-        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .datum = L_BASELINE, .fontColor = COR_DADOS, .backgroundColor = COR_FUNDO,
+        .textMetrics = &edgewx_text_RobotoRegular12,
+        .backgroundDatum = TL_DATUM,
+        .backgroundAnchorX = 180.0f,
+        .backgroundAnchorY = 213.0f,
         .fillBackground = true
     };
     textoQualidade.setup(configQualidade);
     LabelConfig configVentilacao = {
         .text = "", .prefix = "", .suffix = "%", .fontFamily = &RobotoBold7pt7b,
-        .datum = TR_DATUM, .fontColor = COR_VENTILACAO, .backgroundColor = COR_PAINEL,
-        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .datum = R_BASELINE, .fontColor = COR_VENTILACAO, .backgroundColor = COR_PAINEL,
+        .textMetrics = &edgewx_text_RobotoBold7,
+        .backgroundDatum = TR_DATUM,
+        .backgroundAnchorX = 295.0f,
+        .backgroundAnchorY = 281.0f,
         .fillBackground = true
     };
     textoVentilacao.setup(configVentilacao);
     LabelConfig configEstado = {
         .text = "", .prefix = "", .suffix = "", .fontFamily = &RobotoRegular5pt7b,
-        .datum = TL_DATUM, .fontColor = COR_LEGENDA, .backgroundColor = COR_FUNDO,
-        .textMetrics = nullptr, // Measure using the configured GFX font.
+        .datum = L_BASELINE, .fontColor = COR_LEGENDA, .backgroundColor = COR_FUNDO,
+        .textMetrics = &edgewx_text_RobotoRegular5,
+        .backgroundDatum = TL_DATUM,
+        .backgroundAnchorX = 50.0f,
+        .backgroundAnchorY = 461.0f,
         .fillBackground = true
     };
     textoEstado.setup(configEstado);
